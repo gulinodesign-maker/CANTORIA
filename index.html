@@ -551,7 +551,7 @@ function makeId() { return `${Date.now().toString(36)}-${Math.random().toString(
 
 const root = document.querySelector('#app');
 const store = loadStore();
-const state = { view: 'home', filter: '', massId: null, songId: null, massItemId: null, shift: 0, page: 0, modal: null, photoURL: null, photoTitle: '', ocrText: '', ocrBusy: false, ocrStatus: '', toast: '', fontScale: 1 };
+const state = { view: 'home', filter: '', massId: null, songId: null, massItemId: null, shift: 0, page: 0, modal: null, photoURL: null, photoTitle: '', ocrText: '', geometryDraft: null, geometryRawText: '', ocrBusy: false, ocrStatus: '', toast: '', fontScale: 1 };
 let toastTimer;
 const escape = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const escapeAttr = escape;
@@ -576,21 +576,34 @@ function describeTonality(song,shift=0){
   return `${note} ${mode}`;
 }
 function chordLabel(c){return escape(transposeChord(c,state.shift)).replace(/(\d*[24])$/, s=>`<sup>${s}</sup>`);}
-function introChords(section){return `<div class="music-row ${section.kind} chords-only"><div class="chord-band">${section.chordsOnly.map(c=>`<span class="chord-label">${chordLabel(c)}</span>`).join('')}</div></div>`;}
-function outroChords(section){return (section.chordRows||[]).map(row=>`<div class="music-row ${section.kind} chords-only"><div class="chord-band">${row.map(c=>`<span class="chord-label">${chordLabel(c)}</span>`).join('')}</div></div>`).join('');}
+function chordOnlyBand(chords,kind,geometry){
+ const positioned=Array.isArray(geometry)&&geometry.length===chords.length&&
+  geometry.every(g=>Number.isFinite(g.sourceX)&&g.sourceLineBBox?.x1>g.sourceLineBBox?.x0);
+ const labels=chords.map((chord,i)=>{
+  const src=geometry?.[i],bbox=src?.sourceLineBBox;
+  const x=positioned?100*(src.sourceX-bbox.x0)/(bbox.x1-bbox.x0):0;
+  return `<span class="chord-label" ${positioned?`style="left:${x.toFixed(4)}%;position:absolute"`:''}>${chordLabel(chord)}</span>`;
+ }).join('');
+ return `<div class="music-row ${escapeAttr(kind)} chords-only"><div class="chord-band" ${positioned?'style="display:block"':''}>${labels}</div></div>`;
+}
+function introChords(section){return chordOnlyBand(section.chordsOnly,section.kind,section.chordsOnlyGeometry);}
+function outroChords(section){return (section.chordRows||[]).map((row,i)=>chordOnlyBand(row,section.kind,section.chordRowsGeometry?.[i])).join('');}
 function lineHTML(section,line,si,li,isPrint=false){
   const tokens = parseSyllables(line.marked);
   let slot=0;
   const lyrics=tokens.map(token=>token.space?`<span class="space-syl">${escape(token.text)}</span>`:`<span class="syllable ${isPrint?'':'clickable'}" data-slot="${slot++}" ${isPrint?'':`data-action="add-chord" data-section="${si}" data-line="${li}"`}>${escape(token.text)}</span>`).join('');
   const chords=(line.anchors||[]).map((a,ai)=>{
-    const tag=isPrint?'span':'button';
-    return `<${tag} class="chord-label ${isPrint?'':'editable'}" data-slot="${a.slot}" ${isPrint?'':`data-action="edit-chord" data-section="${si}" data-line="${li}" data-chord="${ai}"`} aria-label="Accordo ${escapeAttr(a.chord)}">${chordLabel(a.chord)}</${tag}>`;
+    const tag=isPrint?'span':'button',uncertain=a.needsReview&&!a.verified;
+    const cIndex=Number.isInteger(a.anchorCharacterIndex)?a.anchorCharacterIndex:'';
+    const offset=Number.isFinite(a.offsetX)?a.offsetX:'';
+    const sourceWidth=Number.isFinite(a.sourceCharWidth)?a.sourceCharWidth:'';
+    return `<${tag} class="chord-label ${isPrint?'':'editable'} ${uncertain?'uncertain':''}" data-slot="${a.slot}" data-char-index="${cIndex}" data-offset-x="${offset}" data-source-char-width="${sourceWidth}" ${isPrint?'':`data-action="edit-chord" data-section="${si}" data-line="${li}" data-chord="${ai}"`} title="${uncertain?'Posizione da verificare sulla foto':'Accordo'}" aria-label="Accordo ${escapeAttr(a.chord)}${uncertain?' da verificare':''}">${chordLabel(a.chord)}</${tag}>`;
   }).join('');
   return `<div class="music-row ${escapeAttr(section.kind)}" data-row="s${si}-l${li}"><div class="chord-band">${chords}</div><div class="lyric-line">${lyrics}</div></div>`;
 }
 function groupHeading(label,continued=false){return `<div class="section-title ${continued?'continued':''}">${escape(label)}${continued?' · segue':''}</div>`;}
 function sectionsAllHTML(song,isPrint=false){return (song.sections||[]).map((sec,si)=>`<section class="music-group ${isPrint?'print-section':''}">${groupHeading(sec.name)}${sec.chordsOnly?introChords(sec):''}${(sec.lines||[]).map((ln,li)=>lineHTML(sec,ln,si,li,isPrint)).join('')}${sec.chordRows?outroChords(sec):''}</section>`).join('');}
-function flatEntries(song){const res=[];(song.sections||[]).forEach((sec,si)=>{if(sec.chordsOnly)res.push({si,type:'intro',sec,first:true});(sec.lines||[]).forEach((line,li)=>res.push({si,type:'line',sec,line,li,first:li===0}));(sec.chordRows||[]).forEach((row,i)=>res.push({si,type:'outro',sec,row,first:i===0}));});return res;}
+function flatEntries(song){const res=[];(song.sections||[]).forEach((sec,si)=>{if(sec.chordsOnly)res.push({si,type:'intro',sec,first:true});(sec.lines||[]).forEach((line,li)=>res.push({si,type:'line',sec,line,li,first:li===0}));(sec.chordRows||[]).forEach((row,i)=>res.push({si,type:'outro',sec,row,rowIndex:i,first:i===0}));});return res;}
 function pageList(song){
  const items=flatEntries(song),columns=readerColumns();
  if(!items.length)return [[[]]];
@@ -613,7 +626,7 @@ function pageList(song){
  }
  return pages;
 }
-function entriesHTML(entries){if(!entries.length)return '<p>Questo canto non ha ancora righe.</p>';let lastSection=-1;return entries.map((e,idx)=>{let heading='';if(e.si!==lastSection){heading=groupHeading(e.sec.name,!e.first);lastSection=e.si;}return heading+(e.type==='intro'?introChords(e.sec):e.type==='outro'?`<div class="music-row outro chords-only"><div class="chord-band">${e.row.map(c=>`<span class="chord-label">${chordLabel(c)}</span>`).join('')}</div></div>`:lineHTML(e.sec,e.line,e.si,e.li));}).join('');}
+function entriesHTML(entries){if(!entries.length)return '<p>Questo canto non ha ancora righe.</p>';let lastSection=-1;return entries.map((e,idx)=>{let heading='';if(e.si!==lastSection){heading=groupHeading(e.sec.name,!e.first);lastSection=e.si;}return heading+(e.type==='intro'?introChords(e.sec):e.type==='outro'?chordOnlyBand(e.row,e.sec.kind,e.sec.chordRowsGeometry?.[e.rowIndex]):lineHTML(e.sec,e.line,e.si,e.li));}).join('');}
 function readerColumns(){const w=window.innerWidth,h=window.innerHeight;return ((w>=650&&w>h)||w>=760)?2:1;}
 function photoReaderHTML(song){
  return `<div class="reader-layer reader-portrait reader-photo" id="readerLayer" data-song="${escapeAttr(song.id)}">
@@ -646,6 +659,7 @@ function readerHTML(){
   <button class="reader-menu-btn" type="button" data-action="song-options" aria-label="Opzioni brano: tonalità, trasporto, PDF ed esportazione" title="Opzioni brano">☰</button>
  </header>
  <div class="reader-stage" id="readerStage"><article class="reader-paper" id="readerPaper" tabindex="0">
+  ${song.photoData?(()=>{const anchors=song.sections.flatMap(sec=>(sec.lines||[]).flatMap(line=>line.anchors||[]));const pending=anchors.filter(a=>a.needsReview&&!a.verified).length;const unresolved=song.sections.reduce((n,sec)=>n+(sec.lines||[]).reduce((m,line)=>m+(line.unresolvedChords?.length||0),0),0);return pending||unresolved?`<div class="reader-warning" role="status">${pending} accordi da controllare con la foto${unresolved?' · '+unresolved+' simboli non letti':''}. Tieni premuto per correggere.</div>`:''})():''}
   <div class="sheet-columns" style="--reader-cols:${cols}">${columns.map(col=>`<div class="sheet-column">${entriesHTML(col)}</div>`).join('')}</div>
  </article></div></div>`;
 }
@@ -701,7 +715,8 @@ function loadOcrLibrary(){
 }
 function photoOcrFormHTML(inReader=false) {
  const draft=String(state.ocrText||'');
- const ready=draft.trim().length>0;
+ const ready=draft.trim().length>0&&!!state.geometryDraft?.hasGeometry&&
+  state.geometryDraft.sections?.some(s=>s.lines?.length)&&draft.trim()===state.geometryRawText;
  return '<section class="photo-ocr-panel" aria-label="Riconoscimento foto">' +
   '<button type="button" class="outline-btn photo-ocr-start" data-action="recognize-photo"' + (state.ocrBusy?' disabled':'') + '>' +
   (state.ocrBusy?'Riconoscimento in corso…':'Riconosci testo e accordi') + '</button>' +
@@ -711,22 +726,25 @@ function photoOcrFormHTML(inReader=false) {
   '<textarea id="photoOcrText" name="ocrText" rows="10" maxlength="20000" spellcheck="false" placeholder="STROFA&#10;SOL          RE&#10;Be|ne|det|to sei Signore">' +
   escape(draft) + '</textarea></div>' +
   '<details class="photo-ocr-help"><summary>Come correggere gli accordi</summary>' +
-  '<p>Scrivi gli accordi su una riga sopra il testo. Per separare una parola in sillabe usa |, ad esempio Be|ne|det|to. Gli ancoraggi sono provvisori e si correggono nello spartito con una pressione prolungata.</p></details>' +
+  '<p>Il riconoscimento automatico usa le coordinate della foto, non gli spazi di questa casella. Se modifichi qui il testo, devi rileggere la foto: altrimenti non possiamo garantire gli ancoraggi. Dopo la conversione tieni premuto su sillabe e accordi per correggerli.</p></details>' +
   (inReader ?
     '<button type="button" class="primary-btn photo-save" data-action="convert-ocr-photo"' + (!ready?' disabled':'') + '>Crea partitura modificabile</button>' +
     '<button type="button" class="outline-btn photo-save" data-action="save-ocr-text">Salva solo trascrizione</button>' :
     '<button type="submit" class="primary-btn photo-save" name="photoMode" value="score"' + (!ready?' disabled':'') + '>Crea partitura modificabile</button>' +
     '<button type="submit" class="outline-btn photo-save" name="photoMode" value="photo">Salva solo la foto</button>') +
-  '<p class="photo-draft-notice">Riconoscimento sperimentale: controlla testo, accordi e sillabe prima dell’uso. Non riconosce le note sul pentagramma.</p>' +
+  '<p class="photo-draft-notice">Allineamento geometrico sperimentale: i simboli e le posizioni incerti sono da verificare sulla fotografia. Senza coordinate OCR non viene inventata una collocazione. Non riconosce le note sul pentagramma.</p>' +
   '</section>';
 }
 function photoSectionsFromText(text){
- if(!window.CantoriaOCR)throw new Error('Motore di conversione non caricato. Riapri Cantoria.');
- const sections=window.CantoriaOCR.parse(String(text||'').trim());
- if(!sections.some(s=>s.lines&&s.lines.length))throw new Error('Nessun testo di canto valido. Correggi la trascrizione prima di continuare.');
+ const unmodified=String(text||'').trim()===state.geometryRawText&&state.geometryRawText;
+ if(!unmodified||!state.geometryDraft?.hasGeometry){
+  throw new Error('Le coordinate musicali non sono disponibili o la trascrizione è stata modificata. Ripeti la lettura della foto: non vogliamo inventare gli ancoraggi degli accordi.');
+ }
+ const sections=structuredClone(state.geometryDraft.sections);
+ if(!sections.some(s=>s.lines?.length))throw new Error('Nessuna riga di canto riconosciuta con coordinate geometriche. Salva la foto e riprova.');
  return sections;
 }
-async function recognizePhotoText(){
+async function recognizePhotoText(replaceExisting=false){
  if(state.ocrBusy)return;
  if(!state.songId)state.photoTitle=document.getElementById("photoSongTitle")?.value||state.photoTitle||"";
  const image=state.songId?currentSong()?.photoData:state.photoURL;
@@ -748,7 +766,27 @@ async function recognizePhotoText(){
   await worker.setParameters({preserve_interword_spaces:"1"});
   const result=await worker.recognize(image);
   state.ocrText=String(result.data?.text||'').trim().slice(0,20000);
-  state.ocrStatus=state.ocrText?'Testo estratto. Correggilo prima di salvarlo.':'Non ho trovato testo leggibile. Prova una foto più nitida.';
+  state.geometryRawText=state.ocrText;
+  state.geometryDraft=window.CantoriaGeometry?.parseGeometry(result.data)||null;
+  const diag=state.geometryDraft?.diagnostics;
+  if(!state.geometryDraft?.sections?.some(s=>s.lines?.length)){
+   state.ocrStatus='Non sono disponibili coordinate sufficienti per associare gli accordi. Salva la foto e riprova.';
+  }else{
+   state.ocrStatus='Coordinate conservate. '+diag.totalAnchored+' accordi associati; '+diag.needsReview+' associazioni da verificare con l’originale.';
+   if(replaceExisting){
+    const song=currentSong();
+    if(song?.photoData){
+     const previous={sections:song.sections,ocrText:song.ocrText,geometryDiagnostics:song.geometryDiagnostics};
+     song.sections=structuredClone(state.geometryDraft.sections);
+     song.ocrText=state.ocrText;
+     song.geometryDiagnostics=structuredClone(diag);
+     song.verified=false;
+     if(!saveStore(store)){
+      Object.assign(song,previous);state.ocrStatus='Memoria insufficiente: partitura non aggiornata.';
+     }else state.ocrStatus='Partitura ricalcolata dalle coordinate originali. Verifica gli accordi segnalati.';
+    }
+   }
+  }
  }catch(err){
   console.error('OCR:',err);
   state.ocrStatus='OCR non riuscito. Verifica la connessione e riprova; la foto resta disponibile.';
@@ -774,7 +812,7 @@ function captureHTML(){
      </form>`:`<p class="photo-capture-hint">Fotografa lo spartito per iniziare.</p>`}
   </section>`;
 }
-function settingsHTML(){return `<div class="page-heading"><div><div class="eyebrow">Versione 0.5.1</div><h1>Impostazioni</h1></div></div><div class="form-wrap"><div class="panel"><h3>Dati e salvataggi</h3><p>I canti e le scalette sono attualmente memorizzati <strong>solo nel browser di questo dispositivo</strong>. Non sono ancora sincronizzati su iCloud o GitHub.</p><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px"><button class="outline-btn" data-action="backup">Scarica backup JSON</button><label class="outline-btn" style="cursor:pointer">Ripristina backup<input type="file" id="backupInput" accept="application/json" style="display:none"></label></div></div><div class="panel"><h3>Ultimo aggiornamento</h3><p>Scopri le modifiche e le migliorie introdotte con la versione più recente.</p><button type="button" class="outline-btn" data-action="show-release-notes">Novità dell'ultima versione</button></div><div class="panel"><h3>Modello musicale</h3><p>Ogni accordo conserva un indice di sillaba nel proprio rigo. La trasposizione modifica soltanto il nome dell'accordo, non la sua posizione.</p><div class="alert" style="margin-top:15px">La foto può diventare una partitura modificabile con testo e sigle degli accordi. È indispensabile correggere gli ancoraggi alle sillabe. Le note sul pentagramma non sono ancora riconosciute.</div></div></div>`;}
+function settingsHTML(){return `<div class="page-heading"><div><div class="eyebrow">Versione 0.6.0</div><h1>Impostazioni</h1></div></div><div class="form-wrap"><div class="panel"><h3>Dati e salvataggi</h3><p>I canti e le scalette sono attualmente memorizzati <strong>solo nel browser di questo dispositivo</strong>. Non sono ancora sincronizzati su iCloud o GitHub.</p><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px"><button class="outline-btn" data-action="backup">Scarica backup JSON</button><label class="outline-btn" style="cursor:pointer">Ripristina backup<input type="file" id="backupInput" accept="application/json" style="display:none"></label></div></div><div class="panel"><h3>Ultimo aggiornamento</h3><p>Scopri le modifiche e le migliorie introdotte con la versione più recente.</p><button type="button" class="outline-btn" data-action="show-release-notes">Novità dell'ultima versione</button></div><div class="panel"><h3>Modello musicale</h3><p>Gli accordi delle fotografie conservano anche coordinate OCR, indice del carattere e livello di affidabilità. La disposizione grafica non cambia il loro ancoraggio musicale.</p><div class="alert" style="margin-top:15px">OCR geometrico sperimentale: dove sono disponibili soltanto i riquadri delle parole gli ancoraggi ai caratteri sono stimati e sempre da verificare. Se mancano le coordinate, l'app non inventa una posizione. Le note sul pentagramma non sono ancora riconosciute.</div></div></div>`;}
 function appHTML(){
  const views={home:homeHTML,library:libraryHTML,masses:massesHTML,capture:captureHTML,settings:settingsHTML};
  const builder=views[state.view]||homeHTML;
@@ -810,9 +848,9 @@ function modalHTML(){const m=state.modal;
  }
  if(m.type==='reparse-photo-confirm'){
   const song=currentSong();if(!song||!song.photoData||!song.ocrText)return '';
-  return `<div class="modal-shade"><div class="modal-card" role="alertdialog" aria-modal="true" aria-label="Conferma ricalcolo accordi"><h2>Ricalcolare gli accordi?</h2><p>La partitura verrà ricreata dal testo OCR già salvato. Le modifiche manuali fatte sulle sillabe e sugli accordi saranno sostituite. La fotografia originale resterà disponibile.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button type="button" class="primary-btn" data-action="reparse-photo">Ricalcola accordi</button></div></div></div>`;
+  return `<div class="modal-shade"><div class="modal-card" role="alertdialog" aria-modal="true" aria-label="Conferma ricalcolo accordi"><h2>Ricalcolare gli accordi?</h2><p>La partitura verrà ricalcolata dalla fotografia originale con le coordinate OCR. Le modifiche manuali fatte sulle sillabe e sugli accordi saranno sostituite. La fotografia originale resterà disponibile.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button type="button" class="primary-btn" data-action="reparse-photo">Ricalcola accordi</button></div></div></div>`;
  }
- if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità dell'ultima versione"><h2>Novità dell'ultima versione</h2><p><strong>Acquisizione fotografica:</strong> riconoscimento più robusto delle righe con accordi, anche quando alcuni caratteri sono letti male; gli accordi riconosciuti vengono separati dal testo e mostrati nelle pillole colorate.</p><p><strong>Correzioni:</strong> possibilità di ricalcolare gli accordi dalla trascrizione originale senza dover scattare una nuova foto.</p><p><strong>Gestione spartiti:</strong> nuovo comando Elimina partitura nel menu del brano, con conferma per evitare cancellazioni involontarie.</p><p>Il riconoscimento delle note sul pentagramma non è ancora disponibile e gli accordi restano da verificare rispetto all'originale.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
+ if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità dell'ultima versione"><h2>Novità dell'ultima versione</h2><p><strong>Nuovo algoritmo geometrico:</strong> il riconoscimento conserva le coordinate originali dei riquadri OCR, collega gli accordi ai caratteri e preserva eventuali anticipi; gli ancoraggi stimati sono contrassegnati come da verificare.</p><p><strong>Precisione prima della grafica:</strong> la visualizzazione e il PDF non spostano gli accordi orizzontalmente per distanziarli; le collisioni usano corsie verticali. Si può ricalcolare la partitura dalla foto con nuove coordinate.</p><p><strong>Gestione spartiti:</strong> restano disponibili Elimina partitura con conferma e la modifica manuale degli ancoraggi.</p><p>Il riconoscimento delle note sul pentagramma non è ancora disponibile e gli accordi restano da verificare rispetto all'originale.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
 
  if(m.type==='song-options'){
   const song=currentSong();if(!song)return '';
@@ -855,46 +893,66 @@ if(m.type==='new-mass')return `<div class="modal-shade"><form class="modal-card"
  if(m.type==='chord-edit'){const s=currentSong(),line=s?.sections[m.si]?.lines[m.li];if(!line)return '';const tokens=parseSyllables(line.marked).filter(x=>!x.space);const a=line.anchors[m.ai];return `<div class="modal-shade"><form class="modal-card" id="chordEditForm"><h2>${m.ai===-1?'Aggiungi accordo':'Correggi accordo'}</h2><p>Scegli la sillaba esatta. L'accordo rimarrà agganciato a quella sillaba durante la trasposizione e l'impaginazione.</p><div class="field"><label>Accordo (notazione italiana)</label><input name="chord" value="${escapeAttr(a?.chord||'')}" placeholder="Es. SOL#7" required autofocus></div><div class="field"><label>Sillaba di ancoraggio</label><select name="slot">${tokens.map((t,i)=>`<option value="${i}" ${i===(a?.slot??m.slot)?'selected':''}>${i+1} · ${escape(t.text)}</option>`).join('')}</select></div><div class="modal-actions">${m.ai!==-1?'<button type="button" class="outline-btn" data-action="delete-chord">Elimina accordo</button>':''}<button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button class="primary-btn">Conferma e salva</button></div></form></div>`;}
  return '';
 }
+function readerCharRect(line,index){
+ if(!Number.isInteger(index)||index<0)return null;
+ let remaining=index;
+ for(const span of line.children){
+  const textNode=span.firstChild;
+  if(!textNode||textNode.nodeType!==3)continue;
+  const length=textNode.textContent.length;
+  if(remaining>=length){remaining-=length;continue;}
+  const range=document.createRange();
+  range.setStart(textNode,remaining);
+  range.setEnd(textNode,Math.min(remaining+1,length));
+  const rect=range.getBoundingClientRect();
+  return rect.width?rect:null;
+ }
+ return null;
+}
 function alignChords(scope=document){
  for(const row of scope.querySelectorAll('.music-row:not(.chords-only)')){
   const band=row.querySelector('.chord-band'),lyric=row.querySelector('.lyric-line');
   if(!band||!lyric)continue;
-  const labels=[...row.querySelectorAll('.chord-label[data-slot]')];
-  if(!labels.length)continue;
-  const bandRect=band.getBoundingClientRect(),padding=5,gap=7;
-  const available=Math.max(0,band.clientWidth-padding*2);
-  // Several OCR chords may land on one word. Keep every chord visible inside
-  // the coloured band without overwriting neighbouring chord names.
-  let total=labels.reduce((sum,label)=>sum+label.getBoundingClientRect().width,0)+gap*(labels.length-1);
-  if(total>available&&total>0){
-   const base=parseFloat(getComputedStyle(band).fontSize)||14;
-   const font=Math.max(9,Math.floor(base*available/total));
-   for(const label of labels)label.style.fontSize=font+'px';
-  }
-  const positions=[];
-  const widths=labels.map(label=>label.getBoundingClientRect().width);
-  for(let i=0;i<labels.length;i++){
-   const syl=lyric.querySelector(`.syllable[data-slot="${labels[i].dataset.slot}"]`);
-   const wanted=syl?syl.getBoundingClientRect().left-bandRect.left:padding;
-   const prev=i?positions[i-1]+widths[i-1]+gap:padding;
-   positions.push(Math.max(padding,wanted,prev));
-  }
-  const overflow=positions[positions.length-1]+widths[widths.length-1]-(band.clientWidth-padding);
-  if(overflow>0){
-   let right=band.clientWidth-padding;
-   for(let i=labels.length-1;i>=0;i--){
-    positions[i]=Math.min(positions[i],right-widths[i]);
-    right=positions[i]-gap;
+  const bandRect=band.getBoundingClientRect();
+  const labels=[...band.querySelectorAll('.chord-label[data-slot]')];
+  const placements=[];
+  for(const label of labels){
+   const charIndex=Number(label.dataset.charIndex);
+   // An empty index is NOT zero; manual anchors use the syllable start.
+   const precise=label.dataset.charIndex!==''&&Number.isInteger(charIndex);
+   const charRect=precise?readerCharRect(lyric,charIndex):null;
+   const syllable=lyric.querySelector(`.syllable[data-slot="${label.dataset.slot}"]`);
+   const sylRect=syllable?.getBoundingClientRect();
+   if(!charRect&&!sylRect)continue;
+   let x=(charRect||sylRect).left-bandRect.left;
+   if(charRect){
+    const offset=Number(label.dataset.offsetX),sourceWidth=Number(label.dataset.sourceCharWidth);
+    if(Number.isFinite(offset)&&Number.isFinite(sourceWidth)&&sourceWidth>0){
+     // Convert source advance/anticipation to the new character width.
+     x+=(offset/sourceWidth)*charRect.width;
+    }
    }
-   if(positions[0]<padding){
-    // Extremely dense bars are spaced evenly as a last resort, rather than
-    // leaving chord names outside the pill or under the lyric text.
-    const fit=Math.max(0,available-total);
-    let cursor=padding+Math.min(fit/2,2);
-    for(let i=0;i<labels.length;i++){positions[i]=cursor;cursor+=widths[i]+gap;}
-   }
+   // Never change the horizontal coordinate just to distribute chord labels.
+   const width=label.getBoundingClientRect().width;
+   placements.push({label,x,width,lane:0});
+   label.style.left=x+'px';
   }
-  labels.forEach((label,i)=>{label.style.left=positions[i]+'px';});
+  // If labels overlap at their TRUE X coordinates, add vertical lanes.
+  // Horizontal alignment with the original syllable remains unchanged.
+  const ends=[];
+  for(const item of placements.sort((a,b)=>a.x-b.x)){
+   let lane=ends.findIndex(end=>item.x>=end+5);
+   if(lane<0)lane=ends.length;
+   ends[lane]=item.x+item.width;
+   item.lane=lane;
+  }
+  const lanes=Math.max(1,ends.length),laneHeight=26;
+  band.style.height=Math.max(27,lanes*laneHeight+3)+'px';
+  placements.forEach(item=>{
+   item.label.style.top=(item.lane*laneHeight+laneHeight/2+1)+'px';
+  });
+  const right=Math.max(band.clientWidth,...placements.map(p=>p.x+p.width+8));
+  if(right>band.clientWidth)band.style.width=Math.ceil(right)+'px';
  }
 }
 function fitReaderRows(){
@@ -1006,40 +1064,55 @@ function makeCantoriaPdf(song,shift=0){
   for(const section of song.sections||[]){
     const heading=String(section.name||'SEZIONE');
     ensure(67);ptext(heading.toUpperCase(),(W-heading.length*7.1)/2,y,12,'F2','0.65 0.46 0.17');y-=9;rule(y);y-=20;
-    const chordOnly=(chords)=>{
+    const chordOnly=(chords,geometry=null)=>{
       const content=chords.map(c=>transposeChord(c,shift)).join('     ');
       const font=Math.min(12,MAXW/Math.max(1,content.length)/.6);
-      ensure(40);pill(LEFT,y-23,MAXW,25,bandColor(section.kind));ptext(content,LEFT+9,y-15,Math.max(8,font),'F2','0.13 0.31 0.25');y-=40;
+      ensure(40);pill(LEFT,y-23,MAXW,25,bandColor(section.kind));
+      if(Array.isArray(geometry)&&geometry.length===chords.length&&
+        geometry.every(a=>Number.isFinite(a.sourceX)&&a.sourceLineBBox?.x1>a.sourceLineBBox?.x0)){
+        geometry.forEach((item,i)=>{
+          const source=item.sourceLineBBox;
+          const x=LEFT+9+(item.sourceX-source.x0)*MAXW/(source.x1-source.x0);
+          ptext(transposeChord(chords[i],shift),x,y-15,Math.max(8,font),'F2','0.13 0.31 0.25');
+        });
+      }else ptext(content,LEFT+9,y-15,Math.max(8,font),'F2','0.13 0.31 0.25');
+      y-=40;
     };
-    if(section.chordsOnly?.length)chordOnly(section.chordsOnly);
+    if(section.chordsOnly?.length)chordOnly(section.chordsOnly,section.chordsOnlyGeometry);
     for(const line of section.lines||[]){
-
       const tokens=parseSyllables(line.marked||''),text=tokens.map(t=>t.text).join('');
       const font=Math.max(9,Math.min(16.4,(MAXW-14)/Math.max(1,timesWidth(text,1))));
       let prefix='',slot=0;const offsets=[];
       for(const t of tokens){if(!t.space){offsets[slot]=timesWidth(prefix,font);slot++;}prefix+=t.text;}
       const chords=(line.anchors||[]).map(a=>{
-        const x=Math.min(W-RIGHT-27,LEFT+7+(offsets[a.slot]??0));
-        const s=transposeChord(a.chord,shift);
-        return {x,s,width:String(s).length*6};
+        const charIndex=Number.isInteger(a.anchorCharacterIndex)?a.anchorCharacterIndex:null;
+        const base=charIndex!==null?timesWidth(text.slice(0,charIndex),font):(offsets[a.slot]??0);
+        const charWidth=charIndex!==null?timesWidth(text.charAt(charIndex)||'M',font):0;
+        const advance=charIndex!==null&&Number.isFinite(a.offsetX)&&a.sourceCharWidth>0?
+          charWidth*a.offsetX/a.sourceCharWidth:0;
+        // Exact semantic anchor, no horizontal reflow or clamping.
+        const x=LEFT+7+base+advance;
+        const symbol=transposeChord(a.chord,shift);
+        return {x,s:symbol,width:timesWidth(symbol,10)};
       }).sort((a,b)=>a.x-b.x);
-      let prevX=-1000,prevWidth=0;
-      const placements=chords.map(c=>{
-        const lane=c.x<prevX+prevWidth+5?1:0;
-        if(!lane){prevX=c.x;prevWidth=c.width;}
-        return {...c,lane};
+      const laneEnds=[];
+      const placements=chords.map(chord=>{
+        let lane=laneEnds.findIndex(end=>chord.x>=end+5);
+        if(lane<0)lane=laneEnds.length;
+        laneEnds[lane]=chord.x+chord.width;
+        return {...chord,lane};
       });
-      const double=placements.some(c=>c.lane);
-      const rowH=double?71:57;
+      const bandH=Math.max(25,laneEnds.length*15+10),rowH=bandH+32;
       ensure(rowH);
-      // The band belongs to the complete chord/lyric row; no page breaks inside rows.
-      pill(LEFT,y-(double?37:22),MAXW,double?35:24,bandColor(section.kind));
-      const chordTop=y-10;
-      for(const c of placements){ptext(c.s,c.x,c.lane?chordTop-14:chordTop,9.6,'F2','0.11 0.29 0.23');}
-      ptext(text,LEFT+7,y-(double?54:42),font,'F3','0.12 0.18 0.16');
+      pill(LEFT,y-bandH+2,MAXW,bandH,bandColor(section.kind));
+      for(const chord of placements) {
+        ptext(chord.s,chord.x,y-10-chord.lane*15,9.6,'F2','0.11 0.29 0.23');
+      }
+      ptext(text,LEFT+7,y-bandH-12,font,'F3','0.12 0.18 0.16');
       y-=rowH;
     }
-    for(const row of section.chordRows||[])chordOnly(row);
+    for(let i=0;i<(section.chordRows||[]).length;i++)
+      chordOnly(section.chordRows[i],section.chordRowsGeometry?.[i]);
     y-=7;
   }
   if(!song.verified){ensure(33);ptext('Trascrizione da verificare con lo spartito originale.',LEFT,y,9,'F1','0.51 0.33 0.26');}
@@ -1124,11 +1197,8 @@ root.addEventListener('click',e=>{
  }
  if(action==='ask-reparse-photo'){const song=currentSong();if(song?.photoData&&song.ocrText){state.modal={type:'reparse-photo-confirm'};render();}return;}
  if(action==='reparse-photo'){
-  const song=currentSong();if(state.modal?.type!=='reparse-photo-confirm'||!song?.photoData||!song.ocrText)return;
-  let sections;try{sections=photoSectionsFromText(song.ocrText);}catch(err){notify(err.message);return;}
-  const previous=song.sections;song.sections=sections;song.verified=false;
-  if(!saveStore(store)){song.sections=previous;state.modal=null;notify('Impossibile salvare la nuova partitura.');return;}
-  state.modal=null;state.page=0;notify('Accordi ricalcolati: verifica il risultato con la foto.');return;
+  const song=currentSong();if(state.modal?.type!=='reparse-photo-confirm'||!song?.photoData)return;
+  state.modal=null;state.page=0;recognizePhotoText(true);return;
  }
  if(action==='recognize-photo'){recognizePhotoText();return;}
  if(action==='save-ocr-text'){const song=currentSong();if(song?.photoData){song.ocrText=state.ocrText.trim().slice(0,20000);persist();notify('Trascrizione salvata.');}return;}
@@ -1137,8 +1207,9 @@ root.addEventListener('click',e=>{
   let sections;
   try{sections=photoSectionsFromText(state.ocrText);}
   catch(err){notify(err.message);return;}
-  const previous={sections:song.sections,ocrText:song.ocrText,subtitle:song.subtitle,verified:song.verified};
+  const previous={sections:song.sections,ocrText:song.ocrText,subtitle:song.subtitle,verified:song.verified,geometryDiagnostics:song.geometryDiagnostics};
   song.sections=sections;song.ocrText=state.ocrText.trim().slice(0,20000);
+  song.geometryDiagnostics=structuredClone(state.geometryDraft.diagnostics);
   song.subtitle='Trascrizione fotografica · da verificare';song.verified=false;
   if(!saveStore(store)){Object.assign(song,previous);notify('Spazio insufficiente per salvare la partitura.');return;}
   state.ocrStatus='';state.page=0;render();notify('Partitura creata. Controlla gli accordi sulle sillabe.');return;
@@ -1178,7 +1249,7 @@ root.addEventListener('submit',e=>{e.preventDefault();const form=e.target;const 
  if(form.id==='reuseMassForm'){const source=store.masses.find(x=>x.id===state.modal?.massId);const name=String(f.get('massName')||'').trim();if(!source||!name)return;const copy={id:makeId(),name,date:String(f.get('massDate')||''),items:(source.items||[]).map(item=>({id:makeId(),songId:item.songId,label:item.label,shift:item.shift||0}))};store.masses.unshift(copy);state.massId=copy.id;state.view='masses';state.modal=null;persist();render();return;}
  if(form.id==='songInfoForm'){const song=currentSong(),title=String(f.get('title')||'').trim(),author=String(f.get('author')||'').trim();if(!song||!title)return;song.title=title;song.author=author;persist();state.modal={type:'song-options'};render();return;}
  if(form.id==='addToMassForm'){const m=store.masses.find(x=>x.id===f.get('massId'));if(!m||m.celebratedAt)return;const songId=String(f.get('songId'));if(!store.songs.some(x=>x.id===songId))return;m.items.push({id:makeId(),songId,label:String(f.get('label')||'Canto'),shift:0});state.massId=m.id;state.view='masses';state.modal=null;persist();render();return;}
- if(form.id==='chordEditForm'){const m=state.modal,ln=currentSong()?.sections[m.si]?.lines[m.li];if(!ln)return;const chord=String(f.get('chord')||'').trim().toUpperCase(),slot=Number(f.get('slot'));if(!chord||!Number.isInteger(slot))return;if(m.ai===-1)ln.anchors.push({slot,chord});else ln.anchors[m.ai]={slot,chord};ln.anchors.sort((a,b)=>a.slot-b.slot);persist();state.modal=null;render();return;}
+ if(form.id==='chordEditForm'){const m=state.modal,ln=currentSong()?.sections[m.si]?.lines[m.li];if(!ln)return;const chord=String(f.get('chord')||'').trim().toUpperCase(),slot=Number(f.get('slot'));if(!chord||!Number.isInteger(slot))return;if(m.ai===-1)ln.anchors.push({slot,chord,verified:true,needsReview:false,anchorCharacterIndex:null,offsetX:0});else ln.anchors[m.ai]={...ln.anchors[m.ai],slot,chord,symbol:chord,verified:true,needsReview:false,anchorCharacterIndex:null,offsetX:0};ln.anchors.sort((a,b)=>a.slot-b.slot);persist();state.modal=null;render();return;}
  if(form.id==='tonalityForm'){const song=currentSong();if(song){song.key=String(f.get('songKey')||'');persist();}state.modal=null;render();return;}
   if(form.id==='photoSongForm'){
   if(!state.photoURL){notify('Prima scegli una fotografia.');return;}
@@ -1188,17 +1259,18 @@ root.addEventListener('submit',e=>{e.preventDefault();const form=e.target;const 
   if(mode==='score'){try{sections=photoSectionsFromText(scanned);}catch(err){notify(err.message);return;}}
   const title=String(f.get('photoSongTitle')||state.photoTitle||'').trim()||('Canto fotografato · '+new Date().toLocaleDateString('it-IT'));
   const song={id:makeId(),title,subtitle:mode==='score'?'Trascrizione fotografica · da verificare':'Bozza fotografica',
-    key:'',source:'Foto originale',photoData:state.photoURL,ocrText:scanned,verified:false,sections};
+    key:'',source:'Foto originale',photoData:state.photoURL,ocrText:scanned,verified:false,sections,
+    geometryDiagnostics:mode==='score'?structuredClone(state.geometryDraft.diagnostics):null};
   store.songs.unshift(song);
   if(!saveStore(store)){store.songs.shift();notify('Spazio insufficiente per salvare il brano. Fai un backup o libera spazio.');return;}
-  state.photoURL=null;state.photoTitle='';state.ocrText='';state.ocrStatus='';state.view='library';openSong(song.id);
+  state.photoURL=null;state.photoTitle='';state.ocrText='';state.ocrStatus='';state.geometryDraft=null;state.geometryRawText='';state.view='library';openSong(song.id);
   if(mode==='score')notify('Partitura creata: correggi accordi e sillabe.');return;
  }
 });
 root.addEventListener('input',e=>{if(e.target.id==='photoSongTitle'){state.photoTitle=e.target.value;return;}if(e.target.id==='photoOcrText'){state.ocrText=e.target.value.slice(0,20000);return;}if(e.target.id==='search'){state.filter=e.target.value;const pos=e.target.selectionStart;render();const s=root.querySelector('#search');s?.focus();if(s?.setSelectionRange)s.setSelectionRange(pos,pos);}});
 root.addEventListener('change',async e=>{if(e.target.id==='songKeyInline'){const song=currentSong();if(song){song.key=e.target.value;persist();render();}return;}if(e.target.id==='songImportInput'){const file=e.target.files?.[0];if(!file)return;try{if(file.size>3000000)throw new Error('File troppo grande');const song=importSongFile(await file.text());notify('Brano importato: '+song.title);}catch(err){notify('Importazione non riuscita: '+err.message);}return;}if(e.target.id==='photoCameraInput'||e.target.id==='photoLibraryInput'){
  const file=e.target.files?.[0];if(!file)return;
- try{state.photoURL=await compressScorePhoto(file);state.photoTitle='';state.ocrText='';state.ocrStatus='';render();}
+ try{state.photoURL=await compressScorePhoto(file);state.photoTitle='';state.ocrText='';state.geometryDraft=null;state.geometryRawText='';state.ocrStatus='';render();}
  catch(err){console.error(err);notify('Impossibile aprire la foto. Prova un file JPEG o PNG.');}
  return;
 }if(e.target.id==='backupInput'){const file=e.target.files?.[0];if(!file)return;try{const data=importJSON(await file.text());store.songs=data.songs.map(normalizedSong);store.masses=data.masses;persist();state.view='library';notify('Backup ripristinato.');}catch(err){notify('Impossibile leggere il backup.');}}});
@@ -1240,7 +1312,16 @@ function setupLongPress(){
   const chord=String(form.get('chord')||'').trim().toUpperCase();
   if(!syllable||!/^([^\s|]+)(\|[^\s|]+)*$/.test(syllable)){alert('Sillabe non valide. Separa le sillabe con | e non usare spazi.');return;}
   const added=syllable.split('|').length-1;
+  const textWasChanged=syllable.replaceAll('|','')!==parseSyllables(line.marked).filter(t=>!t.space)[m.slot]?.text;
   line.marked=replaceSyllable(line.marked,m.slot,syllable);
+  if(textWasChanged){
+   // Editing the lyric changes its character offsets. Preserve the original
+   // source boxes, but require manual reassignment instead of guessing.
+   for(const anchor of line.anchors){
+    anchor.anchorCharacterIndex=null;anchor.needsReview=true;anchor.verified=false;
+    anchor.offsetX=0;
+   }
+  }
   // Never shift a later chord to another sung syllable when a word is split.
   if(added)for(const anchor of line.anchors){if(anchor.slot>m.slot)anchor.slot+=added;}
   const existing=line.anchors.findIndex(a=>a.slot===m.slot);
@@ -1258,5 +1339,6 @@ window.addEventListener('beforeprint',()=>{const holder=document.querySelector('
 if('serviceWorker'in navigator&&location.protocol.startsWith('http'))window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 render();</script>
 <script src="./score-ocr.js"></script>
+<script src="./score-geometry.js"></script>
 </body>
 </html>

@@ -138,7 +138,7 @@
       return a;
     }, { sections: 0, lines: 0, chords: 0 });
   }
-  const api = Object.freeze({ parse, stats, chordName, syllableCells });
+  const api = Object.freeze({ parse, stats, chordName, chordFromOcr, syllableCells });
   root.CantoriaOCR = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
 })(typeof window !== "undefined" ? window : globalThis);
