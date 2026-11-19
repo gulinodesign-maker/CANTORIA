@@ -1,3 +1,18 @@
+# Cantoria — Foto → Partitura (beta 0.5.0)
+
+## Acquisizione fotografica
+
+Dalla schermata **Acquisisci**: scatta o scegli una foto, premi **Riconosci testo e accordi**, correggi la trascrizione, quindi premi **Crea partitura modificabile**. La trascrizione interpreta sezioni INTRO/STROFA/RITORNELLO e sigle italiane degli accordi su righe dedicate. Puoi anche **Salva solo la foto** e convertirla successivamente.
+
+- Separa le sillabe con `|`, per esempio `Be|ne|det|to`. Dopo la conversione usa una **pressione prolungata** su una parola per dividerla in sillabe, oppure su un accordo per modificare la sillaba di ancoraggio.
+- La foto originale resta collegata e si trova dal menu del brano → **Vedi fotografia originale**.
+- Gli ancoraggi sono ipotesi, e i canti restano **da verificare**. Non sono ancora riconosciute note, durate o pentagrammi (OMR).
+- L'OCR usa Tesseract.js sul dispositivo e al primo utilizzo necessita di Internet per libreria e dati linguistici. Se il download fallisce puoi comunque correggere o inserire la trascrizione manualmente.
+- `score-ocr.js` viene incluso nel pacchetto iOS Capacitor e nella cache PWA; i test si eseguono con `node scripts/test-photo-ocr.js`.
+- I dati sono locali: fai periodicamente un backup JSON.
+
+---
+
 # Cantoria — PWA iPhone/iPad (prototipo 0.4.9 · build 20261119.10)
 
 Prima versione sperimentale di **Cantoria**, un archivio di spartiti e scalette per le Messe, ottimizzato per iPhone e iPad.
