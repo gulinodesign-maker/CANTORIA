@@ -1,7 +1,7 @@
 {
-  "name": "Cantoria — Biblioteca musicale",
+  "name": "Cantoria — Canti per la Santa Messa",
   "short_name": "Cantoria",
-  "description": "Spartiti, accordi e scalette per le celebrazioni",
+  "description": "Repertorio cattolico: canti liturgici, accordi, spartiti e scalette per la celebrazione eucaristica.",
   "lang": "it",
   "start_url": "./",
   "scope": "./",
