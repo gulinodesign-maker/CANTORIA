@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Cantoria" />
   <meta name="description" content="Cantoria: canti cattolici, accordi e repertorio per la Santa Messa, le celebrazioni liturgiche e la preghiera." />
-  <link rel="manifest" href="./manifest.webmanifest?v=20261119.10" />
+  <link rel="manifest" href="./manifest.webmanifest?v=20261119.11" />
   <link rel="apple-touch-icon" sizes="192x192" href="./assets/cantoria-icona-ufficiale-045.png" />
   <link rel="icon" href="./assets/cantoria-icona-ufficiale-045.png" type="image/png" />
   <style>:root{--forest:#153e32;--forest-2:#2b5547;--gold:#ac8128;--ink:#1d2925;--muted:#697b70;--ivory:#faf6ee;--sand:#f1ebdf;--line:#dfd7c7;--blueband:rgba(98,136,154,.18);--sageband:rgba(121,138,107,.17);--orangeband:rgba(163,116,93,.17);--radius:17px;--lyric-size:24px;--shadow:0 12px 35px rgba(31,55,43,.08)}
@@ -757,7 +757,7 @@ function captureHTML(){
      </form>`:`<p class="photo-capture-hint">Fotografa lo spartito per iniziare.</p>`}
   </section>`;
 }
-function settingsHTML(){return `<div class="page-heading"><div><div class="eyebrow">Versione 0.4.9 · Build 20261119.10</div><h1>Impostazioni</h1></div></div><div class="form-wrap"><div class="panel"><h3>Dati e salvataggi</h3><p>I canti e le scalette sono attualmente memorizzati <strong>solo nel browser di questo dispositivo</strong>. Non sono ancora sincronizzati su iCloud o GitHub.</p><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px"><button class="outline-btn" data-action="backup">Scarica backup JSON</button><label class="outline-btn" style="cursor:pointer">Ripristina backup<input type="file" id="backupInput" accept="application/json" style="display:none"></label></div></div><div class="panel"><h3>Modello musicale</h3><p>Ogni accordo conserva un indice di sillaba nel proprio rigo. La trasposizione modifica soltanto il nome dell'accordo, non la sua posizione.</p><div class="alert" style="margin-top:15px">I canti fotografati possono essere letti con OCR (testo modificabile). Gli accordi e gli ancoraggi delle sillabe richiedono ancora una verifica manuale.</div></div></div>`;}
+function settingsHTML(){return `<div class="page-heading"><div><div class="eyebrow">Versione 0.4.9 · Build 20261119.11</div><h1>Impostazioni</h1></div></div><div class="form-wrap"><div class="panel"><h3>Dati e salvataggi</h3><p>I canti e le scalette sono attualmente memorizzati <strong>solo nel browser di questo dispositivo</strong>. Non sono ancora sincronizzati su iCloud o GitHub.</p><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px"><button class="outline-btn" data-action="backup">Scarica backup JSON</button><label class="outline-btn" style="cursor:pointer">Ripristina backup<input type="file" id="backupInput" accept="application/json" style="display:none"></label></div></div><div class="panel"><h3>Modello musicale</h3><p>Ogni accordo conserva un indice di sillaba nel proprio rigo. La trasposizione modifica soltanto il nome dell'accordo, non la sua posizione.</p><div class="alert" style="margin-top:15px">I canti fotografati possono essere letti con OCR (testo modificabile). Gli accordi e gli ancoraggi delle sillabe richiedono ancora una verifica manuale.</div></div></div>`;}
 function appHTML(){
  const views={home:homeHTML,library:libraryHTML,masses:massesHTML,capture:captureHTML,settings:settingsHTML};
  const builder=views[state.view]||homeHTML;
@@ -1133,5 +1133,7 @@ window.addEventListener('resize',()=>{if(state.songId){state.page=0;render();}})
 window.addEventListener('beforeprint',()=>{const holder=document.querySelector('#print-sheet');if(holder&&currentSong()&&!holder.innerHTML)holder.innerHTML=`<div class="print-body"><div class="print-head">${escape(currentSong().title)}</div>${sectionsAllHTML(currentSong(),true)}</div>`;alignChords(holder||document);});
 if('serviceWorker'in navigator&&location.protocol.startsWith('http'))window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 render();</script>
+<script src="./score-ocr.js"></script>
+<script src="./score-capture-patch.js"></script>
 </body>
 </html>
