@@ -11,6 +11,37 @@
       .replace(/^[([{]+|[\])},;:.]+$/g, "").trim();
     return CHORD.test(s) ? s.replace(/^(SOL|DO|RE|MI|FA|LA|SI)(#|b)?/i, (all, root, accidental) => root.toUpperCase() + (accidental ? (accidental.toLowerCase() === 'b' ? 'b' : '#') : '')) : "";
   }
+  // OCR confuses similarly shaped characters in musical chord symbols.
+  // Only repair these tokens in a row already identified as a chord row;
+  // never modify ordinary Italian lyrics.
+  function chordFromOcr(token) {
+    const raw = String(token || "").replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹]/g, digit =>
+      "⁰¹²³⁴⁵⁶⁷⁸⁹".indexOf(digit).toString());
+    const normalized = raw.replace(/^S[1lI](?=[#b0-9+°()-]|$)/i, "SI")
+      .replace(/^[1lI]A(?=[#b0-9+°()-]|$)/i, "LA")
+      .replace(/^D0(?=[#b0-9+°()-]|$)/i, "DO")
+      .replace(/^S0L/i, "SOL")
+      .replace(/^M[1l](?=[#b0-9+°()-]|$)/i, "MI");
+    return chordName(normalized);
+  }
+  function readChordRow(words, original) {
+    if (!words.length) return null;
+    const items = words.map(word => ({
+      chord: chordName(word[0]), start: word.index, source: word[0]
+    }));
+    const matched = items.filter(item => item.chord).length;
+    if (matched < 1) return null;
+    // A stray OCR token should not turn the whole chord row into lyrics.
+    const likelyRow = (items.length >= 2 && matched >= 2 &&
+      matched / items.length >= 0.6) ||
+      (items.length === 1 && matched === 1 &&
+        /^[A-Z]{2,4}(?:[#b0-9+\\-]|$)/.test(original.trim()));
+    if (!likelyRow) return null;
+    const recovered = items.map(item => ({
+      chord: item.chord || chordFromOcr(item.source), start: item.start
+    })).filter(item => item.chord);
+    return recovered.length ? { text: original, items: recovered } : null;
+  }
   function section(name, index) {
     const heading = String(name).toUpperCase();
     return {
@@ -81,12 +112,10 @@
         continue;
       }
       const words = [...original.matchAll(/\S+/g)];
-      const found = words.map(word => ({ chord: chordName(word[0]), start: word.index }));
-      const chordRow = found.length && found.every(word => word.chord) &&
-        (found.length > 1 || /^[A-Z]{2,4}(?:[#b0-9+\-]|$)/.test(text));
+      const chordRow = readChordRow(words, original);
       if (chordRow) {
         flushPending();
-        pending = { text: original, items: found };
+        pending = chordRow;
         continue;
       }
       const cleaned = text.replace(/[\u0000-\u001f]/g, "");
