@@ -1,4 +1,4 @@
-# Cantoria — PWA iPhone/iPad (prototipo 0.3.2)
+# Cantoria — PWA iPhone/iPad (prototipo 0.4.0 · build 20261119.1)
 
 Prima versione sperimentale di **Cantoria**, un archivio di spartiti e scalette per le Messe, ottimizzato per iPhone e iPad.
 
@@ -67,3 +67,13 @@ La web app è interamente contenuta in `index.html`: non richiede Node.js, build
 HTML/CSS/JavaScript senza dipendenze esterne; manifest PWA; service worker. La struttura musicale associa gli accordi a identificativi di sillaba anziché a coordinate grafiche. Il progetto potrà essere modularizzato e, se desiderato, impacchettato come app iOS tramite Capacitor.
 
 **Stato:** v0.3.1. Esportazione PDF e gesti di condivisione da verificare su iPhone/iPad reali. Il riconoscimento fotografico automatico resta da realizzare: foto → OCR testo/accordi → revisione delle sillabe e degli ancoraggi → salvataggio in biblioteca.
+
+
+## Novità 0.4.0 — Condivisione singoli brani
+
+- Nel lettore il pulsante **☰** in alto a destra apre un solo pannello con tonalità corrente e originale, trasporto in semitoni e opzioni PDF e file Cantoria.
+- **Esporta file Cantoria** crea un file `.cantoria.json` contenente un singolo brano con accordi ancorati alle sillabe e dati musicali completi (formato `cantoria-song`, versione 1). Puoi condividerlo dal menu nativo, incluso AirDrop quando il dispositivo lo consente, o scaricarlo.
+- **Biblioteca → Importa brano** importa il file ricevuto aggiungendolo alla biblioteca locale con un nuovo identificativo; non sovrascrive i canti già presenti.
+- Dalla scheda di ogni brano della biblioteca puoi anche usare **Esporta brano**.
+- L'app web/PWA non registra i tipi di documento di iOS: un file ricevuto con AirDrop va prima salvato su File e poi selezionato in **Biblioteca → Importa brano**. L'apertura diretta da AirDrop nell'app sarà disponibile dopo la creazione del progetto nativo iOS con il tipo di documento Cantoria registrato.
+- **Impostazioni** indica versione e build attuali.
