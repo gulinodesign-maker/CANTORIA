@@ -140,6 +140,31 @@
  .reader-shift{height:52px;min-height:52px;min-width:74px;width:74px;max-width:74px}
  .reader-pdf{height:52px;padding:0 11px}
 }
+
+/* Cantoria v0.3.2: smooth continuous portrait score and compact transport/PDF controls */
+@media screen {
+ .reader-layer.reader-portrait .reader-stage{overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;touch-action:pan-y}
+ .reader-layer.reader-portrait .sheet-columns{grid-template-columns:minmax(0,1fr)}
+ .reader-layer.reader-portrait .reader-paper{padding-bottom:calc(30px + env(safe-area-inset-bottom,0px))}
+ .reader-layer.reader-portrait .reader-title small:empty{display:none}
+ .reader-layer .reader-actions .mini-btn{min-width:41px;width:41px;height:41px;font-size:27px;border-radius:9px}
+ .reader-layer .reader-shift{width:56px;min-width:56px;max-width:56px;height:41px;min-height:41px;border-radius:8px;padding:2px 3px}
+ .reader-layer .shift-number{font-size:18px}
+ .reader-layer .shift-unit{font-size:8px}
+ .reader-layer .reader-pdf{height:41px;min-height:41px;padding:0 9px;font-size:11px;margin-left:1px}
+}
+@media screen and (orientation:portrait) and (max-width:620px) {
+ .reader-layer .reader-toolbar{min-height:calc(92px + env(safe-area-inset-top,0px));grid-template-rows:34px 42px;row-gap:2px}
+ .reader-layer .reader-actions{gap:6px}
+ .reader-layer .reader-actions .mini-btn{min-width:41px;width:41px;height:41px;font-size:27px}
+ .reader-layer .reader-shift{width:56px;min-width:56px;max-width:56px;height:41px;min-height:41px}
+ .reader-layer .reader-pdf{height:41px;padding:0 9px}
+}
+@media screen and (orientation:landscape) and (max-height:540px) {
+ .reader-layer .reader-actions .mini-btn{min-width:39px;width:39px;height:39px;font-size:26px}
+ .reader-layer .reader-shift{width:51px;min-width:51px;max-width:51px;height:39px;min-height:39px}
+ .reader-layer .reader-pdf{height:39px;padding:0 7px}
+}
 </style>
   <title>Cantoria — Il tuo repertorio</title>
 </head>
@@ -312,16 +337,19 @@ function entriesHTML(entries){if(!entries.length)return '<p>Questo canto non ha 
 function readerColumns(){const w=window.innerWidth,h=window.innerHeight;return ((w>=650&&w>h)||w>=760)?2:1;}
 function readerHTML(){
  const song=currentSong();if(!song)return '';
- const pages=pageList(song);state.page=Math.max(0,Math.min(state.page,pages.length-1));
- const columns=pages[state.page];
- const cols=readerColumns();
  const horizontal=window.innerWidth>window.innerHeight;
+ const pages=horizontal?pageList(song):[];
+ if(horizontal)state.page=Math.max(0,Math.min(state.page,pages.length-1));
+ else state.page=0;
+ // Portrait contains every score row in a single vertical flow; landscape remains paged.
+ const columns=horizontal?pages[state.page]:[flatEntries(song)];
+ const cols=horizontal?readerColumns():1;
  const perColumnWidth=(window.innerWidth-(cols===2?67:30))/cols;
  const font=Math.max(15,Math.min(26,perColumnWidth*(horizontal?.051:.058)));
- return `<div class="reader-layer" id="readerLayer" style="--reader-font:${font.toFixed(1)}px">
+ return `<div class="reader-layer ${horizontal?'reader-landscape':'reader-portrait'}" id="readerLayer" data-song="${escapeAttr(song.id)}" style="--reader-font:${font.toFixed(1)}px">
  <header class="reader-toolbar">
    <button class="reader-back" data-action="close-reader" aria-label="Chiudi spartito">‹</button>
-    <div class="reader-title" title="${escapeAttr(song.title)}"><div class="reader-title-line"><strong>${escape(song.title)}</strong><button class="reader-key" type="button" data-action="edit-tonality" title="Modifica tonalità originale" aria-label="Tonalità corrente: ${escapeAttr(describeTonality(song,state.shift))}. Tocca per modificarla">${escape(describeTonality(song,state.shift))}</button></div><small>${state.page+1} / ${pages.length}${song.verified?'':' · DA VERIFICARE'}</small></div>
+    <div class="reader-title" title="${escapeAttr(song.title)}"><div class="reader-title-line"><strong>${escape(song.title)}</strong><button class="reader-key" type="button" data-action="edit-tonality" title="Modifica tonalità originale" aria-label="Tonalità corrente: ${escapeAttr(describeTonality(song,state.shift))}. Tocca per modificarla">${escape(describeTonality(song,state.shift))}</button></div><small>${horizontal?`${state.page+1} / ${pages.length}`:''}${song.verified?'':' · DA VERIFICARE'}</small></div>
    <div class="reader-actions">
     <button class="mini-btn" data-action="shift-down" aria-label="Abbassa tonalità">−</button>
      <button class="reader-shift" data-action="reset-shift" title="Azzera trasposizione" aria-label="Trasposizione: ${state.shift} semitoni. Tocca per azzerare"><span class="shift-number">${state.shift>0?'+':''}${state.shift}</span><span class="shift-unit">semitoni</span></button>
@@ -406,7 +434,7 @@ function fitReaderRows(){
   }
  }
 }
-function render(){root.innerHTML=appHTML();requestAnimationFrame(()=>{fitReaderRows();alignChords();});}
+function render(){const oldStage=document.querySelector('#readerStage'),oldReader=document.querySelector('#readerLayer');const oldSong=oldReader?.dataset.song,oldScroll=oldStage?.scrollTop||0;root.innerHTML=appHTML();requestAnimationFrame(()=>{fitReaderRows();alignChords();const newStage=document.querySelector('#readerStage'),newReader=document.querySelector('#readerLayer');if(newStage&&oldSong===newReader?.dataset.song&&newReader?.classList.contains('reader-portrait'))newStage.scrollTop=oldScroll;});}
 function openSong(songId, shift=0, massItemId=null){if(!store.songs.find(x=>x.id===songId))return;state.songId=songId;state.shift=shift;state.page=0;state.massItemId=massItemId;state.modal=null;render();}
 function modifyMassItem(id,fn){const m=currentMass(),item=m?.items.find(x=>x.id===id);if(!item)return;fn(item,m);persist();render();}
 function openChordModal(si,li,ai,slot=0){state.modal={type:'chord-edit',si,li,ai,slot};render();}
@@ -629,7 +657,7 @@ function setupLongPress(){
 }
 setupLongPress();
 let startX=0,startY=0;root.addEventListener('touchstart',e=>{if(!e.target.closest('#readerPaper')||e.target.closest('.modal-card'))return;const t=e.changedTouches[0];startX=t.clientX;startY=t.clientY;},{passive:true});
-root.addEventListener('touchend',e=>{if(!e.target.closest('#readerPaper'))return;const t=e.changedTouches[0],dx=t.clientX-startX,dy=t.clientY-startY;if(Math.abs(dx)>65&&Math.abs(dx)>Math.abs(dy)*1.4){state.page+=dx<0?1:-1;state.page=Math.max(0,Math.min(pageList(currentSong()).length-1,state.page));render();}},{passive:true});
+root.addEventListener('touchend',e=>{if(!e.target.closest('#readerPaper'))return;const t=e.changedTouches[0],dx=t.clientX-startX,dy=t.clientY-startY;if(window.innerWidth>window.innerHeight&&Math.abs(dx)>65&&Math.abs(dx)>Math.abs(dy)*1.4){state.page+=dx<0?1:-1;state.page=Math.max(0,Math.min(pageList(currentSong()).length-1,state.page));render();}},{passive:true});
 window.addEventListener('resize',()=>{if(state.songId){state.page=0;render();}});
 window.addEventListener('beforeprint',()=>{const holder=document.querySelector('#print-sheet');if(holder&&currentSong()&&!holder.innerHTML)holder.innerHTML=`<div class="print-body"><div class="print-head">${escape(currentSong().title)}</div>${sectionsAllHTML(currentSong(),true)}</div>`;alignChords(holder||document);});
 if('serviceWorker'in navigator&&location.protocol.startsWith('http'))window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
