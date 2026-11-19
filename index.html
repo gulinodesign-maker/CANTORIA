@@ -39,6 +39,71 @@
 .print-section .chords-only{margin-bottom:1mm!important}
 .print-section .chord-label{opacity:1!important;color:#153e32!important;font-weight:800!important}
 }
+
+@media screen{
+ .bottom-nav,.sidenav{display:none!important}
+ .app-shell .workspace{padding-bottom:36px}
+ .topbar-home,.topbar-section{min-height:68px}
+ .topbar-section{justify-content:space-between;position:relative}
+ .header-home-btn{border:0;background:#ffffff18;color:#fff;font-weight:700;padding:8px 14px;border-radius:12px;min-width:73px}
+ .header-section-title{position:absolute;left:50%;transform:translateX(-50%);font:normal 21px Georgia,serif;white-space:nowrap}
+ .header-spacer{width:73px}
+ .home-workspace{min-height:calc(100dvh - 80px);display:grid;place-items:center;padding:30px 18px 55px!important}
+ .home-screen{width:min(730px,100%);text-align:center}
+ .home-overline{font-weight:800;letter-spacing:3px;color:#ad8b47;font-size:11px;margin-bottom:7px}
+ .home-screen h1{font:normal clamp(42px,7vw,70px)/1.08 Georgia,serif;color:var(--forest)}
+ .home-subtitle{color:#6d7b6e;margin:11px auto 30px;font-size:15px}
+ .home-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(12px,2.8vw,21px)}
+ .home-tile{background:#fffdf8;border:1px solid #e1d6c5;border-radius:20px;box-shadow:0 8px 22px #1c43300c;min-height:clamp(136px,22vh,205px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;padding:16px 11px;text-align:center;color:var(--forest)}
+ .home-tile:active{transform:scale(.98);background:#f3f1e8}
+ .home-tile-icon{font-size:32px;display:grid;place-items:center;background:#e3e8dd;color:#274f40;width:58px;height:58px;border-radius:18px}
+ .home-tile strong{font:normal clamp(19px,3vw,26px) Georgia,serif}
+ .home-tile small{font-size:12px;color:#778274}
+ .home-footnote{margin-top:24px;font-size:12px;color:#a18f70}
+ .reader-layer{height:100dvh;background:var(--ivory)}
+ .reader-layer .reader-toolbar{position:relative;height:calc(48px + env(safe-area-inset-top,0px));min-height:0;padding:env(safe-area-inset-top,0px) 9px 0;gap:6px;box-shadow:0 2px 6px #00000013;flex:0 0 auto;z-index:2}
+ .reader-layer .reader-back{font-size:32px;max-width:none;width:36px;height:42px;display:grid;place-items:center;padding:0;line-height:1}
+ .reader-layer .reader-title{position:absolute;left:50%;transform:translateX(-50%);width:min(43vw,550px);text-align:center;display:flex;flex-direction:column;align-items:center;line-height:1.1;pointer-events:none;overflow:hidden}
+ .reader-title strong{font:normal clamp(17px,2.4vw,27px) Georgia,serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+ .reader-title small{font-size:9px;letter-spacing:.7px;color:#d7ceb1;margin-top:3px;white-space:nowrap}
+ .reader-layer .reader-actions{gap:3px;margin-left:auto;z-index:1}
+ .reader-layer .reader-actions .mini-btn{min-width:31px;width:31px;height:32px;padding:0;font-size:20px;font-weight:700;background:#ffffff21;color:#fff}
+ .reader-shift{border:0;background:transparent;color:#ebd5a7;font-size:11px;min-width:18px;height:30px;padding:0}
+ .reader-pdf{border:1px solid #bca568;background:#bfa166;color:#163f33;font-weight:800;font-size:10px;border-radius:8px;padding:0 8px;height:31px;margin-left:4px}
+ .reader-layer .reader-stage{padding:0!important;flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;touch-action:pan-y}
+ .reader-layer .reader-paper{width:100%;max-width:none;min-height:100%;overflow:visible;border-radius:0;box-shadow:none;padding:clamp(10px,1.8vw,22px) clamp(9px,1.7vw,24px) 12px}
+ .reader-layer .sheet-columns{display:grid;grid-template-columns:repeat(var(--reader-cols),minmax(0,1fr));gap:clamp(15px,2.6vw,36px)}
+ .reader-layer .sheet-column{min-width:0}
+ .reader-layer .sheet-columns:before{display:none}
+ .reader-layer .sheet-columns[style*="--reader-cols:2"]:before{display:block;content:"";position:absolute;left:50%;top:2px;bottom:2px;width:1px;background:#c7a35f66;border:0}
+ .reader-layer .section-title{font-size:clamp(11px,1.25vw,14px);margin:7px 0 10px;gap:8px}
+ .reader-layer .music-row{margin:0 0 14px;padding:0 1px}
+ .reader-layer .chord-band{height:27px;font-size:clamp(13px,1.6vw,18px)}
+ .reader-layer .lyric-line{font-size:var(--reader-font);line-height:1.25;margin:5px 0 0 7px}
+ .reader-layer .syllable.clickable,.reader-layer .chord-label.editable{touch-action:pan-y;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+ .reader-layer .chord-label.editable{min-height:26px}
+ .reader-layer .reader-pagination,.reader-layer .reader-page-note{display:none!important}
+ .editor-note{font-size:12px!important;color:#6c806d!important}
+}
+@media screen and (orientation:landscape){
+ .reader-layer .reader-paper{padding:7px 13px 7px}
+ .reader-layer .music-row{margin-bottom:10px}
+ .reader-layer .chord-band{height:24px;font-size:13px}
+ .reader-layer .lyric-line{margin-top:3px;line-height:1.23}
+ .reader-layer .section-title{margin:5px 0 7px;font-size:11px}
+ .reader-layer .reader-title{width:min(45vw,430px)}
+}
+@media screen and (max-width:440px){
+ .home-screen .home-tile{min-height:145px}
+ .home-tile-icon{width:50px;height:50px;font-size:27px}
+ .home-tile strong{font-size:19px}
+ .home-tile small{font-size:11px}
+ .reader-title strong{font-size:16px}
+ .reader-layer .reader-title{width:40vw}
+ .reader-layer .reader-actions .mini-btn{width:27px;min-width:27px}
+ .reader-pdf{padding:0 5px}
+}
+
 </style>
   <title>Cantoria — Il tuo repertorio</title>
 </head>
@@ -145,7 +210,7 @@ function makeId() { return `${Date.now().toString(36)}-${Math.random().toString(
 
 const root = document.querySelector('#app');
 const store = loadStore();
-const state = { view: 'library', filter: '', massId: null, songId: null, massItemId: null, shift: 0, page: 0, modal: null, photoURL: null, toast: '', fontScale: 1 };
+const state = { view: 'home', filter: '', massId: null, songId: null, massItemId: null, shift: 0, page: 0, modal: null, photoURL: null, toast: '', fontScale: 1 };
 let toastTimer;
 const escape = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const escapeAttr = escape;
@@ -172,23 +237,67 @@ function lineHTML(section,line,si,li,isPrint=false){
 function groupHeading(label,continued=false){return `<div class="section-title ${continued?'continued':''}">${escape(label)}${continued?' · segue':''}</div>`;}
 function sectionsAllHTML(song,isPrint=false){return (song.sections||[]).map((sec,si)=>`<section class="music-group ${isPrint?'print-section':''}">${groupHeading(sec.name)}${sec.chordsOnly?introChords(sec):''}${(sec.lines||[]).map((ln,li)=>lineHTML(sec,ln,si,li,isPrint)).join('')}${sec.chordRows?outroChords(sec):''}</section>`).join('');}
 function flatEntries(song){const res=[];(song.sections||[]).forEach((sec,si)=>{if(sec.chordsOnly)res.push({si,type:'intro',sec,first:true});(sec.lines||[]).forEach((line,li)=>res.push({si,type:'line',sec,line,li,first:li===0}));(sec.chordRows||[]).forEach((row,i)=>res.push({si,type:'outro',sec,row,first:i===0}));});return res;}
-function pageList(song){const landscape=window.innerWidth>window.innerHeight&&window.innerWidth>=650;const limit=landscape?8:6;const entries=flatEntries(song);if(!entries.length)return [[]];const pages=[];for(let i=0;i<entries.length;i+=limit) pages.push(entries.slice(i,i+limit));return pages;}
-function entriesHTML(entries){if(!entries.length)return '<p>Questo canto non ha ancora righe.</p>';let lastSection=-1;return entries.map((e,idx)=>{let heading='';if(e.si!==lastSection){heading=groupHeading(e.sec.name,!e.first);lastSection=e.si;}return heading+(e.type==='intro'?introChords(e.sec):e.type==='outro'?`<div class="music-row outro chords-only"><div class="chord-band">${e.row.map(c=>`<span class="chord-label">${chordLabel(c)}</span>`).join('')}</div></div>`:lineHTML(e.sec,e.line,e.si,e.li));}).join('');}
-function readerHTML(){const song=currentSong();if(!song)return '';const pages=pageList(song);state.page=Math.max(0,Math.min(state.page,pages.length-1));const landscape=window.innerWidth>window.innerHeight&&window.innerWidth>=650;const entries=pages[state.page];const mid=landscape?Math.ceil(entries.length/2):entries.length;const left=entries.slice(0,mid), right=entries.slice(mid);
-  return `<div class="reader-layer" id="readerLayer"><header class="reader-toolbar">
-    <button class="reader-back" data-action="close-reader">← <span>Biblioteca</span></button>
-    <div class="reader-actions"><button class="mini-btn" data-action="shift-down" title="Abbassa tonalità">−</button><span class="shift-val">${state.shift===0?'Tonalità originale':`${state.shift>0?'+':''}${state.shift} semitoni`}</span><button class="mini-btn" data-action="shift-up" title="Alza tonalità">+</button><button class="mini-btn reader-extra" data-action="reset-shift">Reset</button><button class="mini-btn" data-action="print" title="Stampa A4 / salva PDF">PDF A4</button></div>
-  </header>
-  <div class="reader-stage" id="readerStage"><article class="reader-paper" id="readerPaper" tabindex="0">
-    <div class="corner" aria-hidden="true"><span class="corner-cross">✝</span></div><h1 class="paper-heading">${escape(song.title)}</h1><div class="paper-note">CANTORIA · SPARTITO INTERATTIVO</div>
-    ${song.verified?'':`<div class="reader-warning">⚠ Demo: verificare gli accordi sulla foto originale prima di suonare</div>`}
-    <div class="sheet-columns ${landscape?'landscape':''}"><div class="sheet-column">${entriesHTML(left)}</div>${landscape?`<div class="sheet-column">${entriesHTML(right)}</div>`:''}</div>
-    <div class="reader-page-note">Tocca un accordo per correggere la sillaba a cui è ancorato</div>
-  </article></div>
-  <footer class="reader-pagination"><button class="outline-btn" data-action="prev-page" ${state.page<=0?'disabled':''}>← Indietro</button><span class="page-indicator">Pagina <strong>${state.page+1}</strong> di ${pages.length}</span><button class="outline-btn" data-action="next-page" ${state.page>=pages.length-1?'disabled':''}>Avanti →</button><span class="reader-hint">Scorri a destra o a sinistra</span></footer>
-  </div>`;
+function pageList(song){
+ const items=flatEntries(song),columns=readerColumns();
+ if(!items.length)return [[[]]];
+ const horizontal=window.innerWidth>window.innerHeight;
+ const budget=Math.max(2.5,(window.innerHeight-(horizontal?102:135))/(horizontal?66:82));
+ const pages=[];let index=0;
+ while(index<items.length){
+   const page=[];
+   for(let col=0;col<columns;col++){
+     const slice=[];let usage=0,lastSection=-1;
+     while(index<items.length){
+       const entry=items[index];
+       const weight=(entry.type==='intro'?.9:entry.type==='outro'?.82:1)+(lastSection!==entry.si?.38:0);
+       if(slice.length&&usage+weight>budget)break;
+       usage+=weight;slice.push(entry);lastSection=entry.si;index++;
+     }
+     page.push(slice);
+   }
+   pages.push(page);
+ }
+ return pages;
 }
-function headerHTML(){return `<header class="topbar"><div class="brand"><div class="brand-mark">C</div><div><strong>Cantoria</strong><div class="brand-sub">La tua musica, in ordine</div></div></div><div class="top-actions"><button class="gold-btn" data-action="create-mass">+ Nuova Messa</button></div></header>`;}
+function entriesHTML(entries){if(!entries.length)return '<p>Questo canto non ha ancora righe.</p>';let lastSection=-1;return entries.map((e,idx)=>{let heading='';if(e.si!==lastSection){heading=groupHeading(e.sec.name,!e.first);lastSection=e.si;}return heading+(e.type==='intro'?introChords(e.sec):e.type==='outro'?`<div class="music-row outro chords-only"><div class="chord-band">${e.row.map(c=>`<span class="chord-label">${chordLabel(c)}</span>`).join('')}</div></div>`:lineHTML(e.sec,e.line,e.si,e.li));}).join('');}
+function readerColumns(){const w=window.innerWidth,h=window.innerHeight;return ((w>=650&&w>h)||w>=760)?2:1;}
+function readerHTML(){
+ const song=currentSong();if(!song)return '';
+ const pages=pageList(song);state.page=Math.max(0,Math.min(state.page,pages.length-1));
+ const columns=pages[state.page];
+ const cols=readerColumns();
+ const horizontal=window.innerWidth>window.innerHeight;
+ const perColumnWidth=(window.innerWidth-(cols===2?67:30))/cols;
+ const font=Math.max(15,Math.min(26,perColumnWidth*(horizontal?.051:.058)));
+ return `<div class="reader-layer" id="readerLayer" style="--reader-font:${font.toFixed(1)}px">
+ <header class="reader-toolbar">
+   <button class="reader-back" data-action="close-reader" aria-label="Chiudi spartito">‹</button>
+   <div class="reader-title" title="${escapeAttr(song.title)}"><strong>${escape(song.title)}</strong><small>${state.page+1} / ${pages.length}${song.verified?'':' · DA VERIFICARE'}</small></div>
+   <div class="reader-actions">
+    <button class="mini-btn" data-action="shift-down" aria-label="Abbassa tonalità">−</button>
+    <button class="reader-shift" data-action="reset-shift" title="Ripristina tonalità">${state.shift===0?'0':(state.shift>0?'+':'')+state.shift}</button>
+    <button class="mini-btn" data-action="shift-up" aria-label="Alza tonalità">+</button>
+    <button class="reader-pdf" data-action="print" aria-label="Esporta PDF A4">PDF</button>
+   </div>
+ </header>
+ <div class="reader-stage" id="readerStage"><article class="reader-paper" id="readerPaper" tabindex="0">
+  <div class="sheet-columns" style="--reader-cols:${cols}">${columns.map(col=>`<div class="sheet-column">${entriesHTML(col)}</div>`).join('')}</div>
+ </article></div></div>`;
+}
+function homeHTML(){
+ const tiles=[
+  {icon:"▤",title:"Biblioteca",description:"Tutti i tuoi spartiti",action:'data-nav="library"'},
+  {icon:"＋",title:"Acquisisci brano",description:"Fotografa o inserisci",action:'data-nav="capture"'},
+  {icon:"⚙",title:"Impostazioni",description:"Preferenze e backup",action:'data-nav="settings"'},
+  {icon:"♬",title:"Nuova Messa",description:"Prepara una scaletta",action:'data-action="create-mass"'}
+ ];
+ return `<div class="home-screen"><p class="home-overline">IL TUO REPERTORIO</p><h1>Cantoria</h1><p class="home-subtitle">Ogni canto, al suo posto.</p><div class="home-grid">${tiles.map(t=>`<button type="button" class="home-tile" ${t.action}><span class="home-tile-icon" aria-hidden="true">${t.icon}</span><strong>${t.title}</strong><small>${t.description}</small></button>`).join('')}</div><p class="home-footnote">La tua musica, pronta per ogni celebrazione.</p></div>`;
+}
+function headerHTML(){
+ if(state.view==='home')return `<header class="topbar topbar-home"><div class="brand"><div class="brand-mark">C</div><div><strong>Cantoria</strong><div class="brand-sub">Il tuo repertorio</div></div></div></header>`;
+ const titles={library:'Biblioteca',masses:'Le mie Messe',capture:'Nuovo brano',settings:'Impostazioni'};
+ return `<header class="topbar topbar-section"><button class="header-home-btn" data-nav="home" aria-label="Torna alla Home">‹ <span>Home</span></button><strong class="header-section-title">${titles[state.view]||'Cantoria'}</strong><div class="header-spacer"></div></header>`;
+}
 function navHTML(){const nav=Object.keys(labels);return `<nav class="sidenav">${nav.map(k=>`<button class="nav-item ${state.view===k?'active':''}" data-nav="${k}"><span class="ico">${icons[k]}</span>${labels[k]}</button>`).join('')}<div class="nav-helper">La tua biblioteca è salvata in questo dispositivo.<br><strong>Il cloud verrà aggiunto in una prossima versione.</strong></div></nav><nav class="bottom-nav">${nav.map(k=>`<button class="bottom-item ${state.view===k?'active':''}" data-nav="${k}"><span class="ico">${icons[k]}</span>${labels[k]}</button>`).join('')}</nav>`;}
 function libraryHTML(){const songs=store.songs.filter(s=>(s.title||'').toLowerCase().includes(state.filter.toLowerCase()));return `<div class="page-heading"><div><div class="eyebrow">Il tuo repertorio</div><h1>Biblioteca musicale</h1><p>Ogni canto, pronto per essere letto, trasposto e inserito nella scaletta di una Messa.</p></div><button class="primary-btn" data-nav="capture">+ Aggiungi canto</button></div>
   <label class="search-bar">⌕ <input id="search" type="search" placeholder="Cerca un canto…" value="${escapeAttr(state.filter)}" autocomplete="off" aria-label="Cerca un canto"></label>
@@ -199,15 +308,53 @@ function massDetailHTML(){const mass=currentMass();return `<div class="collectio
 function captureHTML(){return `<div class="page-heading"><div><div class="eyebrow">Acquisizione e correzione</div><h1>Nuovo spartito</h1><p>Scatta la foto del foglio, poi prepara il testo e gli accordi. Il riconoscimento automatico sarà aggiunto successivamente.</p></div></div><div class="form-wrap"><div class="panel"><h3>01 · Foto originale</h3><p>Per ora la fotografia rimane visibile come riferimento durante la trascrizione. Non viene inviata a servizi esterni.</p><label class="photo-drop"><input type="file" id="photoInput" accept="image/*" capture="environment" aria-label="Scatta o seleziona una fotografia">${state.photoURL?`<img src="${state.photoURL}" alt="Foto del foglio selezionata"/>`:'<span style="font-size:36px;color:#7c997f">▧</span><strong>Scatta una foto o scegli un’immagine</strong><small>Fotocamera e libreria fotografica</small>'}</label><div class="alert" style="margin-top:16px">L'OCR non è ancora attivo. La fotografia serve per controllare manualmente la corrispondenza accordo–sillaba.</div></div>
   <form class="panel" id="songForm"><h3>02 · Spartito strutturato</h3><p>Inserisci le sillabe separate con <code>|</code> e scrivi l'accordo tra parentesi quadre immediatamente prima della sillaba giusta.</p><div class="field"><label for="songTitle">Titolo</label><input id="songTitle" name="songTitle" placeholder="Es. Santo" required></div><div class="code-help"><strong>Formato:</strong><br><code>@INTRO SOL DO LA- RE</code><br><code>@STROFA</code><br><code>[SOL2]Be|ne|det|to sei [RE]Si|gno|re,</code><br><code>@RITORNELLO</code><br><code>[DO]A te can|tia|mo [SOL]Cri|sto Re</code></div><div class="field"><label for="songText">Testo e accordi</label><textarea id="songText" name="songText" placeholder="@STROFA\n[SOL]Ge|sù ci [RE]chia|ma" required></textarea></div><button type="submit" class="primary-btn">Salva in biblioteca</button></form></div>`;}
 function settingsHTML(){return `<div class="page-heading"><div><div class="eyebrow">Versione 0.1</div><h1>Impostazioni</h1><p>Una base già utilizzabile e da perfezionare graficamente, prima di collegare servizi cloud e riconoscimento fotografico.</p></div></div><div class="form-wrap"><div class="panel"><h3>Dati e salvataggi</h3><p>I canti e le scalette sono attualmente memorizzati <strong>solo nel browser di questo dispositivo</strong>. Non sono ancora sincronizzati su iCloud o GitHub.</p><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px"><button class="outline-btn" data-action="backup">Scarica backup JSON</button><label class="outline-btn" style="cursor:pointer">Ripristina backup<input type="file" id="backupInput" accept="application/json" style="display:none"></label></div></div><div class="panel"><h3>Modello musicale</h3><p>Ogni accordo conserva un indice di sillaba nel proprio rigo. La trasposizione modifica soltanto il nome dell'accordo, non la sua posizione.</p><div class="alert" style="margin-top:15px">Il riconoscimento da foto e la sincronizzazione cloud non fanno parte della versione iniziale. Il controllo manuale è indispensabile per garantire la correttezza musicale.</div></div></div>`;}
-function appHTML(){const view={library:libraryHTML,masses:massesHTML,capture:captureHTML,settings:settingsHTML}[state.view]();return `<div class="app-shell">${headerHTML()}<div class="main">${navHTML()}<main class="workspace">${view}</main></div></div>${state.songId?readerHTML():''}${state.modal?modalHTML():''}${state.toast?`<div class="toast">${escape(state.toast)}</div>`:''}`;}
+function appHTML(){
+ const views={home:homeHTML,library:libraryHTML,masses:massesHTML,capture:captureHTML,settings:settingsHTML};
+ const builder=views[state.view]||homeHTML;
+ return `<div class="app-shell">${headerHTML()}<main class="workspace ${state.view==='home'?'home-workspace':'section-workspace'}">${builder()}</main></div>${state.songId?readerHTML():''}${state.modal?modalHTML():''}${state.toast?`<div class="toast">${escape(state.toast)}</div>`:''}`;
+}
+function replaceSyllable(marked,slot,newText){
+ let n=0;
+ return String(marked).split(/(\s+)/).map(chunk=>{
+  if(!chunk||/^\s+$/.test(chunk))return chunk;
+  return chunk.split('|').map(item=>{
+   if(!item)return item;
+   if(n++===slot)return newText;
+   return item;
+  }).join('|');
+ }).join('');
+}
+function syllableModalHTML(m){
+ const line=currentSong()?.sections[m.si]?.lines[m.li];
+ if(!line)return '';
+ const tokens=parseSyllables(line.marked).filter(t=>!t.space),syllable=tokens[m.slot];
+ if(!syllable)return '';
+ const a=line.anchors.find(a=>a.slot===m.slot);
+ return `<div class="modal-shade"><form class="modal-card" id="syllableEditForm"><h2>Modifica sillaba</h2><p>La cella musicale resta nella stessa posizione. L'accordo rimarrà associato alla sillaba anche dopo la modifica.</p><div class="field"><label>Sillaba</label><input name="syllable" value="${escapeAttr(syllable.text)}" required autocapitalize="off" autocomplete="off" autofocus></div><div class="field"><label>Accordo su questa sillaba (facoltativo)</label><input name="chord" value="${escapeAttr(a?.chord||'')}" placeholder="Es. SOL#7" autocapitalize="characters" autocomplete="off"></div><p class="editor-note">Lascia vuoto l'accordo per rimuoverlo. Per modificare altre sillabe, tieni premuto sul testo.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button class="primary-btn">Conferma e salva</button></div></form></div>`;
+}
 function modalHTML(){const m=state.modal;
  if(m.type==='new-mass')return `<div class="modal-shade"><form class="modal-card" id="newMassForm"><h2>Nuova Messa</h2><p>Assegna un nome alla scaletta. Potrai aggiungere i canti nell'ordine della celebrazione.</p><div class="field"><label for="massName">Nome della celebrazione</label><input id="massName" name="massName" placeholder="Messa domenicale, 22 novembre" required autofocus></div><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button class="primary-btn">Crea scaletta</button></div></form></div>`;
  if(m.type==='add-to-mass')return `<div class="modal-shade"><form class="modal-card" id="addToMassForm"><h2>Aggiungi alla Messa</h2><p>Il canto verrà inserito in fondo alla scaletta. Potrai spostarlo successivamente.</p>${m.massId?`<input type="hidden" name="massId" value="${escapeAttr(m.massId)}">`:`<div class="field"><label>Messa</label><select name="massId">${store.masses.map(x=>`<option value="${escapeAttr(x.id)}">${escape(x.name)}</option>`).join('')}</select></div>`}<div class="field"><label>Canto</label><select name="songId">${store.songs.map(s=>`<option value="${escapeAttr(s.id)}" ${s.id===m.songId?'selected':''}>${escape(s.title)}</option>`).join('')}</select></div><div class="field"><label>Momento</label><select name="label"><option>Ingresso</option><option>Atto penitenziale</option><option>Gloria</option><option>Salmo</option><option>Alleluia</option><option>Offertorio</option><option>Santo</option><option>Comunione</option><option>Ringraziamento</option><option>Canto finale</option></select></div><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button class="primary-btn">Aggiungi</button></div></form></div>`;
+ if(m.type==='syllable-edit')return syllableModalHTML(m);
  if(m.type==='chord-edit'){const s=currentSong(),line=s?.sections[m.si]?.lines[m.li];if(!line)return '';const tokens=parseSyllables(line.marked).filter(x=>!x.space);const a=line.anchors[m.ai];return `<div class="modal-shade"><form class="modal-card" id="chordEditForm"><h2>${m.ai===-1?'Aggiungi accordo':'Correggi accordo'}</h2><p>Scegli la sillaba esatta. L'accordo rimarrà agganciato a quella sillaba durante la trasposizione e l'impaginazione.</p><div class="field"><label>Accordo (notazione italiana)</label><input name="chord" value="${escapeAttr(a?.chord||'')}" placeholder="Es. SOL#7" required autofocus></div><div class="field"><label>Sillaba di ancoraggio</label><select name="slot">${tokens.map((t,i)=>`<option value="${i}" ${i===(a?.slot??m.slot)?'selected':''}>${i+1} · ${escape(t.text)}</option>`).join('')}</select></div><div class="modal-actions">${m.ai!==-1?'<button type="button" class="outline-btn" data-action="delete-chord">Elimina accordo</button>':''}<button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button class="primary-btn">Salva</button></div></form></div>`;}
  return '';
 }
 function alignChords(scope=document){for(const row of scope.querySelectorAll('.music-row:not(.chords-only)')){const band=row.querySelector('.chord-band'),lyric=row.querySelector('.lyric-line');if(!band||!lyric)continue;const b=band.getBoundingClientRect();for(const chord of row.querySelectorAll('.chord-label[data-slot]')){const syl=lyric.querySelector(`.syllable[data-slot="${chord.dataset.slot}"]`);if(!syl)continue;const r=syl.getBoundingClientRect();chord.style.left=(r.left-b.left)+'px';}}}
-function render(){root.innerHTML=appHTML();requestAnimationFrame(()=>alignChords());}
+function fitReaderRows(){
+ const paper=document.querySelector('#readerPaper');
+ if(!paper)return;
+ for(const row of paper.querySelectorAll('.music-row:not(.chords-only)')){
+  const line=row.querySelector('.lyric-line');
+  const band=row.querySelector('.chord-band');
+  if(!line||!band)continue;
+  let font=Number.parseFloat(getComputedStyle(line).fontSize);
+  const maxWidth=band.clientWidth-10;
+  for(let i=0;i<32&&line.getBoundingClientRect().width>maxWidth&&font>12;i++){
+   font-=.5;line.style.fontSize=font+'px';
+  }
+ }
+}
+function render(){root.innerHTML=appHTML();requestAnimationFrame(()=>{fitReaderRows();alignChords();});}
 function openSong(songId, shift=0, massItemId=null){if(!store.songs.find(x=>x.id===songId))return;state.songId=songId;state.shift=shift;state.page=0;state.massItemId=massItemId;state.modal=null;render();}
 function modifyMassItem(id,fn){const m=currentMass(),item=m?.items.find(x=>x.id===id);if(!item)return;fn(item,m);persist();render();}
 function openChordModal(si,li,ai,slot=0){state.modal={type:'chord-edit',si,li,ai,slot};render();}
@@ -255,6 +402,52 @@ root.addEventListener('submit',e=>{e.preventDefault();const form=e.target;const 
 });
 root.addEventListener('input',e=>{if(e.target.id==='search'){state.filter=e.target.value;const pos=e.target.selectionStart;render();const s=root.querySelector('#search');s?.focus();if(s?.setSelectionRange)s.setSelectionRange(pos,pos);}});
 root.addEventListener('change',async e=>{if(e.target.id==='photoInput'){const file=e.target.files?.[0];if(!file)return;if(state.photoURL)URL.revokeObjectURL(state.photoURL);state.photoURL=URL.createObjectURL(file);render();return;}if(e.target.id==='backupInput'){const file=e.target.files?.[0];if(!file)return;try{const data=importJSON(await file.text());store.songs=data.songs.map(normalizedSong);store.masses=data.masses;persist();state.view='library';notify('Backup ripristinato.');}catch(err){notify('Impossibile leggere il backup.');}}});
+function setupLongPress(){
+ let timer=null,x=0,y=0,pending=null;
+ const cancel=()=>{if(timer){clearTimeout(timer);timer=null;}pending=null;};
+ const activate=(target)=>{
+  const si=Number(target.dataset.section),li=Number(target.dataset.line);
+  if(!Number.isInteger(si)||!Number.isInteger(li))return;
+  if(target.classList.contains('chord-label'))openChordModal(si,li,Number(target.dataset.chord));
+  else{state.modal={type:'syllable-edit',si,li,slot:Number(target.dataset.slot)};render();}
+ };
+ root.addEventListener('pointerdown',e=>{
+  if(e.button!==0||state.modal)return;
+  const target=e.target.closest('#readerPaper .chord-label.editable, #readerPaper .syllable.clickable');
+  if(!target)return;
+  cancel();x=e.clientX;y=e.clientY;pending=target;
+  timer=setTimeout(()=>{timer=null;const t=pending;pending=null;if(t)activate(t);},530);
+ });
+ root.addEventListener('pointermove',e=>{if(pending&&(Math.abs(e.clientX-x)>11||Math.abs(e.clientY-y)>11))cancel();});
+ for(const type of ['pointerup','pointercancel','pointerleave'])root.addEventListener(type,cancel);
+ root.addEventListener('contextmenu',e=>{
+  const target=e.target.closest('#readerPaper .chord-label.editable, #readerPaper .syllable.clickable');
+  if(!target)return;
+  e.preventDefault();
+  if(!state.modal){cancel();activate(target);}
+ });
+ // Single taps no longer open the editor. A long press is always required.
+ root.addEventListener('click',e=>{
+  const t=e.target.closest('#readerPaper [data-action="edit-chord"], #readerPaper [data-action="add-chord"]');
+  if(t){e.preventDefault();e.stopImmediatePropagation();}
+ },true);
+ root.addEventListener('submit',e=>{
+  if(e.target.id!=='syllableEditForm')return;
+  e.preventDefault();e.stopImmediatePropagation();
+  const m=state.modal,line=currentSong()?.sections[m.si]?.lines[m.li];if(!line)return;
+  const form=new FormData(e.target);
+  const syllable=String(form.get('syllable')||'').trim();
+  const chord=String(form.get('chord')||'').trim().toUpperCase();
+  if(!syllable||/[\s|]/.test(syllable)){alert('Inserisci una singola sillaba, senza spazi o |.');return;}
+  line.marked=replaceSyllable(line.marked,m.slot,syllable);
+  const existing=line.anchors.findIndex(a=>a.slot===m.slot);
+  if(existing>=0){if(chord)line.anchors[existing].chord=chord;else line.anchors.splice(existing,1);}
+  else if(chord)line.anchors.push({slot:m.slot,chord});
+  line.anchors.sort((a,b)=>a.slot-b.slot);
+  persist();state.modal=null;notify('Modifiche salvate');
+ },true);
+}
+setupLongPress();
 let startX=0,startY=0;root.addEventListener('touchstart',e=>{if(!e.target.closest('#readerPaper')||e.target.closest('.modal-card'))return;const t=e.changedTouches[0];startX=t.clientX;startY=t.clientY;},{passive:true});
 root.addEventListener('touchend',e=>{if(!e.target.closest('#readerPaper'))return;const t=e.changedTouches[0],dx=t.clientX-startX,dy=t.clientY-startY;if(Math.abs(dx)>65&&Math.abs(dx)>Math.abs(dy)*1.4){state.page+=dx<0?1:-1;state.page=Math.max(0,Math.min(pageList(currentSong()).length-1,state.page));render();}},{passive:true});
 window.addEventListener('resize',()=>{if(state.songId){state.page=0;render();}});
