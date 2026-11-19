@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Cantoria" />
   <meta name="description" content="Cantoria: canti cattolici, accordi e repertorio per la Santa Messa, le celebrazioni liturgiche e la preghiera." />
-  <link rel="manifest" href="./manifest.webmanifest?v=20261119.6" />
+  <link rel="manifest" href="./manifest.webmanifest?v=20261119.8" />
   <link rel="apple-touch-icon" sizes="192x192" href="./assets/cantoria-icona-ufficiale-045.png" />
   <link rel="icon" href="./assets/cantoria-icona-ufficiale-045.png" type="image/png" />
   <style>:root{--forest:#153e32;--forest-2:#2b5547;--gold:#ac8128;--ink:#1d2925;--muted:#697b70;--ivory:#faf6ee;--sand:#f1ebdf;--line:#dfd7c7;--blueband:rgba(98,136,154,.18);--sageband:rgba(121,138,107,.17);--orangeband:rgba(163,116,93,.17);--radius:17px;--lyric-size:24px;--shadow:0 12px 35px rgba(31,55,43,.08)}
@@ -390,6 +390,27 @@
  .song-options-compact .song-transport button{height:59px;min-height:59px;}
  .song-options-compact .song-transport .song-transport-btn{font-size:27px;}
 }
+
+
+/* Cantoria v0.4.7: quattro pulsanti Home come nel riferimento, riquadro arrotondato e icona lineare */
+@media screen {
+ .home-screen {width:min(580px,100%);transform:translateY(-4vh);}
+ .home-grid {grid-template-columns:repeat(2,minmax(0,1fr));column-gap:clamp(12px,3vw,24px);row-gap:clamp(24px,4vh,40px);}
+ .home-grid .home-tile {display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:clamp(12px,2vh,19px);min-height:0!important;padding:0 1px!important;background:transparent!important;border:0!important;box-shadow:none!important;border-radius:0!important;}
+ .home-grid .home-tile-icon {width:min(100%,clamp(128px,38vw,190px))!important;height:auto!important;aspect-ratio:1 / 1;display:grid;place-items:center;flex:0 0 auto;border:1.7px solid #b4a991!important;border-radius:clamp(33px,8vw,49px)!important;background:#f9f4eb!important;box-shadow:none!important;color:#235b49!important;font-size:initial!important;transition:background .15s ease,border-color .15s ease,transform .15s ease;}
+ .home-grid .home-tile-icon svg {width:47%;height:47%;display:block;overflow:visible;}
+ .home-grid .home-tile:nth-child(2) .home-tile-icon,.home-grid .home-tile:nth-child(4) .home-tile-icon {color:#ae7f2b!important;background:#faf2e5!important;border-color:#c1ae8d!important;}
+ .home-grid .home-tile:nth-child(3) .home-tile-icon {color:#416f60!important;}
+ .home-grid .home-tile strong {font:650 clamp(17px,3.2vw,23px)/1.15 ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;letter-spacing:-.35px;color:#1c3930;text-align:center;white-space:nowrap;}
+ .home-grid .home-tile:active {transform:none!important;}
+ .home-grid .home-tile:active .home-tile-icon {transform:scale(.965);background:#efe8da!important;}
+ .home-grid .home-tile:focus-visible .home-tile-icon {outline:3px solid #ab853f;outline-offset:3px;}
+}
+@media screen and (max-width:390px) {
+ .home-grid {column-gap:10px;row-gap:22px;}
+ .home-grid .home-tile-icon {width:min(100%,clamp(116px,37vw,150px))!important;border-radius:34px!important;}
+ .home-grid .home-tile strong {font-size:17px!important;}
+}
 </style>
   <title>Cantoria — Canti per la liturgia cattolica</title>
 </head>
@@ -624,13 +645,14 @@ function readerHTML(){
 }
 const CATHOLIC_CORNER = '<svg class="corner-ornament" viewBox="0 0 300 245" preserveAspectRatio="xMinYMin meet" aria-hidden="true" focusable="false"><path d="M0 0H300C186 46 76 148 0 245Z" fill="#194638"/><path d="M300 0C186 46 76 148 0 245" fill="none" stroke="#C59442" stroke-width="6"/><path class="corner-ornament-cross" d="M75 41V111M49 72H101" fill="none" stroke="#EBC16F" stroke-width="10" stroke-linecap="square"/></svg>';
 function homeHTML(){
+ const iconProps='viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true"';
  const tiles=[
-  {icon:'▤',title:'Biblioteca',action:'data-nav="library"'},
-  {icon:'＋',title:'Acquisisci',action:'data-nav="capture"'},
-  {icon:'⚙',title:'Impostazioni',action:'data-nav="settings"'},
-  {icon:'♬',title:'Messe',action:'data-nav="masses"'}
+  {icon:`<svg ${iconProps}><path d="M32 52V15C24 10 16 10 8 13v34c8-3 16-3 24 5Z"/><path d="M32 52V15c8-5 16-5 24-2v34c-8-3-16-3-24 5Z"/></svg>`,title:'Biblioteca',view:'library'},
+  {icon:`<svg ${iconProps}><rect x="8" y="19" width="48" height="34" rx="7"/><path d="m19 19 5-8h16l5 8"/><circle cx="32" cy="36" r="9"/></svg>`,title:'Acquisisci',view:'capture'},
+  {icon:`<svg ${iconProps}><path d="M10 17h20m12 0h12M10 32h6m12 0h26M10 47h28m12 0h4"/><circle cx="36" cy="17" r="6"/><circle cx="22" cy="32" r="6"/><circle cx="44" cy="47" r="6"/></svg>`,title:'Impostazioni',view:'settings'},
+  {icon:`<svg ${iconProps}><rect x="10" y="14" width="44" height="40" rx="7"/><path d="M21 10v9m22-9v9M10 26h44M32 32v16m-8-8h16"/></svg>`,title:'Messe',view:'masses'}
  ];
- return `<div class="home-screen"><h1>Cantoria</h1><div class="home-grid">${tiles.map(t=>`<button type="button" class="home-tile" ${t.action}><span class="home-tile-icon" aria-hidden="true">${t.icon}</span><strong>${t.title}</strong></button>`).join('')}</div></div>`;
+ return `<div class="home-screen"><h1>Cantoria</h1><div class="home-grid">${tiles.map(t=>`<button type="button" class="home-tile" data-nav="${t.view}" aria-label="Apri ${t.title}"><span class="home-tile-icon">${t.icon}</span><strong>${t.title}</strong></button>`).join('')}</div></div>`;
 }
 function headerHTML(){
  if(state.view==='home')return `<header class="topbar topbar-home">${CATHOLIC_CORNER}</header>`;
@@ -672,7 +694,7 @@ function captureHTML(){
      </form>`:`<p class="photo-capture-hint">Fotografa lo spartito per iniziare.</p>`}
   </section>`;
 }
-function settingsHTML(){return `<div class="page-heading"><div><div class="eyebrow">Versione 0.4.6 · Build 20261119.7</div><h1>Impostazioni</h1></div></div><div class="form-wrap"><div class="panel"><h3>Dati e salvataggi</h3><p>I canti e le scalette sono attualmente memorizzati <strong>solo nel browser di questo dispositivo</strong>. Non sono ancora sincronizzati su iCloud o GitHub.</p><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px"><button class="outline-btn" data-action="backup">Scarica backup JSON</button><label class="outline-btn" style="cursor:pointer">Ripristina backup<input type="file" id="backupInput" accept="application/json" style="display:none"></label></div></div><div class="panel"><h3>Modello musicale</h3><p>Ogni accordo conserva un indice di sillaba nel proprio rigo. La trasposizione modifica soltanto il nome dell'accordo, non la sua posizione.</p><div class="alert" style="margin-top:15px">I nuovi canti vengono salvati da una fotografia. L'OCR non è ancora disponibile: le foto restano bozze finché testo e accordi non saranno riconosciuti e verificati.</div></div></div>`;}
+function settingsHTML(){return `<div class="page-heading"><div><div class="eyebrow">Versione 0.4.7 · Build 20261119.8</div><h1>Impostazioni</h1></div></div><div class="form-wrap"><div class="panel"><h3>Dati e salvataggi</h3><p>I canti e le scalette sono attualmente memorizzati <strong>solo nel browser di questo dispositivo</strong>. Non sono ancora sincronizzati su iCloud o GitHub.</p><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px"><button class="outline-btn" data-action="backup">Scarica backup JSON</button><label class="outline-btn" style="cursor:pointer">Ripristina backup<input type="file" id="backupInput" accept="application/json" style="display:none"></label></div></div><div class="panel"><h3>Modello musicale</h3><p>Ogni accordo conserva un indice di sillaba nel proprio rigo. La trasposizione modifica soltanto il nome dell'accordo, non la sua posizione.</p><div class="alert" style="margin-top:15px">I nuovi canti vengono salvati da una fotografia. L'OCR non è ancora disponibile: le foto restano bozze finché testo e accordi non saranno riconosciuti e verificati.</div></div></div>`;}
 function appHTML(){
  const views={home:homeHTML,library:libraryHTML,masses:massesHTML,capture:captureHTML,settings:settingsHTML};
  const builder=views[state.view]||homeHTML;
