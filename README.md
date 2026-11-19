@@ -1,4 +1,4 @@
-# Cantoria — PWA iPhone/iPad (prototipo 0.3)
+# Cantoria — PWA iPhone/iPad (prototipo 0.3.1)
 
 Prima versione sperimentale di **Cantoria**, un archivio di spartiti e scalette per le Messe, ottimizzato per iPhone e iPad.
 
@@ -14,12 +14,14 @@ La web app è interamente contenuta in `index.html`: non richiede Node.js, build
 4. Apri **https://gulinodesign-maker.github.io/CANTORIA/** in Safari, dopo che GitHub Pages ha completato la pubblicazione.
 5. Su iPhone: Safari → Condividi → **Aggiungi alla schermata Home**.
 
-## Novità v0.3
+## Novità v0.3.1
 
-- Pulsanti **−** e **+** del trasporto più grandi, con aree di tocco di almeno 44 px.
-- Tonalità corrente in notazione italiana fra i pulsanti, ad esempio **SOL maggiore**, **LA maggiore** o **DO diesis maggiore**. Toccando il nome della tonalità si imposta quella originale. Se manca nei dati appare "Tonalità da definire".
-- Il pulsante **PDF** genera un file PDF A4 multipagina direttamente nell'app, senza usare `window.print()`. Su iPhone/iPad, quando supportato, apre il pannello **Condividi**, da cui scegliere **Salva su File**; negli altri browser prova il download.
-- I PDF contengono il brano completo, i testi, gli accordi trasposti e il nome della tonalità. Controllare sempre gli ancoraggi prima di una celebrazione.
+- **Tonalità corrente a destra del titolo** del brano nella barra superiore (ad esempio SOL maggiore o DO diesis maggiore). Toccando la tonalità si modifica quella originale.
+- Pulsanti **− / +** ingranditi nel lettore. **Tra i due pulsanti** ora appare un contatore numerico di semitoni **0, +1, +2, −1...**; toccando il contatore si azzera la trasposizione.
+- Il tasto **PDF** apre un pannello con **Condividi o salva su File**, **Apri PDF** e **Scarica PDF**, per consentire un'alternativa se il flusso nativo di condivisione non è supportato sul dispositivo.
+- Il PDF A4 continua a essere generato direttamente dal browser, completo e multipagina, con accordi trasposti.
+- Cache offline aggiornata per distribuire la nuova interfaccia alle PWA già installate. In caso di vecchia schermata: aprire il sito in Safari, ricaricare e riavviare la web app.
+- **Test:** sintassi JavaScript verificata e struttura PDF generata in un test. Da confermare ancora i gesti e il pannello di condivisione sull'iPhone reale.
 
 ## Novità v0.2
 
@@ -55,4 +57,4 @@ La web app è interamente contenuta in `index.html`: non richiede Node.js, build
 
 HTML/CSS/JavaScript senza dipendenze esterne; manifest PWA; service worker. La struttura musicale associa gli accordi a identificativi di sillaba anziché a coordinate grafiche. Il progetto potrà essere modularizzato e, se desiderato, impacchettato come app iOS tramite Capacitor.
 
-**Stato:** v0.3. Esportazione PDF e gesti di condivisione da verificare su iPhone/iPad reali. Il riconoscimento fotografico automatico resta da realizzare: foto → OCR testo/accordi → revisione delle sillabe e degli ancoraggi → salvataggio in biblioteca.
+**Stato:** v0.3.1. Esportazione PDF e gesti di condivisione da verificare su iPhone/iPad reali. Il riconoscimento fotografico automatico resta da realizzare: foto → OCR testo/accordi → revisione delle sillabe e degli ancoraggi → salvataggio in biblioteca.
