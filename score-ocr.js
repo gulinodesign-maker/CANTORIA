@@ -9,7 +9,7 @@
   function chordName(token) {
     const s = String(token || "").replace(/♯/g, "#").replace(/♭/g, "b")
       .replace(/^[([{]+|[\])},;:.]+$/g, "").trim();
-    return CHORD.test(s) ? s.toUpperCase() : "";
+    return CHORD.test(s) ? s.replace(/^(SOL|DO|RE|MI|FA|LA|SI)(#|b)?/i, (all, root, accidental) => root.toUpperCase() + (accidental ? (accidental.toLowerCase() === 'b' ? 'b' : '#') : '')) : "";
   }
   function section(name, index) {
     const heading = String(name).toUpperCase();
