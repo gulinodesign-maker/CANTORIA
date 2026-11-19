@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Verify photo-to-editable-score parser and app wiring
+        run: node scripts/test-photo-ocr.js
       - name: Check inline JS and generate a sample PDF
         run: |
           node - <<'NODE'
