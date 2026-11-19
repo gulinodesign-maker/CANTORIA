@@ -2,6 +2,8 @@ name: Verify Cantoria web app
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 jobs:
   verify:
@@ -17,10 +19,11 @@ jobs:
           const match=html.match(/<script>([\s\S]*?)<\/script>/);
           if(!match)throw new Error('Inline script missing');
           const code=match[1];
+          if(!code.includes('function recognizePhotoText()')||!code.includes('photoOcrFormHTML(true)'))throw new Error('Photo OCR flow missing');
           fs.writeFileSync('/tmp/cantoria.js',code);
           const first=code.slice(code.indexOf('const NOTE_NAMES'),code.indexOf('function normalizedSong('));
           const tonality=code.slice(code.indexOf('function describeTonality('),code.indexOf('function chordLabel('));
-          const pdf=code.slice(code.indexOf('function makeCantoriaPdf('),code.indexOf('function printSong('));
+          const pdf=code.slice(code.indexOf('function makeCantoriaPdf('),code.indexOf('function exportPdf('));
           if(!first||!tonality||!pdf.includes('new Blob'))throw new Error('Cantoria musical model/PDF incomplete');
           const context=vm.createContext({Blob,TextEncoder});
           vm.runInContext(first+'\n'+tonality+'\n'+pdf,context);

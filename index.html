@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Cantoria" />
   <meta name="description" content="Cantoria: canti cattolici, accordi e repertorio per la Santa Messa, le celebrazioni liturgiche e la preghiera." />
-  <link rel="manifest" href="./manifest.webmanifest?v=20261119.9" />
+  <link rel="manifest" href="./manifest.webmanifest?v=20261119.10" />
   <link rel="apple-touch-icon" sizes="192x192" href="./assets/cantoria-icona-ufficiale-045.png" />
   <link rel="icon" href="./assets/cantoria-icona-ufficiale-045.png" type="image/png" />
   <style>:root{--forest:#153e32;--forest-2:#2b5547;--gold:#ac8128;--ink:#1d2925;--muted:#697b70;--ivory:#faf6ee;--sand:#f1ebdf;--line:#dfd7c7;--blueband:rgba(98,136,154,.18);--sageband:rgba(121,138,107,.17);--orangeband:rgba(163,116,93,.17);--radius:17px;--lyric-size:24px;--shadow:0 12px 35px rgba(31,55,43,.08)}
@@ -411,6 +411,11 @@
  .home-grid .home-tile-icon {width:min(100%,clamp(102px,32vw,132px))!important;border-radius:34px!important;}
  .home-grid .home-tile strong {font-size:17px!important;}
 }
+.photo-ocr-panel{width:100%;max-width:680px;margin:12px auto;padding:12px;background:#f6f3ec;border:1px solid #dfd6c5;border-radius:13px;text-align:left;}
+.photo-ocr-panel .field{width:100%;}
+.photo-ocr-panel textarea{width:100%;min-height:130px;white-space:pre-wrap;}
+.photo-ocr-panel button{margin:0 0 6px;}
+.photo-ocr-status{font-size:13px;line-height:1.5;color:#466453;margin:8px 0;}
 </style>
   <title>Cantoria — Canti per la liturgia cattolica</title>
 </head>
@@ -534,6 +539,7 @@ function importSongFile(text){
  const song=payload.song;
  if(typeof song.title!=='string'||!song.title.trim()||!Array.isArray(song.sections)||song.sections.length>200||(!song.sections.length&&!song.photoData))throw new Error('Titolo o sezioni non validi');
  if(song.photoData&&(typeof song.photoData!=='string'||!/^data:image\/(jpeg|png|webp);base64,[a-zA-Z0-9+/=]+$/.test(song.photoData)||song.photoData.length>2200000))throw new Error('Fotografia non valida');
+ if(song.ocrText!==undefined&&(typeof song.ocrText!=='string'||song.ocrText.length>20000))throw new Error('Testo OCR non valido');
  for(const sec of song.sections){
   if(!sec||typeof sec!=='object'||!Array.isArray(sec.lines)||sec.lines.length>500)throw new Error('Sezione non valida');
   for(const line of sec.lines){if(!line||typeof line.marked!=='string'||!Array.isArray(line.anchors))throw new Error('Riga musicale non valida');const count=parseSyllables(line.marked).filter(t=>!t.space).length;if(line.anchors.some(a=>!a||!Number.isInteger(a.slot)||a.slot<0||a.slot>=count||typeof a.chord!=='string'))throw new Error('Accordi o ancoraggi non validi');}
@@ -545,7 +551,7 @@ function makeId() { return `${Date.now().toString(36)}-${Math.random().toString(
 
 const root = document.querySelector('#app');
 const store = loadStore();
-const state = { view: 'home', filter: '', massId: null, songId: null, massItemId: null, shift: 0, page: 0, modal: null, photoURL: null, toast: '', fontScale: 1 };
+const state = { view: 'home', filter: '', massId: null, songId: null, massItemId: null, shift: 0, page: 0, modal: null, photoURL: null, ocrText: '', ocrBusy: false, ocrStatus: '', toast: '', fontScale: 1 };
 let toastTimer;
 const escape = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const escapeAttr = escape;
@@ -618,7 +624,7 @@ function photoReaderHTML(song){
  </header>
  <div class="reader-stage" id="readerStage"><article class="reader-paper photo-viewer" id="readerPaper">
   <img src="${escapeAttr(song.photoData)}" alt="Fotografia originale del brano">
-  <p class="photo-draft-notice">Bozza fotografica · Riconoscimento non ancora disponibile</p>
+  ${photoOcrFormHTML(true)}
  </article></div></div>`;
 }
 function readerHTML(){
@@ -678,6 +684,62 @@ function massDetailHTML(){
  const mass=currentMass(),done=!!mass.celebratedAt;
  return `<div class="collection-header"><div><button class="text-btn" data-action="back-masses">← Messe</button><div class="eyebrow" style="margin-top:11px">${done?'Report Messa celebrata':'Scaletta'}</div><h2>${escape(mass.name)}</h2><small>${escape(massDateDisplay(mass.date||((done&&mass.celebratedAt)?String(mass.celebratedAt).slice(0,10):'')))}</small></div>${done?'':`<button class="outline-btn" data-action="rename-mass">Rinomina</button>`}</div><div class="meta-row"><span class="pill">${(mass.items||[]).length} canti</span>${done?`<button class="primary-btn" data-action="reuse-mass" data-mass="${escapeAttr(mass.id)}">Riutilizza scaletta</button>`:`<button class="primary-btn" data-action="add-to-mass">+ Aggiungi canto</button><button class="outline-btn" data-action="finish-mass">Segna celebrata</button>`}</div><div style="margin-top:21px">${(mass.items||[]).map((item,i)=>{const song=store.songs.find(x=>x.id===item.songId);const actions=done?`<button class="mini-btn" data-action="read-mass-song" data-item="${escapeAttr(item.id)}" title="Apri canto">▶</button>`:`<button class="mini-btn" data-action="mass-shift-down" data-item="${escapeAttr(item.id)}" title="Abbassa tonalità">−</button><button class="mini-btn" data-action="mass-shift-up" data-item="${escapeAttr(item.id)}" title="Alza tonalità">+</button><button class="mini-btn" data-action="move-up" data-item="${escapeAttr(item.id)}" ${i===0?'disabled':''} title="Sposta prima">↑</button><button class="mini-btn" data-action="move-down" data-item="${escapeAttr(item.id)}" ${i===mass.items.length-1?'disabled':''} title="Sposta dopo">↓</button><button class="mini-btn" data-action="read-mass-song" data-item="${escapeAttr(item.id)}" title="Apri canto">▶</button><button class="mini-btn" data-action="remove-mass-item" data-item="${escapeAttr(item.id)}" title="Rimuovi">×</button>`;return `<article class="mass-song"><span class="mass-number">${String(i+1).padStart(2,'0')}</span><div class="mass-song-info"><small>${escape(item.label||'Canto')}</small><strong>${escape(done?(item.archiveTitle||song?.title||'Canto non disponibile'):(song?.title||'Canto non disponibile'))}</strong><small>${item.shift>0?'+':''}${item.shift||0} semitoni</small></div><div class="mass-song-actions">${actions}</div></article>`;}).join('')||'<div class="empty">Nessun canto in questa scaletta.</div>'}</div>${done?'<div class="mass-archive-footer"><button class="text-btn" data-action="reopen-mass">Riapri per modificare</button></div>':''}`;
 }
+
+const OCR_JS_URL='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+let ocrScriptPromise=null;
+function loadOcrLibrary(){
+ if(window.Tesseract?.createWorker)return Promise.resolve();
+ if(ocrScriptPromise)return ocrScriptPromise;
+ ocrScriptPromise=new Promise((resolve,reject)=>{
+  const script=document.createElement('script');
+  script.src=OCR_JS_URL;script.async=true;
+  script.onload=()=>window.Tesseract?.createWorker?resolve():reject(new Error('OCR non disponibile'));
+  script.onerror=()=>reject(new Error('Libreria OCR non raggiungibile'));
+  document.head.appendChild(script);
+ }).catch(err=>{ocrScriptPromise=null;throw err;});
+ return ocrScriptPromise;
+}
+function photoOcrFormHTML(inReader=false){
+ return '<section class="photo-ocr-panel">'
+  +'<button type="button" class="outline-btn" data-action="recognize-photo"'+(state.ocrBusy?' disabled':'')+'>'
+  +(state.ocrBusy?'Riconoscimento in corso…':'🔎 Riconosci testo (OCR)')+'</button>'
+  +'<p class="photo-ocr-status" id="ocrStatus" aria-live="polite">'+escape(state.ocrStatus||'L’OCR legge il testo della foto; verifica sempre il risultato.')+'</p>'
+  +'<div class="field"><label for="photoOcrText">Testo riconosciuto (correggibile)</label>'
+  +'<textarea id="photoOcrText" rows="7" maxlength="20000" placeholder="Premi Riconosci testo, poi correggi qui eventuali errori.">'+escape(state.ocrText)+'</textarea></div>'
+  +(inReader?'<button type="button" class="primary-btn" data-action="save-ocr-text">Salva testo riconosciuto</button>':'')
+  +'<p class="photo-draft-notice">L’OCR riconosce lettere e parole, non la notazione musicale né il collegamento degli accordi alle sillabe. Primo utilizzo: serve Internet per caricare il motore OCR. La fotografia viene elaborata sul dispositivo.</p>'
+  +'</section>';
+}
+async function recognizePhotoText(){
+ if(state.ocrBusy)return;
+ const image=state.songId?currentSong()?.photoData:state.photoURL;
+ if(!image){notify('Prima scatta o scegli una foto.');return;}
+ state.ocrBusy=true;state.ocrStatus='Caricamento motore OCR…';render();
+ let worker;
+ try{
+  await loadOcrLibrary();
+  worker=await window.Tesseract.createWorker('ita+eng',1,{logger:message=>{
+   if(message.status==='recognizing text'&&typeof message.progress==='number'){
+    state.ocrStatus='Lettura del testo: '+Math.round(message.progress*100)+'%';
+   }else if(message.status==='loading language traineddata'){
+    state.ocrStatus='Caricamento lingua italiana e inglese…';
+   }
+   const status=document.getElementById('ocrStatus');
+   if(status)status.textContent=state.ocrStatus;
+  }});
+  state.ocrStatus='Analisi della fotografia…';
+  const result=await worker.recognize(image);
+  state.ocrText=String(result.data?.text||'').trim().slice(0,20000);
+  state.ocrStatus=state.ocrText?'Testo estratto. Correggilo prima di salvarlo.':'Non ho trovato testo leggibile. Prova una foto più nitida.';
+ }catch(err){
+  console.error('OCR:',err);
+  state.ocrStatus='OCR non riuscito. Verifica la connessione e riprova; la foto resta disponibile.';
+ }finally{
+  if(worker){try{await worker.terminate();}catch(err){console.warn('Chiusura OCR:',err);}}
+  state.ocrBusy=false;render();
+ }
+}
+
 function captureHTML(){
  return `<div class="page-heading"><div><h1>Acquisisci un canto</h1></div></div>
   <section class="panel capture-photo-card">
@@ -689,12 +751,13 @@ function captureHTML(){
    </div>
    ${state.photoURL?`<form id="photoSongForm" class="photo-draft-form"><img class="photo-draft-preview" src="${escapeAttr(state.photoURL)}" alt="Anteprima foto dello spartito">
       <div class="field"><label for="photoSongTitle">Titolo (facoltativo)</label><input id="photoSongTitle" name="photoSongTitle" placeholder="Titolo del canto" autocomplete="off"></div>
+      ${photoOcrFormHTML(false)}
       <button class="primary-btn photo-save" type="submit">Salva in biblioteca</button>
-      <p class="photo-draft-notice">La foto sarà salvata come bozza. Il riconoscimento automatico degli accordi non è ancora attivo.</p>
+      <p class="photo-draft-notice">La foto sarà salvata come bozza. Il riconoscimento delle parole è disponibile con OCR; gli accordi vanno verificati.</p>
      </form>`:`<p class="photo-capture-hint">Fotografa lo spartito per iniziare.</p>`}
   </section>`;
 }
-function settingsHTML(){return `<div class="page-heading"><div><div class="eyebrow">Versione 0.4.8 · Build 20261119.9</div><h1>Impostazioni</h1></div></div><div class="form-wrap"><div class="panel"><h3>Dati e salvataggi</h3><p>I canti e le scalette sono attualmente memorizzati <strong>solo nel browser di questo dispositivo</strong>. Non sono ancora sincronizzati su iCloud o GitHub.</p><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px"><button class="outline-btn" data-action="backup">Scarica backup JSON</button><label class="outline-btn" style="cursor:pointer">Ripristina backup<input type="file" id="backupInput" accept="application/json" style="display:none"></label></div></div><div class="panel"><h3>Modello musicale</h3><p>Ogni accordo conserva un indice di sillaba nel proprio rigo. La trasposizione modifica soltanto il nome dell'accordo, non la sua posizione.</p><div class="alert" style="margin-top:15px">I nuovi canti vengono salvati da una fotografia. L'OCR non è ancora disponibile: le foto restano bozze finché testo e accordi non saranno riconosciuti e verificati.</div></div></div>`;}
+function settingsHTML(){return `<div class="page-heading"><div><div class="eyebrow">Versione 0.4.9 · Build 20261119.10</div><h1>Impostazioni</h1></div></div><div class="form-wrap"><div class="panel"><h3>Dati e salvataggi</h3><p>I canti e le scalette sono attualmente memorizzati <strong>solo nel browser di questo dispositivo</strong>. Non sono ancora sincronizzati su iCloud o GitHub.</p><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px"><button class="outline-btn" data-action="backup">Scarica backup JSON</button><label class="outline-btn" style="cursor:pointer">Ripristina backup<input type="file" id="backupInput" accept="application/json" style="display:none"></label></div></div><div class="panel"><h3>Modello musicale</h3><p>Ogni accordo conserva un indice di sillaba nel proprio rigo. La trasposizione modifica soltanto il nome dell'accordo, non la sua posizione.</p><div class="alert" style="margin-top:15px">I canti fotografati possono essere letti con OCR (testo modificabile). Gli accordi e gli ancoraggi delle sillabe richiedono ancora una verifica manuale.</div></div></div>`;}
 function appHTML(){
  const views={home:homeHTML,library:libraryHTML,masses:massesHTML,capture:captureHTML,settings:settingsHTML};
  const builder=views[state.view]||homeHTML;
@@ -798,7 +861,7 @@ function compressScorePhoto(file){
   img.src=url;
  });
 }
-function openSong(songId, shift=0, massItemId=null){if(!store.songs.find(x=>x.id===songId))return;state.songId=songId;state.shift=shift;state.page=0;state.massItemId=massItemId;state.modal=null;render();}
+function openSong(songId, shift=0, massItemId=null){const song=store.songs.find(x=>x.id===songId);if(!song)return;state.songId=songId;state.ocrText=String(song.ocrText||'');state.ocrStatus='';state.shift=shift;state.page=0;state.massItemId=massItemId;state.modal=null;render();}
 function modifyMassItem(id,fn){const m=currentMass(),item=m?.items.find(x=>x.id===id);if(!item)return;fn(item,m);persist();render();}
 function openChordModal(si,li,ai,slot=0){state.modal={type:'chord-edit',si,li,ai,slot};render();}
 function makeCantoriaPdf(song,shift=0){
@@ -964,6 +1027,8 @@ root.addEventListener('click',e=>{
  const el=e.target.closest('[data-nav],[data-action]');if(!el)return;
  if(el.dataset.nav){state.massId=null;go(el.dataset.nav);return;}
  const action=el.dataset.action;
+ if(action==='recognize-photo'){recognizePhotoText();return;}
+ if(action==='save-ocr-text'){const song=currentSong();if(song?.photoData){song.ocrText=state.ocrText.trim().slice(0,20000);persist();notify('Testo OCR salvato nella bozza.');}return;}
  if(action==='close-reader'){state.songId=null;state.modal=null;render();return;}
  if(action==='read-song'){openSong(el.dataset.song);return;}
  if(action==='read-mass-song'){const x=currentMass()?.items.find(i=>i.id===el.dataset.item);if(x)openSong(x.songId,x.shift,x.id);return;}
@@ -1003,16 +1068,16 @@ root.addEventListener('submit',e=>{e.preventDefault();const form=e.target;const 
   if(form.id==='photoSongForm'){
   if(!state.photoURL){notify('Prima scegli una fotografia.');return;}
   const title=String(f.get('photoSongTitle')||'').trim()||('Canto fotografato · '+new Date().toLocaleDateString('it-IT'));
-  const song={id:makeId(),title,subtitle:'Bozza fotografica',key:'',source:'Foto originale',photoData:state.photoURL,verified:false,sections:[]};
+  const song={id:makeId(),title,subtitle:'Bozza fotografica',key:'',source:'Foto originale',photoData:state.photoURL,ocrText:state.ocrText.trim().slice(0,20000),verified:false,sections:[]};
   store.songs.unshift(song);
   if(!saveStore(store)){store.songs.shift();notify('Spazio insufficiente per salvare la foto. Fai un backup o libera spazio.');return;}
-  state.photoURL=null;state.view='library';openSong(song.id);return;
+  state.photoURL=null;state.ocrText='';state.ocrStatus='';state.view='library';openSong(song.id);return;
  }
 });
-root.addEventListener('input',e=>{if(e.target.id==='search'){state.filter=e.target.value;const pos=e.target.selectionStart;render();const s=root.querySelector('#search');s?.focus();if(s?.setSelectionRange)s.setSelectionRange(pos,pos);}});
+root.addEventListener('input',e=>{if(e.target.id==='photoOcrText'){state.ocrText=e.target.value.slice(0,20000);return;}if(e.target.id==='search'){state.filter=e.target.value;const pos=e.target.selectionStart;render();const s=root.querySelector('#search');s?.focus();if(s?.setSelectionRange)s.setSelectionRange(pos,pos);}});
 root.addEventListener('change',async e=>{if(e.target.id==='songKeyInline'){const song=currentSong();if(song){song.key=e.target.value;persist();render();}return;}if(e.target.id==='songImportInput'){const file=e.target.files?.[0];if(!file)return;try{if(file.size>3000000)throw new Error('File troppo grande');const song=importSongFile(await file.text());notify('Brano importato: '+song.title);}catch(err){notify('Importazione non riuscita: '+err.message);}return;}if(e.target.id==='photoCameraInput'||e.target.id==='photoLibraryInput'){
  const file=e.target.files?.[0];if(!file)return;
- try{state.photoURL=await compressScorePhoto(file);render();}
+ try{state.photoURL=await compressScorePhoto(file);state.ocrText='';state.ocrStatus='';render();}
  catch(err){console.error(err);notify('Impossibile aprire la foto. Prova un file JPEG o PNG.');}
  return;
 }if(e.target.id==='backupInput'){const file=e.target.files?.[0];if(!file)return;try{const data=importJSON(await file.text());store.songs=data.songs.map(normalizedSong);store.masses=data.masses;persist();state.view='library';notify('Backup ripristinato.');}catch(err){notify('Impossibile leggere il backup.');}}});
