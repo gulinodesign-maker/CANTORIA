@@ -226,6 +226,53 @@
  .home-tile{min-height:142px;}
  .home-footnote{font-size:11px;}
 }
+
+/* Cantoria 0.4.2 — l'angolo originale: verde bosco, curva avorio, filo oro e croce */
+@media screen {
+ .corner-ornament{position:absolute;top:0;left:0;pointer-events:none;display:block;z-index:0;}
+ .topbar-home{position:relative;background:#fcf8ef!important;color:#174334!important;border-bottom:0!important;box-shadow:none!important;height:118px;min-height:118px;overflow:visible;align-items:flex-start;padding:28px 22px 9px!important;}
+ .topbar-home .corner-ornament{width:230px;height:189px;}
+ .home-header-brand{position:relative;z-index:1;margin-left:auto;text-align:right;font-family:Georgia,serif;color:#245344;font-size:16px;letter-spacing:2.2px;}
+ .home-header-brand span{display:block;margin-top:5px;color:#9b814e;font:500 10px ui-sans-serif,-apple-system,sans-serif;letter-spacing:1.4px;text-transform:uppercase;}
+ .home-workspace{position:relative;padding-top:10px!important;}
+ .home-screen{padding-top:22px;}
+ .home-overline{margin-top:2px;}
+ .home-screen h1{font-weight:normal;}
+ .topbar-section{position:relative;background:#fcf8ef!important;color:#174334!important;border-bottom:1px solid #c8a35f!important;box-shadow:0 3px 9px #3e362410!important;overflow:hidden;min-height:75px!important;}
+ .topbar-section .corner-ornament{width:120px;height:98px;}
+ .topbar-section .corner-ornament-cross{stroke-width:8;}
+ .topbar-section .header-home-btn{position:relative;z-index:2;margin-left:56px;color:#174334!important;background:#faf6ec!important;padding:7px 9px!important;min-width:40px!important;border:1px solid #d9c8a2;}
+ .topbar-section .header-section-title{color:#174334;z-index:1;}
+ .reader-layer .reader-toolbar{position:relative;background:#fcf8ef!important;color:#174334!important;border-bottom:1px solid #b99854!important;overflow:hidden;}
+ .reader-layer .reader-toolbar>.corner-ornament{width:83px;height:68px;z-index:0;}
+ .reader-layer .reader-toolbar .corner-ornament-cross{display:none;}
+ .reader-layer .reader-back{color:#f3d392!important;text-shadow:0 1px #173d33;z-index:2;}
+ .reader-layer .reader-title{color:#174334!important;z-index:1;}
+ .reader-layer .reader-title strong{color:#174334!important;}
+ .reader-layer .reader-title small{color:#897b5f!important;}
+ .reader-layer .reader-menu-btn{color:#e9c780!important;background:#194638!important;border:1px solid #af8a46!important;}
+ .song-cover{background:#fbf6eb!important;}
+ .song-cover .corner-ornament{width:132px;height:108px;z-index:0;}
+ .song-cover .cover-label{position:relative;z-index:1;padding-left:38px;padding-top:17px;color:#173d33;font-size:clamp(21px,2vw,28px);}
+ .song-card{border-color:#dfd5c3;}
+}
+@media screen and (max-width:600px) {
+ .topbar-home{height:98px;min-height:98px;padding:22px 14px 5px!important;}
+ .topbar-home .corner-ornament{width:182px;height:149px;}
+ .home-header-brand{font-size:13px;letter-spacing:1.2px;}
+ .home-header-brand span{font-size:8px;letter-spacing:.7px;}
+ .home-screen{padding-top:22px;}
+ .topbar-section .header-home-btn{margin-left:36px;}
+ .topbar-section .header-home-btn span{display:none;}
+ .topbar-section .corner-ornament{width:101px;height:83px;}
+ .topbar-section .header-section-title{font-size:19px;}
+ .song-cover .corner-ornament{width:109px;height:90px;}
+}
+@media screen and (max-width:390px) {
+ .home-screen{padding-top:30px;}
+ .topbar-home .corner-ornament{width:167px;height:137px;}
+ .reader-layer .reader-toolbar>.corner-ornament{width:72px;height:59px;}
+}
 </style>
   <title>Cantoria — Canti per la liturgia cattolica</title>
 </head>
@@ -435,7 +482,7 @@ function readerHTML(){
  const perColumnWidth=(window.innerWidth-(cols===2?67:30))/cols;
  const font=Math.max(15,Math.min(26,perColumnWidth*(horizontal?.051:.058)));
  return `<div class="reader-layer ${horizontal?'reader-landscape':'reader-portrait'}" id="readerLayer" data-song="${escapeAttr(song.id)}" style="--reader-font:${font.toFixed(1)}px">
- <header class="reader-toolbar">
+ <header class="reader-toolbar">${CATHOLIC_CORNER}
   <button class="reader-back" data-action="close-reader" aria-label="Chiudi spartito">‹</button>
   <div class="reader-title" title="${escapeAttr(song.title)}"><div class="reader-title-line"><strong>${escape(song.title)}</strong></div><small>${horizontal?(state.page+1)+' / '+pages.length:''}${song.verified?'':' · DA VERIFICARE'}</small></div>
   <button class="reader-menu-btn" type="button" data-action="song-options" aria-label="Opzioni brano: tonalità, trasporto, PDF ed esportazione" title="Opzioni brano">☰</button>
@@ -444,6 +491,7 @@ function readerHTML(){
   <div class="sheet-columns" style="--reader-cols:${cols}">${columns.map(col=>`<div class="sheet-column">${entriesHTML(col)}</div>`).join('')}</div>
  </article></div></div>`;
 }
+const CATHOLIC_CORNER = '<svg class="corner-ornament" viewBox="0 0 300 245" preserveAspectRatio="xMinYMin meet" aria-hidden="true" focusable="false"><path d="M0 0H300C186 46 76 148 0 245Z" fill="#194638"/><path d="M300 0C186 46 76 148 0 245" fill="none" stroke="#C59442" stroke-width="6"/><path class="corner-ornament-cross" d="M75 41V111M49 72H101" fill="none" stroke="#EBC16F" stroke-width="10" stroke-linecap="square"/></svg>';
 function homeHTML(){
  const tiles=[
   {icon:"▤",title:"Biblioteca",description:"Il tuo repertorio liturgico",action:'data-nav="library"'},
@@ -451,23 +499,23 @@ function homeHTML(){
   {icon:"⚙",title:"Impostazioni",description:"Organizza e custodisci i canti",action:'data-nav="settings"'},
   {icon:"♬",title:"Nuova Messa",description:"Prepara la celebrazione",action:'data-action="create-mass"'}
  ];
- return `<div class="home-screen"><div class="home-emblem" aria-hidden="true"><span class="home-emblem-host">✝</span></div><p class="home-overline">CANTI DELLA CHIESA CATTOLICA</p><h1>Cantoria</h1><p class="home-subtitle">Il tuo repertorio per la Santa Messa e la preghiera.</p><div class="home-liturgical-rule" aria-hidden="true"><span>✦</span></div><div class="home-grid">${tiles.map(t=>`<button type="button" class="home-tile" ${t.action}><span class="home-tile-icon" aria-hidden="true">${t.icon}</span><strong>${t.title}</strong><small>${t.description}</small></button>`).join('')}</div><p class="home-footnote">✝ &nbsp;La musica al servizio della liturgia e della comunità.</p></div>`;
+ return `<div class="home-screen"><p class="home-overline">CANTI DELLA CHIESA CATTOLICA</p><h1>Cantoria</h1><p class="home-subtitle">Il tuo repertorio per la Santa Messa e la preghiera.</p><div class="home-liturgical-rule" aria-hidden="true"><span>✦</span></div><div class="home-grid">${tiles.map(t=>`<button type="button" class="home-tile" ${t.action}><span class="home-tile-icon" aria-hidden="true">${t.icon}</span><strong>${t.title}</strong><small>${t.description}</small></button>`).join('')}</div><p class="home-footnote">✝ &nbsp;La musica al servizio della liturgia e della comunità.</p></div>`;
 }
 function headerHTML(){
- if(state.view==='home')return `<header class="topbar topbar-home"><div class="brand"><div class="brand-mark" aria-hidden="true">✝</div><div><strong>Cantoria</strong><div class="brand-sub">Canti della Chiesa Cattolica</div></div></div></header>`;
+ if(state.view==='home')return `<header class="topbar topbar-home">${CATHOLIC_CORNER}<div class="home-header-brand">CANTORIA <span>Musica e liturgia</span></div></header>`;
  const titles={library:'Biblioteca',masses:'Le mie Messe',capture:'Nuovo brano',settings:'Impostazioni'};
- return `<header class="topbar topbar-section"><button class="header-home-btn" data-nav="home" aria-label="Torna alla Home">‹ <span>Home</span></button><strong class="header-section-title">${titles[state.view]||'Cantoria'}</strong><div class="header-spacer"></div></header>`;
+ return `<header class="topbar topbar-section">${CATHOLIC_CORNER}<button class="header-home-btn" data-nav="home" aria-label="Torna alla Home">‹ <span>Home</span></button><strong class="header-section-title">${titles[state.view]||'Cantoria'}</strong><div class="header-spacer"></div></header>`;
 }
 function navHTML(){const nav=Object.keys(labels);return `<nav class="sidenav">${nav.map(k=>`<button class="nav-item ${state.view===k?'active':''}" data-nav="${k}"><span class="ico">${icons[k]}</span>${labels[k]}</button>`).join('')}<div class="nav-helper">La tua biblioteca è salvata in questo dispositivo.<br><strong>Il cloud verrà aggiunto in una prossima versione.</strong></div></nav><nav class="bottom-nav">${nav.map(k=>`<button class="bottom-item ${state.view===k?'active':''}" data-nav="${k}"><span class="ico">${icons[k]}</span>${labels[k]}</button>`).join('')}</nav>`;}
 function libraryHTML(){const songs=store.songs.filter(s=>(s.title||'').toLowerCase().includes(state.filter.toLowerCase()));return `<div class="page-heading"><div><div class="eyebrow">Canti della Chiesa Cattolica</div><h1>Biblioteca liturgica</h1><p>Canti per la Santa Messa, le celebrazioni e la preghiera. Ogni spartito conserva gli accordi sulla sillaba giusta.</p></div><div class="library-import"><label class="outline-btn" for="songImportInput" style="cursor:pointer">↓ Importa brano</label><input type="file" id="songImportInput" accept=".cantoria.json,.json,application/json" style="position:absolute;width:1px;height:1px;opacity:0" aria-label="Scegli un file brano Cantoria"><button class="primary-btn" data-nav="capture">+ Aggiungi canto</button></div></div>
   <label class="search-bar">⌕ <input id="search" type="search" placeholder="Cerca un canto…" value="${escapeAttr(state.filter)}" autocomplete="off" aria-label="Cerca un canto"></label>
-  <div class="tiles">${songs.map((song,i)=>`<article class="song-card"><div class="song-cover"><span class="big-cross">✝</span><div class="cover-label">${escape(song.title)}</div></div><div class="card-body"><div class="meta-row"><span class="pill">${escape(song.key||'Tonalità libera')}</span>${song.verified?'<span class="pill good">Verificato</span>':'<span class="pill warning">Da verificare</span>'}</div><h3 style="margin-top:12px">${escape(song.title)}</h3><p>${escape(song.subtitle||'Canto')} · ${(song.sections||[]).length} sezioni</p><div class="card-actions"><button class="primary-btn" data-action="read-song" data-song="${escapeAttr(song.id)}">Apri spartito →</button><button class="text-btn" data-action="add-to-mass" data-song="${escapeAttr(song.id)}">Aggiungi alla Messa</button><button class="text-btn" data-action="export-song" data-song="${escapeAttr(song.id)}">Esporta brano</button></div></div></article>`).join('')||'<div class="empty">Nessun canto trovato.</div>'}</div>
+  <div class="tiles">${songs.map((song,i)=>`<article class="song-card"><div class="song-cover">${CATHOLIC_CORNER}<div class="cover-label">${escape(song.title)}</div></div><div class="card-body"><div class="meta-row"><span class="pill">${escape(song.key||'Tonalità libera')}</span>${song.verified?'<span class="pill good">Verificato</span>':'<span class="pill warning">Da verificare</span>'}</div><h3 style="margin-top:12px">${escape(song.title)}</h3><p>${escape(song.subtitle||'Canto')} · ${(song.sections||[]).length} sezioni</p><div class="card-actions"><button class="primary-btn" data-action="read-song" data-song="${escapeAttr(song.id)}">Apri spartito →</button><button class="text-btn" data-action="add-to-mass" data-song="${escapeAttr(song.id)}">Aggiungi alla Messa</button><button class="text-btn" data-action="export-song" data-song="${escapeAttr(song.id)}">Esporta brano</button></div></div></article>`).join('')||'<div class="empty">Nessun canto trovato.</div>'}</div>
   <h2 class="section-kicker">Per iniziare</h2><div class="alert">Il canto di esempio è una trascrizione dimostrativa: <strong>non usarlo per eseguire la musica prima di aver verificato gli ancoraggi degli accordi con la fotografia originale.</strong> Tocca un accordo nel lettore per correggerlo.</div>`;}
 function massesHTML(){if(state.massId&&currentMass())return massDetailHTML();return `<div class="page-heading"><div><div class="eyebrow">Liturgia eucaristica</div><h1>Le mie Messe</h1><p>Prepara i canti della celebrazione eucaristica: ingresso, Gloria, salmo, Alleluia, offertorio, Santo, comunione e canto finale.</p></div><button class="primary-btn" data-action="create-mass">+ Nuova Messa</button></div><div class="tiles">${store.masses.map(m=>`<article class="mass-card"><div class="eyebrow">Scaletta</div><h3>${escape(m.name)}</h3><p>${m.items.length} ${m.items.length===1?'canto':'canti'} ${m.date?'· '+escape(m.date):''}</p><button class="primary-btn" data-action="open-mass" data-mass="${escapeAttr(m.id)}">Apri scaletta →</button></article>`).join('')||'<div class="empty">Non hai ancora creato una scaletta.</div>'}</div>`;}
 function massDetailHTML(){const mass=currentMass();return `<div class="collection-header"><div><button class="text-btn" data-action="back-masses">← Le mie Messe</button><div class="eyebrow" style="margin-top:11px">Scaletta per la celebrazione</div><h2>${escape(mass.name)}</h2></div><button class="outline-btn" data-action="rename-mass">Rinomina</button></div><div class="meta-row"><span class="pill">${mass.items.length} canti</span><button class="primary-btn" data-action="add-to-mass">+ Aggiungi un canto</button></div><div style="margin-top:21px">${mass.items.map((item,i)=>{const s=store.songs.find(x=>x.id===item.songId);return `<article class="mass-song"><span class="mass-number">${String(i+1).padStart(2,'0')}</span><div class="mass-song-info"><small>${escape(item.label)}</small><strong>${escape(s?.title||'Canto mancante')}</strong><small>Tonalità della Messa: ${item.shift>0?'+':''}${item.shift} semitoni</small></div><div class="mass-song-actions"><button class="mini-btn" data-action="mass-shift-down" data-item="${item.id}" title="Abbassa tonalità">−</button><button class="mini-btn" data-action="mass-shift-up" data-item="${item.id}" title="Alza tonalità">+</button><button class="mini-btn" data-action="move-up" data-item="${item.id}" ${i===0?'disabled':''} title="Sposta prima">↑</button><button class="mini-btn" data-action="move-down" data-item="${item.id}" ${i===mass.items.length-1?'disabled':''} title="Sposta dopo">↓</button><button class="mini-btn" data-action="read-mass-song" data-item="${item.id}" title="Apri">▶</button><button class="mini-btn" data-action="remove-mass-item" data-item="${item.id}" title="Rimuovi">×</button></div></article>`;}).join('')||'<div class="empty">Aggiungi il primo canto alla scaletta.</div>'}</div><p style="margin:22px 0;color:#839184;font-size:13px">La tonalità scelta qui vale solo per questa Messa: l'originale in biblioteca non cambia.</p>`;}
 function captureHTML(){return `<div class="page-heading"><div><div class="eyebrow">Repertorio cattolico</div><h1>Acquisisci un canto</h1><p>Fotografa lo spartito del coro parrocchiale, poi verifica testo e accordi. Il riconoscimento automatico sarà aggiunto successivamente.</p></div></div><div class="form-wrap"><div class="panel"><h3>01 · Foto originale</h3><p>Per ora la fotografia rimane visibile come riferimento durante la trascrizione. Non viene inviata a servizi esterni.</p><label class="photo-drop"><input type="file" id="photoInput" accept="image/*" capture="environment" aria-label="Scatta o seleziona una fotografia">${state.photoURL?`<img src="${state.photoURL}" alt="Foto del foglio selezionata"/>`:'<span style="font-size:36px;color:#7c997f">▧</span><strong>Scatta una foto o scegli un’immagine</strong><small>Fotocamera e libreria fotografica</small>'}</label><div class="alert" style="margin-top:16px">L'OCR non è ancora attivo. La fotografia serve per controllare manualmente la corrispondenza accordo–sillaba.</div></div>
   <form class="panel" id="songForm"><h3>02 · Spartito strutturato</h3><p>Inserisci le sillabe separate con <code>|</code> e scrivi l'accordo tra parentesi quadre immediatamente prima della sillaba giusta.</p><div class="field"><label for="songTitle">Titolo</label><input id="songTitle" name="songTitle" placeholder="Es. Santo" required></div><div class="code-help"><strong>Formato:</strong><br><code>@INTRO SOL DO LA- RE</code><br><code>@STROFA</code><br><code>[SOL2]Be|ne|det|to sei [RE]Si|gno|re,</code><br><code>@RITORNELLO</code><br><code>[DO]A te can|tia|mo [SOL]Cri|sto Re</code></div><div class="field"><label for="songText">Testo e accordi</label><textarea id="songText" name="songText" placeholder="@STROFA\n[SOL]Ge|sù ci [RE]chia|ma" required></textarea></div><button type="submit" class="primary-btn">Salva in biblioteca</button></form></div>`;}
-function settingsHTML(){return `<div class="page-heading"><div><div class="eyebrow">Versione 0.4.1 · Build 20261119.2</div><h1>Impostazioni</h1><p>Cantoria è uno strumento per il canto liturgico cattolico, la preparazione della Santa Messa e la vita musicale della comunità parrocchiale.</p></div></div><div class="form-wrap"><div class="panel"><h3>Dati e salvataggi</h3><p>I canti e le scalette sono attualmente memorizzati <strong>solo nel browser di questo dispositivo</strong>. Non sono ancora sincronizzati su iCloud o GitHub.</p><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px"><button class="outline-btn" data-action="backup">Scarica backup JSON</button><label class="outline-btn" style="cursor:pointer">Ripristina backup<input type="file" id="backupInput" accept="application/json" style="display:none"></label></div></div><div class="panel"><h3>Modello musicale</h3><p>Ogni accordo conserva un indice di sillaba nel proprio rigo. La trasposizione modifica soltanto il nome dell'accordo, non la sua posizione.</p><div class="alert" style="margin-top:15px">Il riconoscimento da foto e la sincronizzazione cloud non fanno parte della versione iniziale. Il controllo manuale è indispensabile per garantire la correttezza musicale.</div></div></div>`;}
+function settingsHTML(){return `<div class="page-heading"><div><div class="eyebrow">Versione 0.4.2 · Build 20261119.3</div><h1>Impostazioni</h1><p>Cantoria è uno strumento per il canto liturgico cattolico, la preparazione della Santa Messa e la vita musicale della comunità parrocchiale.</p></div></div><div class="form-wrap"><div class="panel"><h3>Dati e salvataggi</h3><p>I canti e le scalette sono attualmente memorizzati <strong>solo nel browser di questo dispositivo</strong>. Non sono ancora sincronizzati su iCloud o GitHub.</p><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px"><button class="outline-btn" data-action="backup">Scarica backup JSON</button><label class="outline-btn" style="cursor:pointer">Ripristina backup<input type="file" id="backupInput" accept="application/json" style="display:none"></label></div></div><div class="panel"><h3>Modello musicale</h3><p>Ogni accordo conserva un indice di sillaba nel proprio rigo. La trasposizione modifica soltanto il nome dell'accordo, non la sua posizione.</p><div class="alert" style="margin-top:15px">Il riconoscimento da foto e la sincronizzazione cloud non fanno parte della versione iniziale. Il controllo manuale è indispensabile per garantire la correttezza musicale.</div></div></div>`;}
 function appHTML(){
  const views={home:homeHTML,library:libraryHTML,masses:massesHTML,capture:captureHTML,settings:settingsHTML};
  const builder=views[state.view]||homeHTML;
@@ -592,8 +640,9 @@ function makeCantoriaPdf(song,shift=0){
     commands=[];pageNumber++;y=H-48;
     // Soft ivory sheet, forest corner flourish and golden cross (original style).
     commands.push('q 0.982 0.968 0.939 rg 0 0 595.28 841.89 re f Q');
-    commands.push('q 0.08 0.25 0.20 rg 0 841.89 m 97 841.89 l 0 744.89 l h f Q');
-    ptext('+',16,H-29,27,'F2','0.89 0.73 0.36');
+    commands.push('q 0.08 0.25 0.20 rg 0 841.89 m 118 841.89 l 62 810 15 757 0 744 c h f Q');
+    commands.push('q 0.76 0.55 0.24 RG 3.4 w 118 841.89 m 62 810 15 757 0 744 c S Q');
+    commands.push('q 0.91 0.73 0.39 RG 4.5 w 26 823 m 26 789 l 11 806 m 41 806 l S Q');
     ptext('CANTORIA',LEFT,y,10,'F2','0.62 0.44 0.14');
     ptext(`Pagina ${pageNumber}`,W-RIGHT-59,y,9,'F1','0.42 0.44 0.40');
     y-=23;
