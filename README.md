@@ -1,4 +1,4 @@
-# Cantoria — PWA iPhone/iPad (prototipo 0.4.5 · build 20261119.6)
+# Cantoria — PWA iPhone/iPad (prototipo 0.4.6 · build 20261119.7)
 
 Prima versione sperimentale di **Cantoria**, un archivio di spartiti e scalette per le Messe, ottimizzato per iPhone e iPad.
 
@@ -127,3 +127,14 @@ Nota: condivisione/importazione e layout grafico vanno ancora verificati in Safa
 - Modificati `apple-touch-icon`, favicon e manifest, senza icone SVG alternative nel manifest che possano interferire con la scelta di Safari.
 - Aggiornate la cache offline e l'indicazione in Impostazioni a **Versione 0.4.5 · Build 20261119.6**.
 - Su iOS, la schermata Home può conservare la vecchia icona anche dopo l'aggiornamento: rimuovere l'icona precedente, ricaricare il sito in Safari e aggiungerlo nuovamente alla Home.
+
+## Novità 0.4.6 — Messe e menu brano
+
+- **Home:** quattro pulsanti direttamente sul fondo avorio, senza card o rettangoli bianchi, leggermente più in alto; «Nuova Messa» rinominata **Messe**.
+- **Messe:** pagina con «Crea nuova Messa», elenco delle scalette **in programma** e **Storico** delle Messe segnate come celebrate. Si possono indicare nome e data, segnare una Messa come celebrata, aprire il report e **riutilizzare** una scaletta passata in una nuova Messa.
+- Riutilizzando una scaletta vengono copiati ordine dei canti, momenti e trasposizioni con nuovi identificativi; il report della celebrazione originale resta archiviato e non è sovrascritto. I titoli dei canti vengono conservati in uno snapshot al momento dell'archiviazione.
+- **Opzioni brano:** meno, tonalità corrente con semitoni e più **affiancati nella stessa riga** in tre riquadri della stessa altezza; il riquadro centrale si può toccare per azzerare il trasporto.
+- Nello stesso menu, sezione comprimibile **«Modifica titolo e autore»** con pulsante Salva. L'autore compare in Biblioteca e insieme al titolo è incluso nell'esportazione del file Cantoria.
+- **Versione 0.4.6 · Build 20261119.7** in Impostazioni e nuova cache PWA.
+- I dati e lo storico delle Messe restano nel **salvataggio locale del browser** e nel backup JSON; non sono ancora sincronizzati tra dispositivi.
+- Controllata la sintassi JavaScript e verificata la presenza dei file aggiornati su GitHub. Il funzionamento nell'app Safari reale richiede un test sul dispositivo.
