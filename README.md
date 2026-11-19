@@ -1,4 +1,4 @@
-# Cantoria — PWA iPhone/iPad (prototipo 0.4.0 · build 20261119.1)
+# Cantoria — PWA iPhone/iPad (prototipo 0.4.1 · build 20261119.2)
 
 Prima versione sperimentale di **Cantoria**, un archivio di spartiti e scalette per le Messe, ottimizzato per iPhone e iPad.
 
@@ -77,3 +77,12 @@ HTML/CSS/JavaScript senza dipendenze esterne; manifest PWA; service worker. La s
 - Dalla scheda di ogni brano della biblioteca puoi anche usare **Esporta brano**.
 - L'app web/PWA non registra i tipi di documento di iOS: un file ricevuto con AirDrop va prima salvato su File e poi selezionato in **Biblioteca → Importa brano**. L'apertura diretta da AirDrop nell'app sarà disponibile dopo la creazione del progetto nativo iOS con il tipo di documento Cantoria registrato.
 - **Impostazioni** indica versione e build attuali.
+
+## Novità 0.4.1 — Identità cattolica
+
+- Home con croce, cornice ad arco ispirata agli elementi delle chiese, verde liturgico, oro e avorio.
+- Titoli e testi esplicitamente rivolti ai canti della Chiesa cattolica e alla celebrazione della Santa Messa.
+- La Biblioteca rimane invariata nella struttura dei brani: accordi e ancoraggi alle sillabe conservati.
+- Aggiornati nome e descrizione della PWA e la cache offline per distribuire la nuova versione.
+
+**Build:** `20261119.2`. È ancora una web app installabile da Safari, non una versione nativa App Store. L'aspetto su iPhone/iPad va verificato sul dispositivo.
