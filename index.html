@@ -1053,40 +1053,55 @@ function makeCantoriaPdf(song,shift=0){
   for(const section of song.sections||[]){
     const heading=String(section.name||'SEZIONE');
     ensure(67);ptext(heading.toUpperCase(),(W-heading.length*7.1)/2,y,12,'F2','0.65 0.46 0.17');y-=9;rule(y);y-=20;
-    const chordOnly=(chords)=>{
+    const chordOnly=(chords,geometry=null)=>{
       const content=chords.map(c=>transposeChord(c,shift)).join('     ');
       const font=Math.min(12,MAXW/Math.max(1,content.length)/.6);
-      ensure(40);pill(LEFT,y-23,MAXW,25,bandColor(section.kind));ptext(content,LEFT+9,y-15,Math.max(8,font),'F2','0.13 0.31 0.25');y-=40;
+      ensure(40);pill(LEFT,y-23,MAXW,25,bandColor(section.kind));
+      if(Array.isArray(geometry)&&geometry.length===chords.length&&
+        geometry.every(a=>Number.isFinite(a.sourceX)&&a.sourceLineBBox?.x1>a.sourceLineBBox?.x0)){
+        geometry.forEach((item,i)=>{
+          const source=item.sourceLineBBox;
+          const x=LEFT+9+(item.sourceX-source.x0)*MAXW/(source.x1-source.x0);
+          ptext(transposeChord(chords[i],shift),x,y-15,Math.max(8,font),'F2','0.13 0.31 0.25');
+        });
+      }else ptext(content,LEFT+9,y-15,Math.max(8,font),'F2','0.13 0.31 0.25');
+      y-=40;
     };
-    if(section.chordsOnly?.length)chordOnly(section.chordsOnly);
+    if(section.chordsOnly?.length)chordOnly(section.chordsOnly,section.chordsOnlyGeometry);
     for(const line of section.lines||[]){
-
       const tokens=parseSyllables(line.marked||''),text=tokens.map(t=>t.text).join('');
       const font=Math.max(9,Math.min(16.4,(MAXW-14)/Math.max(1,timesWidth(text,1))));
       let prefix='',slot=0;const offsets=[];
       for(const t of tokens){if(!t.space){offsets[slot]=timesWidth(prefix,font);slot++;}prefix+=t.text;}
       const chords=(line.anchors||[]).map(a=>{
-        const x=Math.min(W-RIGHT-27,LEFT+7+(offsets[a.slot]??0));
-        const s=transposeChord(a.chord,shift);
-        return {x,s,width:String(s).length*6};
+        const charIndex=Number.isInteger(a.anchorCharacterIndex)?a.anchorCharacterIndex:null;
+        const base=charIndex!==null?timesWidth(text.slice(0,charIndex),font):(offsets[a.slot]??0);
+        const charWidth=charIndex!==null?timesWidth(text.charAt(charIndex)||'M',font):0;
+        const advance=charIndex!==null&&Number.isFinite(a.offsetX)&&a.sourceCharWidth>0?
+          charWidth*a.offsetX/a.sourceCharWidth:0;
+        // Exact semantic anchor, no horizontal reflow or clamping.
+        const x=LEFT+7+base+advance;
+        const symbol=transposeChord(a.chord,shift);
+        return {x,s:symbol,width:timesWidth(symbol,10)};
       }).sort((a,b)=>a.x-b.x);
-      let prevX=-1000,prevWidth=0;
-      const placements=chords.map(c=>{
-        const lane=c.x<prevX+prevWidth+5?1:0;
-        if(!lane){prevX=c.x;prevWidth=c.width;}
-        return {...c,lane};
+      const laneEnds=[];
+      const placements=chords.map(chord=>{
+        let lane=laneEnds.findIndex(end=>chord.x>=end+5);
+        if(lane<0)lane=laneEnds.length;
+        laneEnds[lane]=chord.x+chord.width;
+        return {...chord,lane};
       });
-      const double=placements.some(c=>c.lane);
-      const rowH=double?71:57;
+      const bandH=Math.max(25,laneEnds.length*15+10),rowH=bandH+32;
       ensure(rowH);
-      // The band belongs to the complete chord/lyric row; no page breaks inside rows.
-      pill(LEFT,y-(double?37:22),MAXW,double?35:24,bandColor(section.kind));
-      const chordTop=y-10;
-      for(const c of placements){ptext(c.s,c.x,c.lane?chordTop-14:chordTop,9.6,'F2','0.11 0.29 0.23');}
-      ptext(text,LEFT+7,y-(double?54:42),font,'F3','0.12 0.18 0.16');
+      pill(LEFT,y-bandH+2,MAXW,bandH,bandColor(section.kind));
+      for(const chord of placements) {
+        ptext(chord.s,chord.x,y-10-chord.lane*15,9.6,'F2','0.11 0.29 0.23');
+      }
+      ptext(text,LEFT+7,y-bandH-12,font,'F3','0.12 0.18 0.16');
       y-=rowH;
     }
-    for(const row of section.chordRows||[])chordOnly(row);
+    for(let i=0;i<(section.chordRows||[]).length;i++)
+      chordOnly(section.chordRows[i],section.chordRowsGeometry?.[i]);
     y-=7;
   }
   if(!song.verified){ensure(33);ptext('Trascrizione da verificare con lo spartito originale.',LEFT,y,9,'F1','0.51 0.33 0.26');}
