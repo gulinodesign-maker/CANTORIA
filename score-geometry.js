@@ -122,10 +122,9 @@
     const wordOnly=!best.c.precise;
     const confidence=Math.max(0,Math.min(1,(source.confidence||0)/100))*
       (wordOnly?0.6:1)*(gap>2?0.35:gap>0.8?0.7:1)*(ambiguous?0.55:1);
-    const words=lyric.text.slice(0,best.c.index).match(/\S+/g)||[];
-    // Existing slot model counts whitespace-separated lyric cells.
-    const slot=lyric.text.slice(0,best.c.index).trim().length?
-      words.length-(\S/.test(lyric.text[best.c.index-1]||'')?1:0):0;
+    const before=lyric.text.slice(0,best.c.index);
+    const priorWords=(before.match(/\\S+/g)||[]).length;
+    const slot=Math.max(0,priorWords-(/\\S$/.test(before)?1:0));
     return {
       chord:source.symbol,symbol:source.symbol,sourceSymbol:source.originalSymbol,
       slot:Math.max(0,slot),anchorCharacterIndex:best.c.index,
