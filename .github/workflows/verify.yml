@@ -1,0 +1,39 @@
+name: Verify Cantoria web app
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check inline JS and generate a sample PDF
+        run: |
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const vm=require('node:vm');
+          const html=fs.readFileSync('index.html','utf8');
+          const match=html.match(/<script>([\s\S]*?)<\/script>/);
+          if(!match)throw new Error('Inline script missing');
+          const code=match[1];
+          fs.writeFileSync('/tmp/cantoria.js',code);
+          const first=code.slice(code.indexOf('const NOTE_NAMES'),code.indexOf('function normalizedSong('));
+          const tonality=code.slice(code.indexOf('function describeTonality('),code.indexOf('function chordLabel('));
+          const pdf=code.slice(code.indexOf('function makeCantoriaPdf('),code.indexOf('function printSong('));
+          if(!first||!tonality||!pdf.includes('new Blob'))throw new Error('Cantoria musical model/PDF incomplete');
+          const context=vm.createContext({Blob,TextEncoder});
+          vm.runInContext(first+'\n'+tonality+'\n'+pdf,context);
+          if(vm.runInContext("describeTonality({key:'SOL'},2)",context)!=='LA maggiore')throw new Error('Transpose key label failed');
+          if(vm.runInContext("describeTonality({key:'SOL'},6)",context)!=='DO diesis maggiore')throw new Error('Sharp key label failed');
+          const song={title:'Canto di prova',key:'SOL',verified:true,sections:[{name:'STROFA',kind:'verse',lines:[{marked:'Can|tia|mo con gio|ia',anchors:[{slot:0,chord:'SOL'},{slot:3,chord:'RE'}]}]}]};
+          const blob=context.makeCantoriaPdf(song,2);
+          blob.arrayBuffer().then(buffer=>{
+            const text=Buffer.from(buffer).toString('latin1');
+            if(!text.startsWith('%PDF-1.4')||!text.includes('/Count 1'))throw new Error('PDF content invalid');
+            const marker=text.match(/startxref\n(\d+)/);
+            if(!marker||text.slice(Number(marker[1]),Number(marker[1])+4)!=='xref')throw new Error('PDF xref invalid');
+            console.log('Cantoria PDF smoke test passed:',buffer.byteLength,'bytes');
+          }).catch(e=>{console.error(e);process.exitCode=1;});
+          NODE
+          node --check /tmp/cantoria.js
