@@ -168,7 +168,8 @@
         // Only propose a title; never silently discard it from the source.
         // Caller can set a title separately, so preserve as diagnostic.
         diagnostics.titleCandidate=row.text;
-        continue;
+        // Do not drop a text row just because it resembles a title.
+        // The user can remove or rename it after comparing the photo.
       }
       const sec=ensure(),chars=charCoordinates(row);
       const anchors=pending?pending.chords.map(c=>bindChord({...c,rowId:pending.row.id},row,chars)):[];
