@@ -551,7 +551,7 @@ function makeId() { return `${Date.now().toString(36)}-${Math.random().toString(
 
 const root = document.querySelector('#app');
 const store = loadStore();
-const state = { view: 'home', filter: '', massId: null, songId: null, massItemId: null, shift: 0, page: 0, modal: null, photoURL: null, ocrText: '', ocrBusy: false, ocrStatus: '', toast: '', fontScale: 1 };
+const state = { view: 'home', filter: '', massId: null, songId: null, massItemId: null, shift: 0, page: 0, modal: null, photoURL: null, photoTitle: '', ocrText: '', ocrBusy: false, ocrStatus: '', toast: '', fontScale: 1 };
 let toastTimer;
 const escape = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const escapeAttr = escape;
@@ -699,19 +699,36 @@ function loadOcrLibrary(){
  }).catch(err=>{ocrScriptPromise=null;throw err;});
  return ocrScriptPromise;
 }
-function photoOcrFormHTML(inReader=false){
- return '<section class="photo-ocr-panel">'
-  +'<button type="button" class="outline-btn" data-action="recognize-photo"'+(state.ocrBusy?' disabled':'')+'>'
-  +(state.ocrBusy?'Riconoscimento in corso…':'🔎 Riconosci testo (OCR)')+'</button>'
-  +'<p class="photo-ocr-status" id="ocrStatus" aria-live="polite">'+escape(state.ocrStatus||'L’OCR legge il testo della foto; verifica sempre il risultato.')+'</p>'
-  +'<div class="field"><label for="photoOcrText">Testo riconosciuto (correggibile)</label>'
-  +'<textarea id="photoOcrText" rows="7" maxlength="20000" placeholder="Premi Riconosci testo, poi correggi qui eventuali errori.">'+escape(state.ocrText)+'</textarea></div>'
-  +(inReader?'<button type="button" class="primary-btn" data-action="save-ocr-text">Salva testo riconosciuto</button>':'')
-  +'<p class="photo-draft-notice">L’OCR riconosce lettere e parole, non la notazione musicale né il collegamento degli accordi alle sillabe. Primo utilizzo: serve Internet per caricare il motore OCR. La fotografia viene elaborata sul dispositivo.</p>'
-  +'</section>';
+function photoOcrFormHTML(inReader=false) {
+ const draft=String(state.ocrText||'');
+ const ready=draft.trim().length>0;
+ return '<section class="photo-ocr-panel" aria-label="Riconoscimento foto">' +
+  '<button type="button" class="outline-btn photo-ocr-start" data-action="recognize-photo"' + (state.ocrBusy?' disabled':'') + '>' +
+  (state.ocrBusy?'Riconoscimento in corso…':'Riconosci testo e accordi') + '</button>' +
+  '<p class="photo-ocr-status" id="ocrStatus" aria-live="polite">' +
+  escape(state.ocrStatus||'Dopo la lettura, correggi le parole e gli accordi.') + '</p>' +
+  '<div class="field"><label for="photoOcrText">Trascrizione da verificare</label>' +
+  '<textarea id="photoOcrText" name="ocrText" rows="10" maxlength="20000" spellcheck="false" placeholder="STROFA&#10;SOL          RE&#10;Be|ne|det|to sei Signore">' +
+  escape(draft) + '</textarea></div>' +
+  '<details class="photo-ocr-help"><summary>Come correggere gli accordi</summary>' +
+  '<p>Scrivi gli accordi su una riga sopra il testo. Per separare una parola in sillabe usa |, ad esempio Be|ne|det|to. Gli ancoraggi sono provvisori e si correggono nello spartito con una pressione prolungata.</p></details>' +
+  (inReader ?
+    '<button type="button" class="primary-btn photo-save" data-action="convert-ocr-photo"' + (!ready?' disabled':'') + '>Crea partitura modificabile</button>' +
+    '<button type="button" class="outline-btn photo-save" data-action="save-ocr-text">Salva solo trascrizione</button>' :
+    '<button type="submit" class="primary-btn photo-save" name="photoMode" value="score"' + (!ready?' disabled':'') + '>Crea partitura modificabile</button>' +
+    '<button type="submit" class="outline-btn photo-save" name="photoMode" value="photo">Salva solo la foto</button>') +
+  '<p class="photo-draft-notice">Riconoscimento sperimentale: controlla testo, accordi e sillabe prima dell’uso. Non riconosce le note sul pentagramma.</p>' +
+  '</section>';
+}
+function photoSectionsFromText(text){
+ if(!window.CantoriaOCR)throw new Error('Motore di conversione non caricato. Riapri Cantoria.');
+ const sections=window.CantoriaOCR.parse(String(text||'').trim());
+ if(!sections.some(s=>s.lines&&s.lines.length))throw new Error('Nessun testo di canto valido. Correggi la trascrizione prima di continuare.');
+ return sections;
 }
 async function recognizePhotoText(){
  if(state.ocrBusy)return;
+ if(!state.songId)state.photoTitle=document.getElementById("photoSongTitle")?.value||state.photoTitle||"";
  const image=state.songId?currentSong()?.photoData:state.photoURL;
  if(!image){notify('Prima scatta o scegli una foto.');return;}
  state.ocrBusy=true;state.ocrStatus='Caricamento motore OCR…';render();
@@ -728,6 +745,7 @@ async function recognizePhotoText(){
    if(status)status.textContent=state.ocrStatus;
   }});
   state.ocrStatus='Analisi della fotografia…';
+  await worker.setParameters({preserve_interword_spaces:"1"});
   const result=await worker.recognize(image);
   state.ocrText=String(result.data?.text||'').trim().slice(0,20000);
   state.ocrStatus=state.ocrText?'Testo estratto. Correggilo prima di salvarlo.':'Non ho trovato testo leggibile. Prova una foto più nitida.';
@@ -750,14 +768,13 @@ function captureHTML(){
     <input type="file" id="photoLibraryInput" accept="image/*" class="visually-hidden-file" aria-label="Scegli una fotografia dello spartito">
    </div>
    ${state.photoURL?`<form id="photoSongForm" class="photo-draft-form"><img class="photo-draft-preview" src="${escapeAttr(state.photoURL)}" alt="Anteprima foto dello spartito">
-      <div class="field"><label for="photoSongTitle">Titolo (facoltativo)</label><input id="photoSongTitle" name="photoSongTitle" placeholder="Titolo del canto" autocomplete="off"></div>
+      <div class="field"><label for="photoSongTitle">Titolo (facoltativo)</label><input id="photoSongTitle" name="photoSongTitle" value="${escapeAttr(state.photoTitle||'')}" placeholder="Titolo del canto" autocomplete="off"></div>
       ${photoOcrFormHTML(false)}
-      <button class="primary-btn photo-save" type="submit">Salva in biblioteca</button>
-      <p class="photo-draft-notice">La foto sarà salvata come bozza. Il riconoscimento delle parole è disponibile con OCR; gli accordi vanno verificati.</p>
+      <p class="photo-draft-notice">La fotografia originale resta associata al brano.</p>
      </form>`:`<p class="photo-capture-hint">Fotografa lo spartito per iniziare.</p>`}
   </section>`;
 }
-function settingsHTML(){return `<div class="page-heading"><div><div class="eyebrow">Versione 0.4.9 · Build 20261119.10</div><h1>Impostazioni</h1></div></div><div class="form-wrap"><div class="panel"><h3>Dati e salvataggi</h3><p>I canti e le scalette sono attualmente memorizzati <strong>solo nel browser di questo dispositivo</strong>. Non sono ancora sincronizzati su iCloud o GitHub.</p><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px"><button class="outline-btn" data-action="backup">Scarica backup JSON</button><label class="outline-btn" style="cursor:pointer">Ripristina backup<input type="file" id="backupInput" accept="application/json" style="display:none"></label></div></div><div class="panel"><h3>Modello musicale</h3><p>Ogni accordo conserva un indice di sillaba nel proprio rigo. La trasposizione modifica soltanto il nome dell'accordo, non la sua posizione.</p><div class="alert" style="margin-top:15px">I canti fotografati possono essere letti con OCR (testo modificabile). Gli accordi e gli ancoraggi delle sillabe richiedono ancora una verifica manuale.</div></div></div>`;}
+function settingsHTML(){return `<div class="page-heading"><div><div class="eyebrow">Versione 0.5.0 · Build 20261119.12</div><h1>Impostazioni</h1></div></div><div class="form-wrap"><div class="panel"><h3>Dati e salvataggi</h3><p>I canti e le scalette sono attualmente memorizzati <strong>solo nel browser di questo dispositivo</strong>. Non sono ancora sincronizzati su iCloud o GitHub.</p><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px"><button class="outline-btn" data-action="backup">Scarica backup JSON</button><label class="outline-btn" style="cursor:pointer">Ripristina backup<input type="file" id="backupInput" accept="application/json" style="display:none"></label></div></div><div class="panel"><h3>Modello musicale</h3><p>Ogni accordo conserva un indice di sillaba nel proprio rigo. La trasposizione modifica soltanto il nome dell'accordo, non la sua posizione.</p><div class="alert" style="margin-top:15px">La foto può diventare una partitura modificabile con testo e sigle degli accordi. È indispensabile correggere gli ancoraggi alle sillabe. Le note sul pentagramma non sono ancora riconosciute.</div></div></div>`;}
 function appHTML(){
  const views={home:homeHTML,library:libraryHTML,masses:massesHTML,capture:captureHTML,settings:settingsHTML};
  const builder=views[state.view]||homeHTML;
@@ -780,7 +797,7 @@ function syllableModalHTML(m){
  const tokens=parseSyllables(line.marked).filter(t=>!t.space),syllable=tokens[m.slot];
  if(!syllable)return '';
  const a=line.anchors.find(a=>a.slot===m.slot);
- return `<div class="modal-shade"><form class="modal-card" id="syllableEditForm"><h2>Modifica sillaba</h2><p>La cella musicale resta nella stessa posizione. L'accordo rimarrà associato alla sillaba anche dopo la modifica.</p><div class="field"><label>Sillaba</label><input name="syllable" value="${escapeAttr(syllable.text)}" required autocapitalize="off" autocomplete="off" autofocus></div><div class="field"><label>Accordo su questa sillaba (facoltativo)</label><input name="chord" value="${escapeAttr(a?.chord||'')}" placeholder="Es. SOL#7" autocapitalize="characters" autocomplete="off"></div><p class="editor-note">Lascia vuoto l'accordo per rimuoverlo. Per modificare altre sillabe, tieni premuto sul testo.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button class="primary-btn">Conferma e salva</button></div></form></div>`;
+ return `<div class="modal-shade"><form class="modal-card" id="syllableEditForm"><h2>Modifica sillaba</h2><p>La cella musicale resta nella stessa posizione. L'accordo rimarrà associato alla sillaba anche dopo la modifica.</p><div class="field"><label>Sillaba</label><input name="syllable" value="${escapeAttr(syllable.text)}" required autocapitalize="off" autocomplete="off" autofocus></div><div class="field"><label>Accordo su questa sillaba (facoltativo)</label><input name="chord" value="${escapeAttr(a?.chord||'')}" placeholder="Es. SOL#7" autocapitalize="characters" autocomplete="off"></div><p class="editor-note">Per dividere una parola in sillabe usa | (esempio: Be|ne|det|to). Gli accordi sulle parole successive conserveranno il proprio ancoraggio.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button class="primary-btn">Conferma e salva</button></div></form></div>`;
 }
 function songInfoEditor(song){return `<details class="compact-details"><summary>Modifica titolo e autore</summary><form id="songInfoForm" class="song-info-form"><div class="field"><label for="editSongTitle">Titolo</label><input id="editSongTitle" name="title" maxlength="160" required value="${escapeAttr(song.title)}"></div><div class="field"><label for="editSongAuthor">Autore</label><input id="editSongAuthor" name="author" maxlength="160" placeholder="Nome dell'autore" value="${escapeAttr(song.author||'')}"></div><button type="submit" class="primary-btn">Salva</button></form></details>`;}
 function reuseMassFormHTML(m){const old=store.masses.find(x=>x.id===m.massId);if(!old)return '';return `<div class="modal-shade"><form class="modal-card" id="reuseMassForm"><h2>Riutilizza scaletta</h2><p>${escape(old.name)} · ${(old.items||[]).length} canti</p><div class="field"><label for="reuseMassName">Nome nuova Messa</label><input id="reuseMassName" name="massName" required maxlength="160" value="${escapeAttr(old.name)}"></div><div class="field"><label for="reuseMassDate">Data</label><input id="reuseMassDate" name="massDate" type="date"></div><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button class="primary-btn">Crea copia</button></div></form></div>`;}
@@ -799,6 +816,7 @@ function modalHTML(){const m=state.modal;
     <div class="song-options-header"><div><h2>Opzioni</h2><p>${escape(song.title)}</p></div><button type="button" class="song-close" data-action="close-modal" aria-label="Chiudi opzioni">×</button></div>
     <div class="song-transport" aria-label="Tonalità e trasporto"><button type="button" class="song-transport-btn" data-action="shift-down" aria-label="Abbassa di un semitono">−</button><button type="button" class="song-transport-key" data-action="reset-shift" title="Tocca per azzerare la trasposizione"><strong>${escape(describeTonality(song,state.shift))}</strong><small>${state.shift>0?'+':''}${state.shift} semitoni</small></button><button type="button" class="song-transport-btn" data-action="shift-up" aria-label="Alza di un semitono">+</button></div>
     ${songInfoEditor(song)}
+    ${song.photoData?'<button class="outline-btn" type="button" data-action="show-original-photo" style="width:100%;margin:8px 0">Vedi fotografia originale</button>':''}
     <details class="compact-details"><summary>Cambia tonalità originale</summary><div class="field"><select id="songKeyInline" name="songKeyInline" aria-label="Tonalità originale"><option value="" ${key?'':'selected'}>Da definire</option>${options}</select></div></details>
     <div class="song-options-divider"></div>
     <div class="song-export-primary"><button type="button" class="primary-btn" data-action="pdf-share">▤ &nbsp; Esporta PDF</button><button type="button" class="outline-btn" data-action="share-song">♬ &nbsp; Esporta brano</button></div>
@@ -806,7 +824,15 @@ function modalHTML(){const m=state.modal;
   </div></div>`;
  }
 
-  if(m.type==='tonality-edit'){const song=currentSong();const roots=['DO','DO#','RE','MIb','MI','FA','FA#','SOL','LAb','LA','SIb','SI'];const key=String(song?.key||'').toUpperCase();return `<div class="modal-shade"><form class="modal-card" id="tonalityForm"><h2>Tonalità originale</h2><p>Scegli la tonalità originale del brano. I pulsanti + e − mostreranno automaticamente la nuova tonalità.</p><div class="field"><label for="songKeyEdit">Tonalità</label><select id="songKeyEdit" name="songKey"><option value="">Da definire</option>${roots.flatMap(root=>['maggiore','minore'].map(mode=>{const value=root+(mode==='minore'?'-':'');return `<option value="${value}" ${key===value.toUpperCase()?'selected':''}>${root.replace('#',' diesis').replace('b',' bemolle')} ${mode}</option>`;})).join('')}</select></div><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button class="primary-btn">Conferma e salva</button></div></form></div>`;}
+  if(m.type==='photo-source'){
+  const song=currentSong();
+  if(!song?.photoData)return '';
+  return '<div class="modal-shade"><div class="modal-card photo-original-modal" role="dialog" aria-modal="true" aria-label="Foto originale dello spartito">'+
+    '<div class="song-options-header"><h2>Foto originale</h2><button class="song-close" type="button" data-action="close-modal" aria-label="Chiudi">×</button></div>'+
+    '<img src="'+escapeAttr(song.photoData)+'" alt="Spartito fotografato" style="width:100%;height:auto;max-height:65vh;object-fit:contain;margin-top:12px">'+
+    '<p>Confronta la foto con il testo e correggi gli accordi mediante pressione prolungata sulle sillabe.</p></div></div>';
+ }
+ if(m.type==='tonality-edit'){const song=currentSong();const roots=['DO','DO#','RE','MIb','MI','FA','FA#','SOL','LAb','LA','SIb','SI'];const key=String(song?.key||'').toUpperCase();return `<div class="modal-shade"><form class="modal-card" id="tonalityForm"><h2>Tonalità originale</h2><p>Scegli la tonalità originale del brano. I pulsanti + e − mostreranno automaticamente la nuova tonalità.</p><div class="field"><label for="songKeyEdit">Tonalità</label><select id="songKeyEdit" name="songKey"><option value="">Da definire</option>${roots.flatMap(root=>['maggiore','minore'].map(mode=>{const value=root+(mode==='minore'?'-':'');return `<option value="${value}" ${key===value.toUpperCase()?'selected':''}>${root.replace('#',' diesis').replace('b',' bemolle')} ${mode}</option>`;})).join('')}</select></div><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button class="primary-btn">Conferma e salva</button></div></form></div>`;}
 
    if(m.type==='pdf-export')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Esporta spartito PDF"><h2>Esporta spartito PDF</h2><p>Il PDF A4 include tutto il brano e gli accordi trasposti. Su iPhone puoi condividerlo nell'app File oppure aprirlo in Safari.</p><div class="pdf-export-actions"><button type="button" class="primary-btn" data-action="pdf-share">Condividi o salva su File</button><button type="button" class="outline-btn" data-action="pdf-preview">Apri PDF</button><button type="button" class="outline-btn" data-action="pdf-download">Scarica PDF</button><button type="button" class="text-btn" data-action="close-modal">Annulla</button></div></div></div>`;
 if(m.type==='new-mass')return `<div class="modal-shade"><form class="modal-card" id="newMassForm"><h2>Nuova Messa</h2><div class="field"><label for="massName">Nome</label><input id="massName" name="massName" placeholder="Messa domenicale" required autofocus maxlength="160"></div><div class="field"><label for="massDate">Data</label><input type="date" id="massDate" name="massDate"></div><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button class="primary-btn">Crea</button></div></form></div>`;
@@ -1028,7 +1054,19 @@ root.addEventListener('click',e=>{
  if(el.dataset.nav){state.massId=null;go(el.dataset.nav);return;}
  const action=el.dataset.action;
  if(action==='recognize-photo'){recognizePhotoText();return;}
- if(action==='save-ocr-text'){const song=currentSong();if(song?.photoData){song.ocrText=state.ocrText.trim().slice(0,20000);persist();notify('Testo OCR salvato nella bozza.');}return;}
+ if(action==='save-ocr-text'){const song=currentSong();if(song?.photoData){song.ocrText=state.ocrText.trim().slice(0,20000);persist();notify('Trascrizione salvata.');}return;}
+ if(action==='convert-ocr-photo'){
+  const song=currentSong();if(!song?.photoData)return;
+  let sections;
+  try{sections=photoSectionsFromText(state.ocrText);}
+  catch(err){notify(err.message);return;}
+  const previous={sections:song.sections,ocrText:song.ocrText,subtitle:song.subtitle,verified:song.verified};
+  song.sections=sections;song.ocrText=state.ocrText.trim().slice(0,20000);
+  song.subtitle='Trascrizione fotografica · da verificare';song.verified=false;
+  if(!saveStore(store)){Object.assign(song,previous);notify('Spazio insufficiente per salvare la partitura.');return;}
+  state.ocrStatus='';state.page=0;render();notify('Partitura creata. Controlla gli accordi sulle sillabe.');return;
+ }
+ if(action==='show-original-photo'){state.modal={type:'photo-source'};render();return;}
  if(action==='close-reader'){state.songId=null;state.modal=null;render();return;}
  if(action==='read-song'){openSong(el.dataset.song);return;}
  if(action==='read-mass-song'){const x=currentMass()?.items.find(i=>i.id===el.dataset.item);if(x)openSong(x.songId,x.shift,x.id);return;}
@@ -1067,17 +1105,23 @@ root.addEventListener('submit',e=>{e.preventDefault();const form=e.target;const 
  if(form.id==='tonalityForm'){const song=currentSong();if(song){song.key=String(f.get('songKey')||'');persist();}state.modal=null;render();return;}
   if(form.id==='photoSongForm'){
   if(!state.photoURL){notify('Prima scegli una fotografia.');return;}
-  const title=String(f.get('photoSongTitle')||'').trim()||('Canto fotografato · '+new Date().toLocaleDateString('it-IT'));
-  const song={id:makeId(),title,subtitle:'Bozza fotografica',key:'',source:'Foto originale',photoData:state.photoURL,ocrText:state.ocrText.trim().slice(0,20000),verified:false,sections:[]};
+  const mode=e.submitter?.value==='score'?'score':'photo';
+  const scanned=state.ocrText.trim().slice(0,20000);
+  let sections=[];
+  if(mode==='score'){try{sections=photoSectionsFromText(scanned);}catch(err){notify(err.message);return;}}
+  const title=String(f.get('photoSongTitle')||state.photoTitle||'').trim()||('Canto fotografato · '+new Date().toLocaleDateString('it-IT'));
+  const song={id:makeId(),title,subtitle:mode==='score'?'Trascrizione fotografica · da verificare':'Bozza fotografica',
+    key:'',source:'Foto originale',photoData:state.photoURL,ocrText:scanned,verified:false,sections};
   store.songs.unshift(song);
-  if(!saveStore(store)){store.songs.shift();notify('Spazio insufficiente per salvare la foto. Fai un backup o libera spazio.');return;}
-  state.photoURL=null;state.ocrText='';state.ocrStatus='';state.view='library';openSong(song.id);return;
+  if(!saveStore(store)){store.songs.shift();notify('Spazio insufficiente per salvare il brano. Fai un backup o libera spazio.');return;}
+  state.photoURL=null;state.photoTitle='';state.ocrText='';state.ocrStatus='';state.view='library';openSong(song.id);
+  if(mode==='score')notify('Partitura creata: correggi accordi e sillabe.');return;
  }
 });
-root.addEventListener('input',e=>{if(e.target.id==='photoOcrText'){state.ocrText=e.target.value.slice(0,20000);return;}if(e.target.id==='search'){state.filter=e.target.value;const pos=e.target.selectionStart;render();const s=root.querySelector('#search');s?.focus();if(s?.setSelectionRange)s.setSelectionRange(pos,pos);}});
+root.addEventListener('input',e=>{if(e.target.id==='photoSongTitle'){state.photoTitle=e.target.value;return;}if(e.target.id==='photoOcrText'){state.ocrText=e.target.value.slice(0,20000);return;}if(e.target.id==='search'){state.filter=e.target.value;const pos=e.target.selectionStart;render();const s=root.querySelector('#search');s?.focus();if(s?.setSelectionRange)s.setSelectionRange(pos,pos);}});
 root.addEventListener('change',async e=>{if(e.target.id==='songKeyInline'){const song=currentSong();if(song){song.key=e.target.value;persist();render();}return;}if(e.target.id==='songImportInput'){const file=e.target.files?.[0];if(!file)return;try{if(file.size>3000000)throw new Error('File troppo grande');const song=importSongFile(await file.text());notify('Brano importato: '+song.title);}catch(err){notify('Importazione non riuscita: '+err.message);}return;}if(e.target.id==='photoCameraInput'||e.target.id==='photoLibraryInput'){
  const file=e.target.files?.[0];if(!file)return;
- try{state.photoURL=await compressScorePhoto(file);state.ocrText='';state.ocrStatus='';render();}
+ try{state.photoURL=await compressScorePhoto(file);state.photoTitle='';state.ocrText='';state.ocrStatus='';render();}
  catch(err){console.error(err);notify('Impossibile aprire la foto. Prova un file JPEG o PNG.');}
  return;
 }if(e.target.id==='backupInput'){const file=e.target.files?.[0];if(!file)return;try{const data=importJSON(await file.text());store.songs=data.songs.map(normalizedSong);store.masses=data.masses;persist();state.view='library';notify('Backup ripristinato.');}catch(err){notify('Impossibile leggere il backup.');}}});
@@ -1117,8 +1161,11 @@ function setupLongPress(){
   const form=new FormData(e.target);
   const syllable=String(form.get('syllable')||'').trim();
   const chord=String(form.get('chord')||'').trim().toUpperCase();
-  if(!syllable||/[\s|]/.test(syllable)){alert('Inserisci una singola sillaba, senza spazi o |.');return;}
+  if(!syllable||!/^([^\s|]+)(\|[^\s|]+)*$/.test(syllable)){alert('Sillabe non valide. Separa le sillabe con | e non usare spazi.');return;}
+  const added=syllable.split('|').length-1;
   line.marked=replaceSyllable(line.marked,m.slot,syllable);
+  // Never shift a later chord to another sung syllable when a word is split.
+  if(added)for(const anchor of line.anchors){if(anchor.slot>m.slot)anchor.slot+=added;}
   const existing=line.anchors.findIndex(a=>a.slot===m.slot);
   if(existing>=0){if(chord)line.anchors[existing].chord=chord;else line.anchors.splice(existing,1);}
   else if(chord)line.anchors.push({slot:m.slot,chord});
@@ -1133,5 +1180,6 @@ window.addEventListener('resize',()=>{if(state.songId){state.page=0;render();}})
 window.addEventListener('beforeprint',()=>{const holder=document.querySelector('#print-sheet');if(holder&&currentSong()&&!holder.innerHTML)holder.innerHTML=`<div class="print-body"><div class="print-head">${escape(currentSong().title)}</div>${sectionsAllHTML(currentSong(),true)}</div>`;alignChords(holder||document);});
 if('serviceWorker'in navigator&&location.protocol.startsWith('http'))window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 render();</script>
+<script src="./score-ocr.js"></script>
 </body>
 </html>
