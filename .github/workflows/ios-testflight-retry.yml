@@ -3,6 +3,11 @@ name: Retry TestFlight publication until successful
 # Runs independently of the iOS workflow, so a cancelled or failed job
 # cannot permanently block the release. Scheduled runs may be delayed by GitHub.
 on:
+  workflow_run:
+    workflows:
+      - Cantoria TestFlight (automatic Apple signing)
+    types:
+      - completed
   schedule:
     - cron: '7,22,37,52 * * * *'
   workflow_dispatch:
@@ -20,6 +25,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      # React to failures even when GitHub's cron scheduler is delayed.
+      # A short cooldown avoids an expensive immediate retry loop on macOS.
+      - name: Cooldown after a failed publication
+        if: ${{ github.event_name == 'workflow_run' }}
+        run: sleep 600
+
       - name: Check latest main commit and retry unfinished TestFlight publication
         uses: actions/github-script@v7
         with:
