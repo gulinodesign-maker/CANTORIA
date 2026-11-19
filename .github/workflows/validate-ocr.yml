@@ -1,0 +1,23 @@
+name: Validate photo OCR
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - feature/photo-ocr-review-20261119
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test OCR parsing and JavaScript syntax
+        run: node scripts/test-ocr.js
