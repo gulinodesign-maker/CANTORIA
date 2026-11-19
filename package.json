@@ -4,7 +4,8 @@
   "private": true,
   "description": "Cantoria - Catholic liturgical music app (web and iOS)",
   "scripts": {
-    "ios:prepare": "bash scripts/prepare-ios.sh"
+    "ios:prepare": "bash scripts/prepare-ios.sh",
+    "test": "node scripts/test-ocr.js"
   },
   "dependencies": {
     "@capacitor/core": "8.0.0",
