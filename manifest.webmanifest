@@ -1,0 +1,19 @@
+{
+  "name": "Cantoria — Biblioteca musicale",
+  "short_name": "Cantoria",
+  "description": "Spartiti, accordi e scalette per le celebrazioni",
+  "lang": "it",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#faf6ee",
+  "theme_color": "#153e32",
+  "icons": [
+    {
+      "src": "./assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
