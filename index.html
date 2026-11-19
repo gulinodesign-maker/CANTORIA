@@ -774,7 +774,7 @@ function captureHTML(){
      </form>`:`<p class="photo-capture-hint">Fotografa lo spartito per iniziare.</p>`}
   </section>`;
 }
-function settingsHTML(){return `<div class="page-heading"><div><div class="eyebrow">Versione 0.5.0 · Build 20261119.12</div><h1>Impostazioni</h1></div></div><div class="form-wrap"><div class="panel"><h3>Dati e salvataggi</h3><p>I canti e le scalette sono attualmente memorizzati <strong>solo nel browser di questo dispositivo</strong>. Non sono ancora sincronizzati su iCloud o GitHub.</p><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px"><button class="outline-btn" data-action="backup">Scarica backup JSON</button><label class="outline-btn" style="cursor:pointer">Ripristina backup<input type="file" id="backupInput" accept="application/json" style="display:none"></label></div></div><div class="panel"><h3>Modello musicale</h3><p>Ogni accordo conserva un indice di sillaba nel proprio rigo. La trasposizione modifica soltanto il nome dell'accordo, non la sua posizione.</p><div class="alert" style="margin-top:15px">La foto può diventare una partitura modificabile con testo e sigle degli accordi. È indispensabile correggere gli ancoraggi alle sillabe. Le note sul pentagramma non sono ancora riconosciute.</div></div></div>`;}
+function settingsHTML(){return `<div class="page-heading"><div><div class="eyebrow">Versione 0.5.0 · Build 20261119.12</div><h1>Impostazioni</h1></div></div><div class="form-wrap"><div class="panel"><h3>Dati e salvataggi</h3><p>I canti e le scalette sono attualmente memorizzati <strong>solo nel browser di questo dispositivo</strong>. Non sono ancora sincronizzati su iCloud o GitHub.</p><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px"><button class="outline-btn" data-action="backup">Scarica backup JSON</button><label class="outline-btn" style="cursor:pointer">Ripristina backup<input type="file" id="backupInput" accept="application/json" style="display:none"></label></div></div><div class="panel"><h3>Ultimo aggiornamento</h3><p>Scopri le modifiche e le migliorie introdotte con la versione più recente.</p><button type="button" class="outline-btn" data-action="show-release-notes">Novità dell'ultima versione</button></div><div class="panel"><h3>Modello musicale</h3><p>Ogni accordo conserva un indice di sillaba nel proprio rigo. La trasposizione modifica soltanto il nome dell'accordo, non la sua posizione.</p><div class="alert" style="margin-top:15px">La foto può diventare una partitura modificabile con testo e sigle degli accordi. È indispensabile correggere gli ancoraggi alle sillabe. Le note sul pentagramma non sono ancora riconosciute.</div></div></div>`;}
 function appHTML(){
  const views={home:homeHTML,library:libraryHTML,masses:massesHTML,capture:captureHTML,settings:settingsHTML};
  const builder=views[state.view]||homeHTML;
@@ -803,9 +803,20 @@ function songInfoEditor(song){return `<details class="compact-details"><summary>
 function reuseMassFormHTML(m){const old=store.masses.find(x=>x.id===m.massId);if(!old)return '';return `<div class="modal-shade"><form class="modal-card" id="reuseMassForm"><h2>Riutilizza scaletta</h2><p>${escape(old.name)} · ${(old.items||[]).length} canti</p><div class="field"><label for="reuseMassName">Nome nuova Messa</label><input id="reuseMassName" name="massName" required maxlength="160" value="${escapeAttr(old.name)}"></div><div class="field"><label for="reuseMassDate">Data</label><input id="reuseMassDate" name="massDate" type="date"></div><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button class="primary-btn">Crea copia</button></div></form></div>`;}
 function modalHTML(){const m=state.modal;
 
+ if(m.type==='delete-song-confirm'){
+  const song=currentSong();if(!song||song.id!==m.songId)return '';
+  const appearances=store.masses.reduce((count,mass)=>count+(mass.items||[]).filter(item=>item.songId===song.id).length,0);
+  return `<div class="modal-shade"><div class="modal-card" role="alertdialog" aria-modal="true" aria-label="Conferma eliminazione partitura"><h2>Eliminare questa partitura?</h2><p><strong>${escape(song.title)}</strong> sarà eliminata dalla biblioteca, insieme alla foto originale e agli accordi salvati.${appearances?' Sarà rimossa anche da '+appearances+' posizioni nelle scalette delle Messe.':''}</p><p>Questa operazione non può essere annullata. Prima puoi esportare un backup dalle Impostazioni.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button type="button" class="primary-btn" data-action="delete-song" style="background:#9e3e33">Elimina definitivamente</button></div></div></div>`;
+ }
+ if(m.type==='reparse-photo-confirm'){
+  const song=currentSong();if(!song||!song.photoData||!song.ocrText)return '';
+  return `<div class="modal-shade"><div class="modal-card" role="alertdialog" aria-modal="true" aria-label="Conferma ricalcolo accordi"><h2>Ricalcolare gli accordi?</h2><p>La partitura verrà ricreata dal testo OCR già salvato. Le modifiche manuali fatte sulle sillabe e sugli accordi saranno sostituite. La fotografia originale resterà disponibile.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button type="button" class="primary-btn" data-action="reparse-photo">Ricalcola accordi</button></div></div></div>`;
+ }
+ if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità dell'ultima versione"><h2>Novità dell'ultima versione</h2><p><strong>Acquisizione fotografica:</strong> riconoscimento più robusto delle righe con accordi, anche quando alcuni caratteri sono letti male; gli accordi riconosciuti vengono separati dal testo e mostrati nelle pillole colorate.</p><p><strong>Correzioni:</strong> possibilità di ricalcolare gli accordi dalla trascrizione originale senza dover scattare una nuova foto.</p><p><strong>Gestione spartiti:</strong> nuovo comando Elimina partitura nel menu del brano, con conferma per evitare cancellazioni involontarie.</p><p>Il riconoscimento delle note sul pentagramma non è ancora disponibile e gli accordi restano da verificare rispetto all'originale.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
+
  if(m.type==='song-options'){
   const song=currentSong();if(!song)return '';
-  if(song.photoData&&!song.sections?.length) return `<div class="modal-shade"><div class="modal-card song-options song-options-compact" role="dialog" aria-modal="true" aria-label="Opzioni brano"><div class="song-options-header"><div><h2>Opzioni</h2><p>${escape(song.title)}</p></div><button type="button" class="song-close" data-action="close-modal" aria-label="Chiudi">×</button></div><p class="photo-draft-notice">Bozza da fotografia</p>${songInfoEditor(song)}<div class="song-export-primary"><button class="primary-btn" type="button" data-action="share-song">Esporta brano Cantoria</button><button class="outline-btn" type="button" data-action="download-song">Scarica file</button></div></div></div>`;
+  if(song.photoData&&!song.sections?.length) return `<div class="modal-shade"><div class="modal-card song-options song-options-compact" role="dialog" aria-modal="true" aria-label="Opzioni brano"><div class="song-options-header"><div><h2>Opzioni</h2><p>${escape(song.title)}</p></div><button type="button" class="song-close" data-action="close-modal" aria-label="Chiudi">×</button></div><p class="photo-draft-notice">Bozza da fotografia</p>${songInfoEditor(song)}<div class="song-export-primary"><button class="primary-btn" type="button" data-action="share-song">Esporta brano Cantoria</button><button class="outline-btn" type="button" data-action="download-song">Scarica file</button></div><div class="song-options-divider"></div><button type="button" class="outline-btn" data-action="ask-delete-song" style="width:100%;color:#943b31;border-color:#b26b62;margin-top:8px">Elimina partitura</button></div></div>`;
   const roots=['DO','DO#','RE','MIb','MI','FA','FA#','SOL','LAb','LA','SIb','SI'];
   const key=String(song.key||'').toUpperCase();
   const options=roots.flatMap(root=>['maggiore','minore'].map(mode=>{
@@ -821,6 +832,8 @@ function modalHTML(){const m=state.modal;
     <div class="song-options-divider"></div>
     <div class="song-export-primary"><button type="button" class="primary-btn" data-action="pdf-share">▤ &nbsp; Esporta PDF</button><button type="button" class="outline-btn" data-action="share-song">♬ &nbsp; Esporta brano</button></div>
     <details class="compact-details compact-more"><summary>Altre opzioni di esportazione</summary><div class="compact-more-buttons"><button class="text-btn" type="button" data-action="pdf-preview">Apri PDF</button><button class="text-btn" type="button" data-action="pdf-download">Scarica PDF</button><button class="text-btn" type="button" data-action="download-song">Scarica file Cantoria</button></div></details>
+    ${song.photoData&&song.ocrText?'<button type="button" class="outline-btn" data-action="ask-reparse-photo" style="width:100%;margin-top:8px">Ricalcola gli accordi dalla trascrizione</button>':''}
+    <div class="song-options-divider"></div><button type="button" class="outline-btn" data-action="ask-delete-song" style="width:100%;color:#943b31;border-color:#b26b62;margin-top:8px">Elimina partitura</button>
   </div></div>`;
  }
 
@@ -1053,6 +1066,29 @@ root.addEventListener('click',e=>{
  const el=e.target.closest('[data-nav],[data-action]');if(!el)return;
  if(el.dataset.nav){state.massId=null;go(el.dataset.nav);return;}
  const action=el.dataset.action;
+ if(action==='show-release-notes'){state.modal={type:'release-notes'};render();return;}
+ if(action==='ask-delete-song'){const song=currentSong();if(song){state.modal={type:'delete-song-confirm',songId:song.id};render();}return;}
+ if(action==='delete-song'){
+  const song=currentSong();if(!song||state.modal?.type!=='delete-song-confirm'||state.modal.songId!==song.id)return;
+  const previousSongs=store.songs.slice();
+  const previousItems=store.masses.map(mass=>(mass.items||[]).slice());
+  store.songs=store.songs.filter(item=>item.id!==song.id);
+  store.masses.forEach(mass=>{mass.items=(mass.items||[]).filter(item=>item.songId!==song.id);});
+  if(!saveStore(store)){
+   store.songs=previousSongs;store.masses.forEach((mass,i)=>{mass.items=previousItems[i];});
+   state.modal=null;notify('Impossibile eliminare: memoria non disponibile.');return;
+  }
+  state.songId=null;state.massItemId=null;state.modal=null;state.page=0;state.shift=0;state.view='library';
+  notify('Partitura eliminata dalla biblioteca e dalle scalette.');return;
+ }
+ if(action==='ask-reparse-photo'){const song=currentSong();if(song?.photoData&&song.ocrText){state.modal={type:'reparse-photo-confirm'};render();}return;}
+ if(action==='reparse-photo'){
+  const song=currentSong();if(state.modal?.type!=='reparse-photo-confirm'||!song?.photoData||!song.ocrText)return;
+  let sections;try{sections=photoSectionsFromText(song.ocrText);}catch(err){notify(err.message);return;}
+  const previous=song.sections;song.sections=sections;song.verified=false;
+  if(!saveStore(store)){song.sections=previous;state.modal=null;notify('Impossibile salvare la nuova partitura.');return;}
+  state.modal=null;state.page=0;notify('Accordi ricalcolati: verifica il risultato con la foto.');return;
+ }
  if(action==='recognize-photo'){recognizePhotoText();return;}
  if(action==='save-ocr-text'){const song=currentSong();if(song?.photoData){song.ocrText=state.ocrText.trim().slice(0,20000);persist();notify('Trascrizione salvata.');}return;}
  if(action==='convert-ocr-photo'){
