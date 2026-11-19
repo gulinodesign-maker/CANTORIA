@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Cantoria" />
   <meta name="description" content="Cantoria: canti cattolici, accordi e repertorio per la Santa Messa, le celebrazioni liturgiche e la preghiera." />
-  <link rel="manifest" href="./manifest.webmanifest?v=20261119.8" />
+  <link rel="manifest" href="./manifest.webmanifest?v=20261119.9" />
   <link rel="apple-touch-icon" sizes="192x192" href="./assets/cantoria-icona-ufficiale-045.png" />
   <link rel="icon" href="./assets/cantoria-icona-ufficiale-045.png" type="image/png" />
   <style>:root{--forest:#153e32;--forest-2:#2b5547;--gold:#ac8128;--ink:#1d2925;--muted:#697b70;--ivory:#faf6ee;--sand:#f1ebdf;--line:#dfd7c7;--blueband:rgba(98,136,154,.18);--sageband:rgba(121,138,107,.17);--orangeband:rgba(163,116,93,.17);--radius:17px;--lyric-size:24px;--shadow:0 12px 35px rgba(31,55,43,.08)}
@@ -397,7 +397,7 @@
  .home-screen {width:min(580px,100%);transform:translateY(-4vh);}
  .home-grid {grid-template-columns:repeat(2,minmax(0,1fr));column-gap:clamp(12px,3vw,24px);row-gap:clamp(24px,4vh,40px);}
  .home-grid .home-tile {display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:clamp(12px,2vh,19px);min-height:0!important;padding:0 1px!important;background:transparent!important;border:0!important;box-shadow:none!important;border-radius:0!important;}
- .home-grid .home-tile-icon {width:min(100%,clamp(128px,38vw,190px))!important;height:auto!important;aspect-ratio:1 / 1;display:grid;place-items:center;flex:0 0 auto;border:1.7px solid #b4a991!important;border-radius:clamp(33px,8vw,49px)!important;background:#f9f4eb!important;box-shadow:none!important;color:#235b49!important;font-size:initial!important;transition:background .15s ease,border-color .15s ease,transform .15s ease;}
+ .home-grid .home-tile-icon {width:min(100%,clamp(110px,33vw,164px))!important;height:auto!important;aspect-ratio:1 / 1;display:grid;place-items:center;flex:0 0 auto;border:1.7px solid #b4a991!important;border-radius:clamp(33px,8vw,49px)!important;background:#f9f4eb!important;box-shadow:none!important;color:#235b49!important;font-size:initial!important;transition:background .15s ease,border-color .15s ease,transform .15s ease;}
  .home-grid .home-tile-icon svg {width:47%;height:47%;display:block;overflow:visible;}
  .home-grid .home-tile:nth-child(2) .home-tile-icon,.home-grid .home-tile:nth-child(4) .home-tile-icon {color:#ae7f2b!important;background:#faf2e5!important;border-color:#c1ae8d!important;}
  .home-grid .home-tile:nth-child(3) .home-tile-icon {color:#416f60!important;}
@@ -408,7 +408,7 @@
 }
 @media screen and (max-width:390px) {
  .home-grid {column-gap:10px;row-gap:22px;}
- .home-grid .home-tile-icon {width:min(100%,clamp(116px,37vw,150px))!important;border-radius:34px!important;}
+ .home-grid .home-tile-icon {width:min(100%,clamp(102px,32vw,132px))!important;border-radius:34px!important;}
  .home-grid .home-tile strong {font-size:17px!important;}
 }
 </style>
@@ -694,7 +694,7 @@ function captureHTML(){
      </form>`:`<p class="photo-capture-hint">Fotografa lo spartito per iniziare.</p>`}
   </section>`;
 }
-function settingsHTML(){return `<div class="page-heading"><div><div class="eyebrow">Versione 0.4.7 · Build 20261119.8</div><h1>Impostazioni</h1></div></div><div class="form-wrap"><div class="panel"><h3>Dati e salvataggi</h3><p>I canti e le scalette sono attualmente memorizzati <strong>solo nel browser di questo dispositivo</strong>. Non sono ancora sincronizzati su iCloud o GitHub.</p><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px"><button class="outline-btn" data-action="backup">Scarica backup JSON</button><label class="outline-btn" style="cursor:pointer">Ripristina backup<input type="file" id="backupInput" accept="application/json" style="display:none"></label></div></div><div class="panel"><h3>Modello musicale</h3><p>Ogni accordo conserva un indice di sillaba nel proprio rigo. La trasposizione modifica soltanto il nome dell'accordo, non la sua posizione.</p><div class="alert" style="margin-top:15px">I nuovi canti vengono salvati da una fotografia. L'OCR non è ancora disponibile: le foto restano bozze finché testo e accordi non saranno riconosciuti e verificati.</div></div></div>`;}
+function settingsHTML(){return `<div class="page-heading"><div><div class="eyebrow">Versione 0.4.8 · Build 20261119.9</div><h1>Impostazioni</h1></div></div><div class="form-wrap"><div class="panel"><h3>Dati e salvataggi</h3><p>I canti e le scalette sono attualmente memorizzati <strong>solo nel browser di questo dispositivo</strong>. Non sono ancora sincronizzati su iCloud o GitHub.</p><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px"><button class="outline-btn" data-action="backup">Scarica backup JSON</button><label class="outline-btn" style="cursor:pointer">Ripristina backup<input type="file" id="backupInput" accept="application/json" style="display:none"></label></div></div><div class="panel"><h3>Modello musicale</h3><p>Ogni accordo conserva un indice di sillaba nel proprio rigo. La trasposizione modifica soltanto il nome dell'accordo, non la sua posizione.</p><div class="alert" style="margin-top:15px">I nuovi canti vengono salvati da una fotografia. L'OCR non è ancora disponibile: le foto restano bozze finché testo e accordi non saranno riconosciuti e verificati.</div></div></div>`;}
 function appHTML(){
  const views={home:homeHTML,library:libraryHTML,masses:massesHTML,capture:captureHTML,settings:settingsHTML};
  const builder=views[state.view]||homeHTML;
