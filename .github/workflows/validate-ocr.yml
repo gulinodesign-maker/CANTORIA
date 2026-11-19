@@ -5,7 +5,7 @@ on:
   push:
     branches:
       - main
-      - feature/photo-ocr-review-20261119
+      - feature/photo-ocr-on-latest-20261119
 
 permissions:
   contents: read
