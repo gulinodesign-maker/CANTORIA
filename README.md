@@ -1,4 +1,4 @@
-# Cantoria — PWA iPhone/iPad (prototipo 0.4.1 · build 20261119.2)
+# Cantoria — PWA iPhone/iPad (prototipo 0.4.2 · build 20261119.3)
 
 Prima versione sperimentale di **Cantoria**, un archivio di spartiti e scalette per le Messe, ottimizzato per iPhone e iPad.
 
@@ -86,3 +86,12 @@ HTML/CSS/JavaScript senza dipendenze esterne; manifest PWA; service worker. La s
 - Aggiornati nome e descrizione della PWA e la cache offline per distribuire la nuova versione.
 
 **Build:** `20261119.2`. È ancora una web app installabile da Safari, non una versione nativa App Store. L'aspetto su iPhone/iPad va verificato sul dispositivo.
+
+## Novità 0.4.2 — Angolo liturgico curvo
+
+- Motivo grafico fedele al riferimento: angolo verde bosco, **curva oro** e **croce dorata** sulla Home, nella testata delle sezioni e sulle schede della Biblioteca.
+- Testata del lettore più sobria su fondo avorio, con piccolo richiamo all'angolo in verde e oro senza aumentare l'altezza della barra e con menu ☰ sempre a destra.
+- Nel PDF A4 l'angolo superiore sinistro ora usa un tracciato curvo vettoriale e una croce disegnata a linee, anziché un triangolo rigido e il segno +.
+- Aggiornata la cache PWA e l'indicazione **Versione 0.4.2 · Build 20261119.3** in Impostazioni.
+
+Verifiche visive su Safari e della stampa PDF ancora da confermare sul dispositivo reale.
