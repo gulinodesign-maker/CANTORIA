@@ -8,10 +8,10 @@ on:
       - main
   workflow_dispatch:
 
-# Evita pubblicazioni concorrenti della stessa app.
+# Evita pubblicazioni concorrenti senza interrompere i tentativi già avviati.
 concurrency:
   group: cantoria-testflight-main
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 permissions:
   contents: read
