@@ -576,8 +576,18 @@ function describeTonality(song,shift=0){
   return `${note} ${mode}`;
 }
 function chordLabel(c){return escape(transposeChord(c,state.shift)).replace(/(\d*[24])$/, s=>`<sup>${s}</sup>`);}
-function introChords(section){return `<div class="music-row ${section.kind} chords-only"><div class="chord-band">${section.chordsOnly.map(c=>`<span class="chord-label">${chordLabel(c)}</span>`).join('')}</div></div>`;}
-function outroChords(section){return (section.chordRows||[]).map(row=>`<div class="music-row ${section.kind} chords-only"><div class="chord-band">${row.map(c=>`<span class="chord-label">${chordLabel(c)}</span>`).join('')}</div></div>`).join('');}
+function chordOnlyBand(chords,kind,geometry){
+ const positioned=Array.isArray(geometry)&&geometry.length===chords.length&&
+  geometry.every(g=>Number.isFinite(g.sourceX)&&g.sourceLineBBox?.x1>g.sourceLineBBox?.x0);
+ const labels=chords.map((chord,i)=>{
+  const src=geometry?.[i],bbox=src?.sourceLineBBox;
+  const x=positioned?100*(src.sourceX-bbox.x0)/(bbox.x1-bbox.x0):0;
+  return `<span class="chord-label" ${positioned?`style="left:${x.toFixed(4)}%;position:absolute"`:''}>${chordLabel(chord)}</span>`;
+ }).join('');
+ return `<div class="music-row ${escapeAttr(kind)} chords-only"><div class="chord-band" ${positioned?'style="display:block"':''}>${labels}</div></div>`;
+}
+function introChords(section){return chordOnlyBand(section.chordsOnly,section.kind,section.chordsOnlyGeometry);}
+function outroChords(section){return (section.chordRows||[]).map((row,i)=>chordOnlyBand(row,section.kind,section.chordRowsGeometry?.[i])).join('');}
 function lineHTML(section,line,si,li,isPrint=false){
   const tokens = parseSyllables(line.marked);
   let slot=0;
@@ -593,7 +603,7 @@ function lineHTML(section,line,si,li,isPrint=false){
 }
 function groupHeading(label,continued=false){return `<div class="section-title ${continued?'continued':''}">${escape(label)}${continued?' · segue':''}</div>`;}
 function sectionsAllHTML(song,isPrint=false){return (song.sections||[]).map((sec,si)=>`<section class="music-group ${isPrint?'print-section':''}">${groupHeading(sec.name)}${sec.chordsOnly?introChords(sec):''}${(sec.lines||[]).map((ln,li)=>lineHTML(sec,ln,si,li,isPrint)).join('')}${sec.chordRows?outroChords(sec):''}</section>`).join('');}
-function flatEntries(song){const res=[];(song.sections||[]).forEach((sec,si)=>{if(sec.chordsOnly)res.push({si,type:'intro',sec,first:true});(sec.lines||[]).forEach((line,li)=>res.push({si,type:'line',sec,line,li,first:li===0}));(sec.chordRows||[]).forEach((row,i)=>res.push({si,type:'outro',sec,row,first:i===0}));});return res;}
+function flatEntries(song){const res=[];(song.sections||[]).forEach((sec,si)=>{if(sec.chordsOnly)res.push({si,type:'intro',sec,first:true});(sec.lines||[]).forEach((line,li)=>res.push({si,type:'line',sec,line,li,first:li===0}));(sec.chordRows||[]).forEach((row,i)=>res.push({si,type:'outro',sec,row,rowIndex:i,first:i===0}));});return res;}
 function pageList(song){
  const items=flatEntries(song),columns=readerColumns();
  if(!items.length)return [[[]]];
@@ -616,7 +626,7 @@ function pageList(song){
  }
  return pages;
 }
-function entriesHTML(entries){if(!entries.length)return '<p>Questo canto non ha ancora righe.</p>';let lastSection=-1;return entries.map((e,idx)=>{let heading='';if(e.si!==lastSection){heading=groupHeading(e.sec.name,!e.first);lastSection=e.si;}return heading+(e.type==='intro'?introChords(e.sec):e.type==='outro'?`<div class="music-row outro chords-only"><div class="chord-band">${e.row.map(c=>`<span class="chord-label">${chordLabel(c)}</span>`).join('')}</div></div>`:lineHTML(e.sec,e.line,e.si,e.li));}).join('');}
+function entriesHTML(entries){if(!entries.length)return '<p>Questo canto non ha ancora righe.</p>';let lastSection=-1;return entries.map((e,idx)=>{let heading='';if(e.si!==lastSection){heading=groupHeading(e.sec.name,!e.first);lastSection=e.si;}return heading+(e.type==='intro'?introChords(e.sec):e.type==='outro'?chordOnlyBand(e.row,e.sec.kind,e.sec.chordRowsGeometry?.[e.rowIndex]):lineHTML(e.sec,e.line,e.si,e.li));}).join('');}
 function readerColumns(){const w=window.innerWidth,h=window.innerHeight;return ((w>=650&&w>h)||w>=760)?2:1;}
 function photoReaderHTML(song){
  return `<div class="reader-layer reader-portrait reader-photo" id="readerLayer" data-song="${escapeAttr(song.id)}">
