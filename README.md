@@ -1,4 +1,4 @@
-# Cantoria — PWA iPhone (prototipo 0.1)
+# Cantoria — PWA iPhone (prototipo 0.2)
 
 Prima versione sperimentale di **Cantoria**, un archivio di spartiti e scalette per le Messe, ottimizzato per iPhone e iPad.
 
@@ -13,6 +13,17 @@ La web app è interamente contenuta in `index.html`: non richiede Node.js, build
 3. Scegli `main` e `/(root)`, poi **Save**.
 4. Apri **https://gulinodesign-maker.github.io/CANTORIA/** in Safari, dopo che GitHub Pages ha completato la pubblicazione.
 5. Su iPhone: Safari → Condividi → **Aggiungi alla schermata Home**.
+
+## Novità v0.2
+
+- Home semplificata con quattro pulsanti in griglia 2×2: Biblioteca, Acquisisci brano, Impostazioni, Nuova Messa.
+- Navigazione inferiore rimossa; nelle altre sezioni c'è il tasto Home.
+- Lettore senza barra inferiore: titolo centrato nella barra superiore, pagina indicata sotto il titolo, swipe per scorrere.
+- Layout responsive: una colonna su iPhone verticale; due colonne su iPhone orizzontale e iPad quando le dimensioni lo consentono. I righi non si dividono tra le colonne; adattamento del carattere alla larghezza.
+- Pressione prolungata su accordo per correggere accordo/sillaba; pressione prolungata su sillaba per correggere il testo e aggiungere/modificare l'accordo. Conferma con “Salva”.
+- Restano attivi gli accordi ancorati alle sillabe e il PDF A4 completo.
+
+**Importante:** la pubblicazione della versione nuova non cancella automaticamente i dati già salvati nel browser. Prima di testare una nuova versione, è consigliato esportare un backup dalle Impostazioni.
 
 ## Funzionalità disponibili
 
@@ -37,4 +48,4 @@ La web app è interamente contenuta in `index.html`: non richiede Node.js, build
 
 HTML/CSS/JavaScript senza dipendenze esterne; manifest PWA; service worker. La struttura musicale associa gli accordi a identificativi di sillaba anziché a coordinate grafiche. Il progetto potrà essere modularizzato e, se desiderato, impacchettato come app iOS tramite Capacitor.
 
-**Stato:** v0.1, interfaccia di prova e primo nucleo funzionale.
+**Stato:** v0.2, interfaccia di prova e primo nucleo funzionale.
