@@ -464,53 +464,83 @@ function makeCantoriaPdf(song,shift=0){
     commands.push(`BT /${font} ${fmt(size)} Tf ${color} rg 1 0 0 1 ${fmt(x)} ${fmt(yy)} Tm <${hex(s)}> Tj ET`);
   };
   const rule=yy=>commands.push(`0.75 0.65 0.44 RG 0.6 w ${fmt(LEFT)} ${fmt(yy)} m ${fmt(W-RIGHT)} ${fmt(yy)} l S`);
+  // Times-Roman metrics: accurate positions for chord anchors over PDF syllables.
+  const timesWidths={
+   ' ':250,'!':333,'"':408,"'":180,',':250,'-':333,'.':250,'/':278,':':278,';':278,'?':444,
+   A:722,B:667,C:667,D:722,E:611,F:556,G:722,H:722,I:333,J:389,K:722,L:611,M:889,N:722,O:722,P:556,Q:722,R:667,S:556,T:611,U:722,V:722,W:944,X:722,Y:722,Z:611,
+   a:444,b:500,c:444,d:500,e:444,f:333,g:500,h:500,i:278,j:278,k:500,l:278,m:778,n:500,o:500,p:500,q:500,r:333,s:389,t:278,u:500,v:444,w:722,x:500,y:500,z:444
+  };
+  const timesWidth=(t,size)=>Array.from(String(t??'')).reduce((n,ch)=>{const basic=ch.normalize('NFD').replace(/[\u0300-\u036f]/g,'');return n+(timesWidths[basic]??500);},0)*size/1000;
+  // Draw rounded colour pills behind chord lines; independent of Safari print settings.
+  const pill=(x,bottom,w,h,color)=>{
+   const r=Math.min(h/2,w/2),k=.55228475;
+   const p=(xx,yy)=>fmt(xx)+' '+fmt(yy);
+   const c=(a,b,d,e,f,g)=>p(a,b)+' '+p(d,e)+' '+p(f,g)+' c';
+   commands.push('q',color+' rg',p(x+r,bottom)+' m',p(x+w-r,bottom)+' l',
+    c(x+w-r+r*k,bottom,x+w,bottom+r-r*k,x+w,bottom+r),
+    p(x+w,bottom+h-r)+' l',
+    c(x+w,bottom+h-r+r*k,x+w-r+r*k,bottom+h,x+w-r,bottom+h),
+    p(x+r,bottom+h)+' l',
+    c(x+r-r*k,bottom+h,x,bottom+h-r+r*k,x,bottom+h-r),
+    p(x,bottom+r)+' l',
+    c(x,bottom+r-r*k,x+r-r*k,bottom,x+r,bottom),'h f Q');
+  };
+  const bandColor=kind=>kind==='intro'?'0.86 0.91 0.94':kind==='chorus'?'0.94 0.87 0.83':kind==='verse'?'0.88 0.92 0.87':'0.91 0.91 0.87';
+
   const startPage=()=>{
     if(commands.length)pages.push(commands.join('\n'));
     commands=[];pageNumber++;y=H-48;
+    // Soft ivory sheet, forest corner flourish and golden cross (original style).
+    commands.push('q 0.982 0.968 0.939 rg 0 0 595.28 841.89 re f Q');
+    commands.push('q 0.08 0.25 0.20 rg 0 841.89 m 97 841.89 l 0 744.89 l h f Q');
+    ptext('+',16,H-29,27,'F2','0.89 0.73 0.36');
     ptext('CANTORIA',LEFT,y,10,'F2','0.62 0.44 0.14');
     ptext(`Pagina ${pageNumber}`,W-RIGHT-59,y,9,'F1','0.42 0.44 0.40');
     y-=23;
     const title=String(song.title||'Senza titolo');
-    const titleSize=Math.min(22,Math.max(13,450/(Math.max(1,title.length)*.55)));
-    ptext(title,LEFT,y,titleSize,'F2','0.08 0.25 0.20');
+    const titleSize=Math.min(25,Math.max(13,MAXW/Math.max(1,timesWidth(title,1))));
+    ptext(title,(W-timesWidth(title,titleSize))/2,y,titleSize,'F4','0.08 0.25 0.20');
     y-=24;
-    ptext(`Tonalità: ${describeTonality(song,shift)}`,LEFT,y,10,'F1','0.45 0.38 0.22');
+    const tone=`Tonalità: ${describeTonality(song,shift)}`;
+    ptext(tone,(W-timesWidth(tone,10))/2,y,10,'F3','0.45 0.38 0.22');
     y-=13;rule(y);y-=19;
   };
   const ensure=height=>{if(y-height<47)startPage();};
   startPage();
   for(const section of song.sections||[]){
     const heading=String(section.name||'SEZIONE');
-    ensure(58);ptext(heading.toUpperCase(),LEFT,y,12,'F2','0.14 0.33 0.27');y-=9;rule(y);y-=17;
+    ensure(67);ptext(heading.toUpperCase(),(W-heading.length*7.1)/2,y,12,'F2','0.65 0.46 0.17');y-=9;rule(y);y-=20;
     const chordOnly=(chords)=>{
       const content=chords.map(c=>transposeChord(c,shift)).join('     ');
       const font=Math.min(12,MAXW/Math.max(1,content.length)/.6);
-      ensure(23);ptext(content,LEFT+5,y,Math.max(8,font),'F1','0.43 0.30 0.11');y-=25;
+      ensure(40);pill(LEFT,y-23,MAXW,25,bandColor(section.kind));ptext(content,LEFT+9,y-15,Math.max(8,font),'F2','0.13 0.31 0.25');y-=40;
     };
     if(section.chordsOnly?.length)chordOnly(section.chordsOnly);
     for(const line of section.lines||[]){
+
       const tokens=parseSyllables(line.marked||''),text=tokens.map(t=>t.text).join('');
-      const font=Math.max(9,Math.min(13.2,MAXW/Math.max(1,Array.from(text).length)/.6));
-      const charW=font*.6;
-      let pos=0,slot=0;const offsets=[];
-      for(const t of tokens){if(!t.space){offsets[slot]=pos;slot++;}pos+=Array.from(t.text).length;}
+      const font=Math.max(9,Math.min(16.4,(MAXW-14)/Math.max(1,timesWidth(text,1))));
+      let prefix='',slot=0;const offsets=[];
+      for(const t of tokens){if(!t.space){offsets[slot]=timesWidth(prefix,font);slot++;}prefix+=t.text;}
       const chords=(line.anchors||[]).map(a=>{
-        const x=LEFT+Math.min(MAXW-8,(offsets[a.slot]??0)*charW);
+        const x=Math.min(W-RIGHT-27,LEFT+7+(offsets[a.slot]??0));
         const s=transposeChord(a.chord,shift);
-        return {x,s,width:String(s).length*5.5};
+        return {x,s,width:String(s).length*6};
       }).sort((a,b)=>a.x-b.x);
       let prevX=-1000,prevWidth=0;
       const placements=chords.map(c=>{
-        const lane=c.x<prevX+prevWidth+4?1:0;
+        const lane=c.x<prevX+prevWidth+5?1:0;
         if(!lane){prevX=c.x;prevWidth=c.width;}
         return {...c,lane};
       });
       const double=placements.some(c=>c.lane);
-      const rowH=double?49:39;
+      const rowH=double?71:57;
       ensure(rowH);
-      const chordTop=y-2;
-      for(const c of placements){ptext(c.s,c.x,c.lane?chordTop-13:chordTop,9.2,'F2','0.39 0.30 0.12');}
-      ptext(text,LEFT,y-(double?31:22),font,'F1','0.12 0.18 0.16');
+      // The band belongs to the complete chord/lyric row; no page breaks inside rows.
+      pill(LEFT,y-(double?37:22),MAXW,double?35:24,bandColor(section.kind));
+      const chordTop=y-10;
+      for(const c of placements){ptext(c.s,c.x,c.lane?chordTop-14:chordTop,9.6,'F2','0.11 0.29 0.23');}
+      ptext(text,LEFT+7,y-(double?54:42),font,'F3','0.12 0.18 0.16');
       y-=rowH;
     }
     for(const row of section.chordRows||[])chordOnly(row);
@@ -524,10 +554,12 @@ function makeCantoriaPdf(song,shift=0){
   add(''); // Page tree
   add('<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>');
   add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
+  add('<< /Type /Font /Subtype /Type1 /BaseFont /Times-Roman /Encoding /WinAnsiEncoding >>');
+  add('<< /Type /Font /Subtype /Type1 /BaseFont /Times-Bold /Encoding /WinAnsiEncoding >>');
   const pageIds=[];
   for(const content of pages){
     const streamId=add(`<< /Length ${content.length} >>\nstream\n${content}\nendstream`);
-    const pageId=add(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${fmt(W)} ${fmt(H)}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${streamId} 0 R >>`);
+    const pageId=add(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${fmt(W)} ${fmt(H)}] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R /F4 6 0 R >> >> /Contents ${streamId} 0 R >>`);
     pageIds.push(pageId);
   }
   objects[2]=`<< /Type /Pages /Kids [${pageIds.map(id=>id+' 0 R').join(' ')}] /Count ${pageIds.length} >>`;
