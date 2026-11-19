@@ -1,4 +1,4 @@
-# Cantoria — PWA iPhone/iPad (prototipo 0.4.3 · build 20261119.4)
+# Cantoria — PWA iPhone/iPad (prototipo 0.4.4 · build 20261119.5)
 
 Prima versione sperimentale di **Cantoria**, un archivio di spartiti e scalette per le Messe, ottimizzato per iPhone e iPad.
 
@@ -107,3 +107,15 @@ Verifiche visive su Safari e della stampa PDF ancora da confermare sul dispositi
 - PWA: nuovo riferimento apple-touch-icon PNG e cache aggiornata. L'icona di una PWA già installata potrebbe richiedere la rimozione dalla schermata Home e una nuova installazione per aggiornarsi.
 
 Nota: condivisione/importazione e layout grafico vanno ancora verificati in Safari su iPhone e iPad.
+
+## Novità 0.4.4 — Acquisizione solo fotografica
+
+- **Indietro:** nelle testate delle sezioni il pulsante è ora all'estrema destra, verde bosco con freccia oro; il titolo rimane centrato.
+- **Acquisisci un canto:** eliminati l'inserimento manuale di sillabe e accordi e il precedente modulo “Spartito strutturato”. Sono disponibili solo **Scatta una foto** e **Scegli una foto**.
+- La foto selezionata viene mostrata in anteprima. Si può aggiungere facoltativamente un titolo e salvare il canto in Biblioteca come **bozza fotografica**.
+- Le bozze possono essere riaperte per vedere l'immagine originale ed esportate/importate come file Cantoria (comprensivi della foto).
+- L'immagine viene ridimensionata e compressa prima del salvataggio locale; l'archiviazione del browser resta limitata.
+- **OCR non ancora implementato:** la bozza non genera automaticamente testo, accordi, ancoraggi alle sillabe né PDF. Queste funzioni saranno abilitate dopo un sistema di riconoscimento con verifica dell'utente.
+- **Impostazioni:** Versione **0.4.4**, Build **20261119.5**; aggiornamento della cache PWA.
+- Controllata la sintassi JavaScript. Prova fotocamera, salvataggio e lettura della bozza ancora da confermare in Safari su iPhone/iPad.
+
