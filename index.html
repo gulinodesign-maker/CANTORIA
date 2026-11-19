@@ -273,6 +273,53 @@
  .topbar-home .corner-ornament{width:167px;height:137px;}
  .reader-layer .reader-toolbar>.corner-ornament{width:72px;height:59px;}
 }
+
+/* 0.4.3 — Home essenziale, menu Opzioni compatto */
+@media screen {
+ .topbar-home{height:83px!important;min-height:83px!important;}
+ .topbar-home .corner-ornament{width:159px!important;height:132px!important;}
+ .home-workspace{min-height:calc(100dvh - 83px);padding:12px 18px 30px!important;}
+ .home-screen{max-width:610px;padding:0!important;}
+ .home-screen h1{font:normal clamp(43px,7vw,67px) Georgia,serif!important;color:#174334;margin:0 0 27px!important;text-align:center;}
+ .home-grid{gap:clamp(12px,2.6vw,20px);}
+ .home-tile{min-height:clamp(145px,23vh,195px);gap:13px;padding:12px;background:#fffdf8;}
+ .home-tile:before{display:none;}
+ .home-tile-icon{width:62px;height:62px;font-size:32px;}
+ .home-tile strong{font-size:clamp(19px,3vw,25px);}
+ .song-options-compact{max-width:390px;padding:20px!important;}
+ .song-options-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+ .song-options-header h2{font-size:27px!important;margin-bottom:4px!important;}
+ .song-options-header p{font-size:13px!important;margin:0 0 13px!important;max-width:270px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+ .song-close{width:35px;height:35px;display:grid;place-items:center;background:#efe7d8;border:0;border-radius:10px;color:#274e3f;font-size:26px;flex:0 0 auto;}
+ .song-key-current{display:flex;flex-direction:column;gap:4px;text-align:center;background:#edf0e6;border:1px solid #d2decf;border-radius:13px;padding:12px 10px;}
+ .song-key-current span{font-size:11px;letter-spacing:1px;color:#778779;text-transform:uppercase;font-weight:700;}
+ .song-key-current strong{color:#173d33;font:normal clamp(21px,5vw,26px) Georgia,serif;}
+ .song-options-compact .transport-row{margin:11px 0 10px;gap:19px!important;}
+ .song-options-compact .transport-row .mini-btn{width:45px;height:43px;font-size:26px;}
+ .song-options-compact .shift-status{border:0;border-radius:10px;background:#f0e6d5;color:#163e31;min-width:100px;padding:7px 9px;font-size:16px;}
+ .song-options-compact .shift-status small{font-weight:500;font-size:11px;color:#746e60;}
+ .compact-details{border-top:1px solid #ece3d4;margin-top:7px;padding:9px 0 0;}
+ .compact-details summary{color:#597063;cursor:pointer;font-size:12px;font-weight:700;list-style:disclosure-closed;}
+ .compact-details .field{margin:9px 0!important;}
+ .compact-details .field select{width:100%;font-size:14px;}
+ .song-options-divider{border-top:1px solid #d8cbb5;margin:13px 0;}
+ .song-export-primary{display:grid;gap:9px;}
+ .song-export-primary button{width:100%;height:46px;font-size:15px;}
+ .compact-more{margin-top:16px;}
+ .compact-more-buttons{display:flex;flex-direction:column;align-items:flex-start;gap:7px;margin-top:10px;}
+ .compact-more-buttons .text-btn{font-size:13px;text-align:left;}
+ .library-import{gap:8px;}
+ .library-import .outline-btn,.library-import .primary-btn{font-size:13px;padding:10px 12px;}
+ .section-workspace .page-heading h1{font-size:clamp(31px,5vw,45px);}
+ .section-workspace .page-heading{margin-bottom:20px;}
+}
+@media screen and (max-width:440px) {
+ .home-screen h1{margin-bottom:22px!important;}
+ .home-tile{min-height:145px!important;}
+ .home-tile-icon{width:55px;height:55px;font-size:28px;}
+ .home-tile strong{font-size:19px!important;}
+ .song-options-compact{width:100%;}
+}
 </style>
   <title>Cantoria — Canti per la liturgia cattolica</title>
 </head>
@@ -494,28 +541,28 @@ function readerHTML(){
 const CATHOLIC_CORNER = '<svg class="corner-ornament" viewBox="0 0 300 245" preserveAspectRatio="xMinYMin meet" aria-hidden="true" focusable="false"><path d="M0 0H300C186 46 76 148 0 245Z" fill="#194638"/><path d="M300 0C186 46 76 148 0 245" fill="none" stroke="#C59442" stroke-width="6"/><path class="corner-ornament-cross" d="M75 41V111M49 72H101" fill="none" stroke="#EBC16F" stroke-width="10" stroke-linecap="square"/></svg>';
 function homeHTML(){
  const tiles=[
-  {icon:"▤",title:"Biblioteca",description:"Il tuo repertorio liturgico",action:'data-nav="library"'},
-  {icon:"＋",title:"Acquisisci brano",description:"Aggiungi un canto alla liturgia",action:'data-nav="capture"'},
-  {icon:"⚙",title:"Impostazioni",description:"Organizza e custodisci i canti",action:'data-nav="settings"'},
-  {icon:"♬",title:"Nuova Messa",description:"Prepara la celebrazione",action:'data-action="create-mass"'}
+  {icon:'▤',title:'Biblioteca',action:'data-nav="library"'},
+  {icon:'＋',title:'Acquisisci',action:'data-nav="capture"'},
+  {icon:'⚙',title:'Impostazioni',action:'data-nav="settings"'},
+  {icon:'♬',title:'Nuova Messa',action:'data-action="create-mass"'}
  ];
- return `<div class="home-screen"><p class="home-overline">CANTI DELLA CHIESA CATTOLICA</p><h1>Cantoria</h1><p class="home-subtitle">Il tuo repertorio per la Santa Messa e la preghiera.</p><div class="home-liturgical-rule" aria-hidden="true"><span>✦</span></div><div class="home-grid">${tiles.map(t=>`<button type="button" class="home-tile" ${t.action}><span class="home-tile-icon" aria-hidden="true">${t.icon}</span><strong>${t.title}</strong><small>${t.description}</small></button>`).join('')}</div><p class="home-footnote">✝ &nbsp;La musica al servizio della liturgia e della comunità.</p></div>`;
+ return `<div class="home-screen"><h1>Cantoria</h1><div class="home-grid">${tiles.map(t=>`<button type="button" class="home-tile" ${t.action}><span class="home-tile-icon" aria-hidden="true">${t.icon}</span><strong>${t.title}</strong></button>`).join('')}</div></div>`;
 }
 function headerHTML(){
- if(state.view==='home')return `<header class="topbar topbar-home">${CATHOLIC_CORNER}<div class="home-header-brand">CANTORIA <span>Musica e liturgia</span></div></header>`;
+ if(state.view==='home')return `<header class="topbar topbar-home">${CATHOLIC_CORNER}</header>`;
  const titles={library:'Biblioteca',masses:'Le mie Messe',capture:'Nuovo brano',settings:'Impostazioni'};
  return `<header class="topbar topbar-section">${CATHOLIC_CORNER}<button class="header-home-btn" data-nav="home" aria-label="Torna alla Home">‹ <span>Home</span></button><strong class="header-section-title">${titles[state.view]||'Cantoria'}</strong><div class="header-spacer"></div></header>`;
 }
 function navHTML(){const nav=Object.keys(labels);return `<nav class="sidenav">${nav.map(k=>`<button class="nav-item ${state.view===k?'active':''}" data-nav="${k}"><span class="ico">${icons[k]}</span>${labels[k]}</button>`).join('')}<div class="nav-helper">La tua biblioteca è salvata in questo dispositivo.<br><strong>Il cloud verrà aggiunto in una prossima versione.</strong></div></nav><nav class="bottom-nav">${nav.map(k=>`<button class="bottom-item ${state.view===k?'active':''}" data-nav="${k}"><span class="ico">${icons[k]}</span>${labels[k]}</button>`).join('')}</nav>`;}
-function libraryHTML(){const songs=store.songs.filter(s=>(s.title||'').toLowerCase().includes(state.filter.toLowerCase()));return `<div class="page-heading"><div><div class="eyebrow">Canti della Chiesa Cattolica</div><h1>Biblioteca liturgica</h1><p>Canti per la Santa Messa, le celebrazioni e la preghiera. Ogni spartito conserva gli accordi sulla sillaba giusta.</p></div><div class="library-import"><label class="outline-btn" for="songImportInput" style="cursor:pointer">↓ Importa brano</label><input type="file" id="songImportInput" accept=".cantoria.json,.json,application/json" style="position:absolute;width:1px;height:1px;opacity:0" aria-label="Scegli un file brano Cantoria"><button class="primary-btn" data-nav="capture">+ Aggiungi canto</button></div></div>
+function libraryHTML(){const songs=store.songs.filter(s=>(s.title||'').toLowerCase().includes(state.filter.toLowerCase()));return `<div class="page-heading"><div><h1>Biblioteca</h1></div><div class="library-import"><label class="outline-btn" for="songImportInput" style="cursor:pointer">↓ Importa brano</label><input type="file" id="songImportInput" accept=".cantoria.json,.json,application/json" style="position:absolute;width:1px;height:1px;opacity:0" aria-label="Scegli un file brano Cantoria"><button class="primary-btn" data-nav="capture">+ Aggiungi canto</button></div></div>
   <label class="search-bar">⌕ <input id="search" type="search" placeholder="Cerca un canto…" value="${escapeAttr(state.filter)}" autocomplete="off" aria-label="Cerca un canto"></label>
   <div class="tiles">${songs.map((song,i)=>`<article class="song-card"><div class="song-cover">${CATHOLIC_CORNER}<div class="cover-label">${escape(song.title)}</div></div><div class="card-body"><div class="meta-row"><span class="pill">${escape(song.key||'Tonalità libera')}</span>${song.verified?'<span class="pill good">Verificato</span>':'<span class="pill warning">Da verificare</span>'}</div><h3 style="margin-top:12px">${escape(song.title)}</h3><p>${escape(song.subtitle||'Canto')} · ${(song.sections||[]).length} sezioni</p><div class="card-actions"><button class="primary-btn" data-action="read-song" data-song="${escapeAttr(song.id)}">Apri spartito →</button><button class="text-btn" data-action="add-to-mass" data-song="${escapeAttr(song.id)}">Aggiungi alla Messa</button><button class="text-btn" data-action="export-song" data-song="${escapeAttr(song.id)}">Esporta brano</button></div></div></article>`).join('')||'<div class="empty">Nessun canto trovato.</div>'}</div>
-  <h2 class="section-kicker">Per iniziare</h2><div class="alert">Il canto di esempio è una trascrizione dimostrativa: <strong>non usarlo per eseguire la musica prima di aver verificato gli ancoraggi degli accordi con la fotografia originale.</strong> Tocca un accordo nel lettore per correggerlo.</div>`;}
-function massesHTML(){if(state.massId&&currentMass())return massDetailHTML();return `<div class="page-heading"><div><div class="eyebrow">Liturgia eucaristica</div><h1>Le mie Messe</h1><p>Prepara i canti della celebrazione eucaristica: ingresso, Gloria, salmo, Alleluia, offertorio, Santo, comunione e canto finale.</p></div><button class="primary-btn" data-action="create-mass">+ Nuova Messa</button></div><div class="tiles">${store.masses.map(m=>`<article class="mass-card"><div class="eyebrow">Scaletta</div><h3>${escape(m.name)}</h3><p>${m.items.length} ${m.items.length===1?'canto':'canti'} ${m.date?'· '+escape(m.date):''}</p><button class="primary-btn" data-action="open-mass" data-mass="${escapeAttr(m.id)}">Apri scaletta →</button></article>`).join('')||'<div class="empty">Non hai ancora creato una scaletta.</div>'}</div>`;}
+  `;}
+function massesHTML(){if(state.massId&&currentMass())return massDetailHTML();return `<div class="page-heading"><div><h1>Le mie Messe</h1></div><button class="primary-btn" data-action="create-mass">+ Nuova Messa</button></div><div class="tiles">${store.masses.map(m=>`<article class="mass-card"><div class="eyebrow">Scaletta</div><h3>${escape(m.name)}</h3><p>${m.items.length} ${m.items.length===1?'canto':'canti'} ${m.date?'· '+escape(m.date):''}</p><button class="primary-btn" data-action="open-mass" data-mass="${escapeAttr(m.id)}">Apri scaletta →</button></article>`).join('')||'<div class="empty">Non hai ancora creato una scaletta.</div>'}</div>`;}
 function massDetailHTML(){const mass=currentMass();return `<div class="collection-header"><div><button class="text-btn" data-action="back-masses">← Le mie Messe</button><div class="eyebrow" style="margin-top:11px">Scaletta per la celebrazione</div><h2>${escape(mass.name)}</h2></div><button class="outline-btn" data-action="rename-mass">Rinomina</button></div><div class="meta-row"><span class="pill">${mass.items.length} canti</span><button class="primary-btn" data-action="add-to-mass">+ Aggiungi un canto</button></div><div style="margin-top:21px">${mass.items.map((item,i)=>{const s=store.songs.find(x=>x.id===item.songId);return `<article class="mass-song"><span class="mass-number">${String(i+1).padStart(2,'0')}</span><div class="mass-song-info"><small>${escape(item.label)}</small><strong>${escape(s?.title||'Canto mancante')}</strong><small>Tonalità della Messa: ${item.shift>0?'+':''}${item.shift} semitoni</small></div><div class="mass-song-actions"><button class="mini-btn" data-action="mass-shift-down" data-item="${item.id}" title="Abbassa tonalità">−</button><button class="mini-btn" data-action="mass-shift-up" data-item="${item.id}" title="Alza tonalità">+</button><button class="mini-btn" data-action="move-up" data-item="${item.id}" ${i===0?'disabled':''} title="Sposta prima">↑</button><button class="mini-btn" data-action="move-down" data-item="${item.id}" ${i===mass.items.length-1?'disabled':''} title="Sposta dopo">↓</button><button class="mini-btn" data-action="read-mass-song" data-item="${item.id}" title="Apri">▶</button><button class="mini-btn" data-action="remove-mass-item" data-item="${item.id}" title="Rimuovi">×</button></div></article>`;}).join('')||'<div class="empty">Aggiungi il primo canto alla scaletta.</div>'}</div><p style="margin:22px 0;color:#839184;font-size:13px">La tonalità scelta qui vale solo per questa Messa: l'originale in biblioteca non cambia.</p>`;}
-function captureHTML(){return `<div class="page-heading"><div><div class="eyebrow">Repertorio cattolico</div><h1>Acquisisci un canto</h1><p>Fotografa lo spartito del coro parrocchiale, poi verifica testo e accordi. Il riconoscimento automatico sarà aggiunto successivamente.</p></div></div><div class="form-wrap"><div class="panel"><h3>01 · Foto originale</h3><p>Per ora la fotografia rimane visibile come riferimento durante la trascrizione. Non viene inviata a servizi esterni.</p><label class="photo-drop"><input type="file" id="photoInput" accept="image/*" capture="environment" aria-label="Scatta o seleziona una fotografia">${state.photoURL?`<img src="${state.photoURL}" alt="Foto del foglio selezionata"/>`:'<span style="font-size:36px;color:#7c997f">▧</span><strong>Scatta una foto o scegli un’immagine</strong><small>Fotocamera e libreria fotografica</small>'}</label><div class="alert" style="margin-top:16px">L'OCR non è ancora attivo. La fotografia serve per controllare manualmente la corrispondenza accordo–sillaba.</div></div>
+function captureHTML(){return `<div class="page-heading"><div><h1>Acquisisci un canto</h1><p>Foto o inserimento manuale.</p></div></div><div class="form-wrap"><div class="panel"><h3>01 · Foto originale</h3><p>Per ora la fotografia rimane visibile come riferimento durante la trascrizione. Non viene inviata a servizi esterni.</p><label class="photo-drop"><input type="file" id="photoInput" accept="image/*" capture="environment" aria-label="Scatta o seleziona una fotografia">${state.photoURL?`<img src="${state.photoURL}" alt="Foto del foglio selezionata"/>`:'<span style="font-size:36px;color:#7c997f">▧</span><strong>Scatta una foto o scegli un’immagine</strong><small>Fotocamera e libreria fotografica</small>'}</label><div class="alert" style="margin-top:16px">L'OCR non è ancora attivo. La fotografia serve per controllare manualmente la corrispondenza accordo–sillaba.</div></div>
   <form class="panel" id="songForm"><h3>02 · Spartito strutturato</h3><p>Inserisci le sillabe separate con <code>|</code> e scrivi l'accordo tra parentesi quadre immediatamente prima della sillaba giusta.</p><div class="field"><label for="songTitle">Titolo</label><input id="songTitle" name="songTitle" placeholder="Es. Santo" required></div><div class="code-help"><strong>Formato:</strong><br><code>@INTRO SOL DO LA- RE</code><br><code>@STROFA</code><br><code>[SOL2]Be|ne|det|to sei [RE]Si|gno|re,</code><br><code>@RITORNELLO</code><br><code>[DO]A te can|tia|mo [SOL]Cri|sto Re</code></div><div class="field"><label for="songText">Testo e accordi</label><textarea id="songText" name="songText" placeholder="@STROFA\n[SOL]Ge|sù ci [RE]chia|ma" required></textarea></div><button type="submit" class="primary-btn">Salva in biblioteca</button></form></div>`;}
-function settingsHTML(){return `<div class="page-heading"><div><div class="eyebrow">Versione 0.4.2 · Build 20261119.3</div><h1>Impostazioni</h1><p>Cantoria è uno strumento per il canto liturgico cattolico, la preparazione della Santa Messa e la vita musicale della comunità parrocchiale.</p></div></div><div class="form-wrap"><div class="panel"><h3>Dati e salvataggi</h3><p>I canti e le scalette sono attualmente memorizzati <strong>solo nel browser di questo dispositivo</strong>. Non sono ancora sincronizzati su iCloud o GitHub.</p><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px"><button class="outline-btn" data-action="backup">Scarica backup JSON</button><label class="outline-btn" style="cursor:pointer">Ripristina backup<input type="file" id="backupInput" accept="application/json" style="display:none"></label></div></div><div class="panel"><h3>Modello musicale</h3><p>Ogni accordo conserva un indice di sillaba nel proprio rigo. La trasposizione modifica soltanto il nome dell'accordo, non la sua posizione.</p><div class="alert" style="margin-top:15px">Il riconoscimento da foto e la sincronizzazione cloud non fanno parte della versione iniziale. Il controllo manuale è indispensabile per garantire la correttezza musicale.</div></div></div>`;}
+function settingsHTML(){return `<div class="page-heading"><div><div class="eyebrow">Versione 0.4.3 · Build 20261119.4</div><h1>Impostazioni</h1></div></div><div class="form-wrap"><div class="panel"><h3>Dati e salvataggi</h3><p>I canti e le scalette sono attualmente memorizzati <strong>solo nel browser di questo dispositivo</strong>. Non sono ancora sincronizzati su iCloud o GitHub.</p><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px"><button class="outline-btn" data-action="backup">Scarica backup JSON</button><label class="outline-btn" style="cursor:pointer">Ripristina backup<input type="file" id="backupInput" accept="application/json" style="display:none"></label></div></div><div class="panel"><h3>Modello musicale</h3><p>Ogni accordo conserva un indice di sillaba nel proprio rigo. La trasposizione modifica soltanto il nome dell'accordo, non la sua posizione.</p><div class="alert" style="margin-top:15px">Il riconoscimento da foto e la sincronizzazione cloud non fanno parte della versione iniziale. Il controllo manuale è indispensabile per garantire la correttezza musicale.</div></div></div>`;}
 function appHTML(){
  const views={home:homeHTML,library:libraryHTML,masses:massesHTML,capture:captureHTML,settings:settingsHTML};
  const builder=views[state.view]||homeHTML;
@@ -541,20 +588,23 @@ function syllableModalHTML(m){
  return `<div class="modal-shade"><form class="modal-card" id="syllableEditForm"><h2>Modifica sillaba</h2><p>La cella musicale resta nella stessa posizione. L'accordo rimarrà associato alla sillaba anche dopo la modifica.</p><div class="field"><label>Sillaba</label><input name="syllable" value="${escapeAttr(syllable.text)}" required autocapitalize="off" autocomplete="off" autofocus></div><div class="field"><label>Accordo su questa sillaba (facoltativo)</label><input name="chord" value="${escapeAttr(a?.chord||'')}" placeholder="Es. SOL#7" autocapitalize="characters" autocomplete="off"></div><p class="editor-note">Lascia vuoto l'accordo per rimuoverlo. Per modificare altre sillabe, tieni premuto sul testo.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button class="primary-btn">Conferma e salva</button></div></form></div>`;
 }
 function modalHTML(){const m=state.modal;
+
  if(m.type==='song-options'){
   const song=currentSong();if(!song)return '';
   const roots=['DO','DO#','RE','MIb','MI','FA','FA#','SOL','LAb','LA','SIb','SI'];
   const key=String(song.key||'').toUpperCase();
-  const options=roots.flatMap(root=>['maggiore','minore'].map(mode=>{const value=root+(mode==='minore'?'-':'');return '<option value="'+escapeAttr(value)+'"'+(key===value.toUpperCase()?' selected':'')+'>'+escape(root.replace('#',' diesis').replace('b',' bemolle')+' '+mode)+'</option>';})).join('');
-  return `<div class="modal-shade"><div class="modal-card song-options" role="dialog" aria-modal="true" aria-label="Opzioni del brano">
-   <h2>Opzioni brano</h2><p>${escape(song.title)}</p>
-   <div class="option-section"><h3>Tonalità corrente</h3><div class="tonality-result">${escape(describeTonality(song,state.shift))}</div>
-    <div class="transport-row"><button type="button" class="mini-btn" data-action="shift-down" aria-label="Abbassa di un semitono">−</button><button type="button" class="shift-status" data-action="reset-shift" title="Tocca per azzerare">${state.shift>0?'+':''}${state.shift} semitoni</button><button type="button" class="mini-btn" data-action="shift-up" aria-label="Alza di un semitono">+</button></div>
-    <div class="field"><label for="songKeyInline">Tonalità originale del brano</label><select id="songKeyInline" name="songKeyInline"><option value="" ${key?'':'selected'}>Da definire</option>${options}</select></div>
-   </div>
-   <div class="option-section"><h3>Esporta PDF</h3><div class="export-actions"><button type="button" class="primary-btn" data-action="pdf-share">Condividi / salva PDF</button><button type="button" class="outline-btn" data-action="pdf-preview">Apri PDF</button><button type="button" class="outline-btn" data-action="pdf-download">Scarica PDF</button></div></div>
-   <div class="option-section"><h3>Esporta file del brano</h3><div class="export-actions"><button type="button" class="primary-btn" data-action="share-song">Condividi file Cantoria (AirDrop)</button><button type="button" class="outline-btn" data-action="download-song">Scarica file Cantoria</button></div><p class="export-hint">Il file contiene testo, accordi e posizioni sulle sillabe. Sulla web app il destinatario lo importa dalla Biblioteca.</p></div>
-   <div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Chiudi</button></div>
+  const options=roots.flatMap(root=>['maggiore','minore'].map(mode=>{
+   const value=root+(mode==='minore'?'-':'');
+   return `<option value="${escapeAttr(value)}" ${key===value.toUpperCase()?'selected':''}>${escape(root.replace('#',' diesis').replace('b',' bemolle')+' '+mode)}</option>`;
+  })).join('');
+  return `<div class="modal-shade"><div class="modal-card song-options song-options-compact" role="dialog" aria-modal="true" aria-label="Opzioni brano">
+    <div class="song-options-header"><div><h2>Opzioni</h2><p>${escape(song.title)}</p></div><button type="button" class="song-close" data-action="close-modal" aria-label="Chiudi opzioni">×</button></div>
+    <div class="song-key-current"><span>Tonalità</span><strong>${escape(describeTonality(song,state.shift))}</strong></div>
+    <div class="transport-row"><button type="button" class="mini-btn" data-action="shift-down" aria-label="Abbassa di un semitono">−</button><button type="button" class="shift-status" data-action="reset-shift" title="Azzera trasposizione">${state.shift>0?'+':''}${state.shift} <small>semitoni</small></button><button type="button" class="mini-btn" data-action="shift-up" aria-label="Alza di un semitono">+</button></div>
+    <details class="compact-details"><summary>Cambia tonalità originale</summary><div class="field"><select id="songKeyInline" name="songKeyInline" aria-label="Tonalità originale"><option value="" ${key?'':'selected'}>Da definire</option>${options}</select></div></details>
+    <div class="song-options-divider"></div>
+    <div class="song-export-primary"><button type="button" class="primary-btn" data-action="pdf-share">▤ &nbsp; Esporta PDF</button><button type="button" class="outline-btn" data-action="share-song">♬ &nbsp; Esporta brano</button></div>
+    <details class="compact-details compact-more"><summary>Altre opzioni di esportazione</summary><div class="compact-more-buttons"><button class="text-btn" type="button" data-action="pdf-preview">Apri PDF</button><button class="text-btn" type="button" data-action="pdf-download">Scarica PDF</button><button class="text-btn" type="button" data-action="download-song">Scarica file Cantoria</button></div></details>
   </div></div>`;
  }
 
@@ -727,14 +777,14 @@ function exportPdf(mode){
    const fileName='Cantoria-'+String(song.title||'spartito').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9-_ ]/gi,'').trim().replace(/\s+/g,'-')+'.pdf';
    if(mode==='share'){
      if(typeof File==='undefined'||typeof navigator.share!=='function'||typeof navigator.canShare!=='function'){
-       notify('Condivisione non disponibile: scegli Apri PDF o Scarica PDF.');return;
+       exportPdf('download');return;
      }
      const file=new File([blob],fileName,{type:'application/pdf'});
      if(!navigator.canShare({files:[file]})){
-       notify('Il dispositivo non supporta la condivisione di PDF. Usa Apri PDF.');return;
+       exportPdf('download');return;
      }
      navigator.share({files:[file],title:fileName}).catch(err=>{
-       if(err&&err.name!=='AbortError'){console.error(err);notify('Impossibile condividere. Prova Apri PDF.');}
+       if(err&&err.name!=='AbortError'){console.error(err);notify('Condivisione non riuscita. Prova Scarica PDF.');}
      });
      return;
    }
