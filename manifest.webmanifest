@@ -10,15 +10,9 @@
   "theme_color": "#153e32",
   "icons": [
     {
-      "src": "./assets/icon-192.png",
+      "src": "./assets/cantoria-icona-ufficiale-045.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "./assets/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
       "purpose": "any"
     }
   ]
