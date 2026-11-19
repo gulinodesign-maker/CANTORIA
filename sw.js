@@ -1,4 +1,4 @@
-const CACHE='cantoria-shell-v0.4.3-build-20261119.4';
+const CACHE='cantoria-shell-v0.4.4-build-20261119.5';
 const FILES=['./','./index.html','./manifest.webmanifest','./assets/icon.svg','./assets/icon-192.png'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(FILES)));self.skipWaiting();});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));self.clients.claim();});
