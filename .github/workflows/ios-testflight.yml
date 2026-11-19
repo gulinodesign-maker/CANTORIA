@@ -65,7 +65,7 @@ jobs:
           PROFILE: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
           KEYCHAIN_PASSWORD: ${{ secrets.IOS_KEYCHAIN_PASSWORD }}
           API_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
-          API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID || secrets.APP_STORE_CONNECT_KEY }}
           API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
           for name in IOS_BUNDLE_ID APPLE_TEAM_ID P12 P12_PASSWORD PROFILE KEYCHAIN_PASSWORD API_KEY API_KEY_ID API_ISSUER_ID; do
@@ -83,7 +83,7 @@ jobs:
           PROFILE: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
           KEYCHAIN_PASSWORD: ${{ secrets.IOS_KEYCHAIN_PASSWORD }}
           API_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
-          API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID || secrets.APP_STORE_CONNECT_KEY }}
         run: |
           printf '%s' "$P12" | base64 --decode > "$RUNNER_TEMP/distribution.p12"
           printf '%s' "$PROFILE" | base64 --decode > "$RUNNER_TEMP/distribution.mobileprovision"
@@ -153,7 +153,7 @@ jobs:
       - name: Submit IPA to App Store Connect
         if: ${{ inputs.distribution == 'testflight' }}
         env:
-          API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID || secrets.APP_STORE_CONNECT_KEY }}
           API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
           ipa=$(find "$RUNNER_TEMP/export" -maxdepth 1 -name '*.ipa' -print -quit)
