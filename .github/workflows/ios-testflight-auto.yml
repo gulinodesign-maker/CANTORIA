@@ -1,7 +1,17 @@
 name: Cantoria TestFlight (automatic Apple signing)
 
+# Pubblica automaticamente ogni versione integrata nel ramo principale.
+# Il comando manuale rimane disponibile come opzione di recupero.
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
+
+# Evita pubblicazioni concorrenti della stessa app.
+concurrency:
+  group: cantoria-testflight-main
+  cancel-in-progress: true
 
 permissions:
   contents: read
