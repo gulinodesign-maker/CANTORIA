@@ -551,7 +551,7 @@ function makeId() { return `${Date.now().toString(36)}-${Math.random().toString(
 
 const root = document.querySelector('#app');
 const store = loadStore();
-const state = { view: 'home', filter: '', massId: null, songId: null, massItemId: null, shift: 0, page: 0, modal: null, photoURL: null, photoTitle: '', ocrText: '', ocrBusy: false, ocrStatus: '', toast: '', fontScale: 1 };
+const state = { view: 'home', filter: '', massId: null, songId: null, massItemId: null, shift: 0, page: 0, modal: null, photoURL: null, photoTitle: '', ocrText: '', geometryDraft: null, geometryRawText: '', ocrBusy: false, ocrStatus: '', toast: '', fontScale: 1 };
 let toastTimer;
 const escape = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const escapeAttr = escape;
@@ -721,12 +721,15 @@ function photoOcrFormHTML(inReader=false) {
   '</section>';
 }
 function photoSectionsFromText(text){
- if(!window.CantoriaOCR)throw new Error('Motore di conversione non caricato. Riapri Cantoria.');
- const sections=window.CantoriaOCR.parse(String(text||'').trim());
- if(!sections.some(s=>s.lines&&s.lines.length))throw new Error('Nessun testo di canto valido. Correggi la trascrizione prima di continuare.');
+ const unmodified=String(text||'').trim()===state.geometryRawText&&state.geometryRawText;
+ if(!unmodified||!state.geometryDraft?.hasGeometry){
+  throw new Error('Le coordinate musicali non sono disponibili o la trascrizione è stata modificata. Ripeti la lettura della foto: non vogliamo inventare gli ancoraggi degli accordi.');
+ }
+ const sections=structuredClone(state.geometryDraft.sections);
+ if(!sections.some(s=>s.lines?.length))throw new Error('Nessuna riga di canto riconosciuta con coordinate geometriche. Salva la foto e riprova.');
  return sections;
 }
-async function recognizePhotoText(){
+async function recognizePhotoText(replaceExisting=false){
  if(state.ocrBusy)return;
  if(!state.songId)state.photoTitle=document.getElementById("photoSongTitle")?.value||state.photoTitle||"";
  const image=state.songId?currentSong()?.photoData:state.photoURL;
@@ -748,7 +751,27 @@ async function recognizePhotoText(){
   await worker.setParameters({preserve_interword_spaces:"1"});
   const result=await worker.recognize(image);
   state.ocrText=String(result.data?.text||'').trim().slice(0,20000);
-  state.ocrStatus=state.ocrText?'Testo estratto. Correggilo prima di salvarlo.':'Non ho trovato testo leggibile. Prova una foto più nitida.';
+  state.geometryRawText=state.ocrText;
+  state.geometryDraft=window.CantoriaGeometry?.parseGeometry(result.data)||null;
+  const diag=state.geometryDraft?.diagnostics;
+  if(!state.geometryDraft?.sections?.some(s=>s.lines?.length)){
+   state.ocrStatus='Non sono disponibili coordinate sufficienti per associare gli accordi. Salva la foto e riprova.';
+  }else{
+   state.ocrStatus='Coordinate conservate. '+diag.totalAnchored+' accordi associati; '+diag.needsReview+' associazioni da verificare con l’originale.';
+   if(replaceExisting){
+    const song=currentSong();
+    if(song?.photoData){
+     const previous={sections:song.sections,ocrText:song.ocrText,geometryDiagnostics:song.geometryDiagnostics};
+     song.sections=structuredClone(state.geometryDraft.sections);
+     song.ocrText=state.ocrText;
+     song.geometryDiagnostics=structuredClone(diag);
+     song.verified=false;
+     if(!saveStore(store)){
+      Object.assign(song,previous);state.ocrStatus='Memoria insufficiente: partitura non aggiornata.';
+     }else state.ocrStatus='Partitura ricalcolata dalle coordinate originali. Verifica gli accordi segnalati.';
+    }
+   }
+  }
  }catch(err){
   console.error('OCR:',err);
   state.ocrStatus='OCR non riuscito. Verifica la connessione e riprova; la foto resta disponibile.';
@@ -1124,11 +1147,8 @@ root.addEventListener('click',e=>{
  }
  if(action==='ask-reparse-photo'){const song=currentSong();if(song?.photoData&&song.ocrText){state.modal={type:'reparse-photo-confirm'};render();}return;}
  if(action==='reparse-photo'){
-  const song=currentSong();if(state.modal?.type!=='reparse-photo-confirm'||!song?.photoData||!song.ocrText)return;
-  let sections;try{sections=photoSectionsFromText(song.ocrText);}catch(err){notify(err.message);return;}
-  const previous=song.sections;song.sections=sections;song.verified=false;
-  if(!saveStore(store)){song.sections=previous;state.modal=null;notify('Impossibile salvare la nuova partitura.');return;}
-  state.modal=null;state.page=0;notify('Accordi ricalcolati: verifica il risultato con la foto.');return;
+  const song=currentSong();if(state.modal?.type!=='reparse-photo-confirm'||!song?.photoData)return;
+  state.modal=null;state.page=0;recognizePhotoText(true);return;
  }
  if(action==='recognize-photo'){recognizePhotoText();return;}
  if(action==='save-ocr-text'){const song=currentSong();if(song?.photoData){song.ocrText=state.ocrText.trim().slice(0,20000);persist();notify('Trascrizione salvata.');}return;}
@@ -1137,8 +1157,9 @@ root.addEventListener('click',e=>{
   let sections;
   try{sections=photoSectionsFromText(state.ocrText);}
   catch(err){notify(err.message);return;}
-  const previous={sections:song.sections,ocrText:song.ocrText,subtitle:song.subtitle,verified:song.verified};
+  const previous={sections:song.sections,ocrText:song.ocrText,subtitle:song.subtitle,verified:song.verified,geometryDiagnostics:song.geometryDiagnostics};
   song.sections=sections;song.ocrText=state.ocrText.trim().slice(0,20000);
+  song.geometryDiagnostics=structuredClone(state.geometryDraft.diagnostics);
   song.subtitle='Trascrizione fotografica · da verificare';song.verified=false;
   if(!saveStore(store)){Object.assign(song,previous);notify('Spazio insufficiente per salvare la partitura.');return;}
   state.ocrStatus='';state.page=0;render();notify('Partitura creata. Controlla gli accordi sulle sillabe.');return;
@@ -1188,17 +1209,18 @@ root.addEventListener('submit',e=>{e.preventDefault();const form=e.target;const 
   if(mode==='score'){try{sections=photoSectionsFromText(scanned);}catch(err){notify(err.message);return;}}
   const title=String(f.get('photoSongTitle')||state.photoTitle||'').trim()||('Canto fotografato · '+new Date().toLocaleDateString('it-IT'));
   const song={id:makeId(),title,subtitle:mode==='score'?'Trascrizione fotografica · da verificare':'Bozza fotografica',
-    key:'',source:'Foto originale',photoData:state.photoURL,ocrText:scanned,verified:false,sections};
+    key:'',source:'Foto originale',photoData:state.photoURL,ocrText:scanned,verified:false,sections,
+    geometryDiagnostics:mode==='score'?structuredClone(state.geometryDraft.diagnostics):null};
   store.songs.unshift(song);
   if(!saveStore(store)){store.songs.shift();notify('Spazio insufficiente per salvare il brano. Fai un backup o libera spazio.');return;}
-  state.photoURL=null;state.photoTitle='';state.ocrText='';state.ocrStatus='';state.view='library';openSong(song.id);
+  state.photoURL=null;state.photoTitle='';state.ocrText='';state.ocrStatus='';state.geometryDraft=null;state.geometryRawText='';state.view='library';openSong(song.id);
   if(mode==='score')notify('Partitura creata: correggi accordi e sillabe.');return;
  }
 });
 root.addEventListener('input',e=>{if(e.target.id==='photoSongTitle'){state.photoTitle=e.target.value;return;}if(e.target.id==='photoOcrText'){state.ocrText=e.target.value.slice(0,20000);return;}if(e.target.id==='search'){state.filter=e.target.value;const pos=e.target.selectionStart;render();const s=root.querySelector('#search');s?.focus();if(s?.setSelectionRange)s.setSelectionRange(pos,pos);}});
 root.addEventListener('change',async e=>{if(e.target.id==='songKeyInline'){const song=currentSong();if(song){song.key=e.target.value;persist();render();}return;}if(e.target.id==='songImportInput'){const file=e.target.files?.[0];if(!file)return;try{if(file.size>3000000)throw new Error('File troppo grande');const song=importSongFile(await file.text());notify('Brano importato: '+song.title);}catch(err){notify('Importazione non riuscita: '+err.message);}return;}if(e.target.id==='photoCameraInput'||e.target.id==='photoLibraryInput'){
  const file=e.target.files?.[0];if(!file)return;
- try{state.photoURL=await compressScorePhoto(file);state.photoTitle='';state.ocrText='';state.ocrStatus='';render();}
+ try{state.photoURL=await compressScorePhoto(file);state.photoTitle='';state.ocrText='';state.geometryDraft=null;state.geometryRawText='';state.ocrStatus='';render();}
  catch(err){console.error(err);notify('Impossibile aprire la foto. Prova un file JPEG o PNG.');}
  return;
 }if(e.target.id==='backupInput'){const file=e.target.files?.[0];if(!file)return;try{const data=importJSON(await file.text());store.songs=data.songs.map(normalizedSong);store.masses=data.masses;persist();state.view='library';notify('Backup ripristinato.');}catch(err){notify('Impossibile leggere il backup.');}}});
@@ -1258,5 +1280,6 @@ window.addEventListener('beforeprint',()=>{const holder=document.querySelector('
 if('serviceWorker'in navigator&&location.protocol.startsWith('http'))window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 render();</script>
 <script src="./score-ocr.js"></script>
+<script src="./score-geometry.js"></script>
 </body>
 </html>
