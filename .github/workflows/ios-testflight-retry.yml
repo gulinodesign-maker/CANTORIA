@@ -1,0 +1,67 @@
+name: Retry TestFlight publication until successful
+
+# Runs independently of the iOS workflow, so a cancelled or failed job
+# cannot permanently block the release. Scheduled runs may be delayed by GitHub.
+on:
+  schedule:
+    - cron: '7,22,37,52 * * * *'
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: cantoria-testflight-publication-watchdog
+  cancel-in-progress: false
+
+jobs:
+  retry-if-needed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check latest main commit and retry unfinished TestFlight publication
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const branch = 'main';
+            const workflow_id = 'ios-testflight-auto.yml';
+            const { data: main } = await github.rest.repos.getBranch({
+              owner, repo, branch
+            });
+            const sha = main.commit.sha;
+
+            // Check enough pages to find previous attempts, even after
+            // many retries. Only a successful upload for the current
+            // commit means that retries should stop.
+            const allRuns = [];
+            for (let page = 1; page <= 10; page++) {
+              const { data } = await github.rest.actions.listWorkflowRuns({
+                owner, repo, workflow_id, branch, per_page: 100, page
+              });
+              allRuns.push(...data.workflow_runs);
+              if (data.workflow_runs.length < 100) break;
+            }
+            const attempts = allRuns.filter(run => run.head_sha === sha);
+            if (attempts.some(run => run.status === 'completed' &&
+                                   run.conclusion === 'success')) {
+              core.info('TestFlight upload already succeeded for ' + sha);
+              return;
+            }
+
+            // Do not run duplicate uploads while GitHub is working.
+            // If a job remains pending indefinitely, renew the attempt
+            // after 90 minutes so the queue cannot stall the release.
+            const active = attempts.filter(run => run.status !== 'completed');
+            const recentActive = active.some(run =>
+              Date.now() - Date.parse(run.created_at) < 90 * 60 * 1000);
+            if (recentActive) {
+              core.info('TestFlight publication is already pending or running');
+              return;
+            }
+
+            core.info('Retry TestFlight upload for main commit ' + sha);
+            await github.rest.actions.createWorkflowDispatch({
+              owner, repo, workflow_id, ref: branch
+            });
