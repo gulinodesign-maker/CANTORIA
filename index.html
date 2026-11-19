@@ -715,7 +715,8 @@ function loadOcrLibrary(){
 }
 function photoOcrFormHTML(inReader=false) {
  const draft=String(state.ocrText||'');
- const ready=draft.trim().length>0;
+ const ready=draft.trim().length>0&&!!state.geometryDraft?.hasGeometry&&
+  state.geometryDraft.sections?.some(s=>s.lines?.length)&&draft.trim()===state.geometryRawText;
  return '<section class="photo-ocr-panel" aria-label="Riconoscimento foto">' +
   '<button type="button" class="outline-btn photo-ocr-start" data-action="recognize-photo"' + (state.ocrBusy?' disabled':'') + '>' +
   (state.ocrBusy?'Riconoscimento in corso…':'Riconosci testo e accordi') + '</button>' +
@@ -725,13 +726,13 @@ function photoOcrFormHTML(inReader=false) {
   '<textarea id="photoOcrText" name="ocrText" rows="10" maxlength="20000" spellcheck="false" placeholder="STROFA&#10;SOL          RE&#10;Be|ne|det|to sei Signore">' +
   escape(draft) + '</textarea></div>' +
   '<details class="photo-ocr-help"><summary>Come correggere gli accordi</summary>' +
-  '<p>Scrivi gli accordi su una riga sopra il testo. Per separare una parola in sillabe usa |, ad esempio Be|ne|det|to. Gli ancoraggi sono provvisori e si correggono nello spartito con una pressione prolungata.</p></details>' +
+  '<p>Il riconoscimento automatico usa le coordinate della foto, non gli spazi di questa casella. Se modifichi qui il testo, devi rileggere la foto: altrimenti non possiamo garantire gli ancoraggi. Dopo la conversione tieni premuto su sillabe e accordi per correggerli.</p></details>' +
   (inReader ?
     '<button type="button" class="primary-btn photo-save" data-action="convert-ocr-photo"' + (!ready?' disabled':'') + '>Crea partitura modificabile</button>' +
     '<button type="button" class="outline-btn photo-save" data-action="save-ocr-text">Salva solo trascrizione</button>' :
     '<button type="submit" class="primary-btn photo-save" name="photoMode" value="score"' + (!ready?' disabled':'') + '>Crea partitura modificabile</button>' +
     '<button type="submit" class="outline-btn photo-save" name="photoMode" value="photo">Salva solo la foto</button>') +
-  '<p class="photo-draft-notice">Riconoscimento sperimentale: controlla testo, accordi e sillabe prima dell’uso. Non riconosce le note sul pentagramma.</p>' +
+  '<p class="photo-draft-notice">Allineamento geometrico sperimentale: i simboli e le posizioni incerti sono da verificare sulla fotografia. Senza coordinate OCR non viene inventata una collocazione. Non riconosce le note sul pentagramma.</p>' +
   '</section>';
 }
 function photoSectionsFromText(text){
@@ -847,7 +848,7 @@ function modalHTML(){const m=state.modal;
  }
  if(m.type==='reparse-photo-confirm'){
   const song=currentSong();if(!song||!song.photoData||!song.ocrText)return '';
-  return `<div class="modal-shade"><div class="modal-card" role="alertdialog" aria-modal="true" aria-label="Conferma ricalcolo accordi"><h2>Ricalcolare gli accordi?</h2><p>La partitura verrà ricreata dal testo OCR già salvato. Le modifiche manuali fatte sulle sillabe e sugli accordi saranno sostituite. La fotografia originale resterà disponibile.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button type="button" class="primary-btn" data-action="reparse-photo">Ricalcola accordi</button></div></div></div>`;
+  return `<div class="modal-shade"><div class="modal-card" role="alertdialog" aria-modal="true" aria-label="Conferma ricalcolo accordi"><h2>Ricalcolare gli accordi?</h2><p>La partitura verrà ricalcolata dalla fotografia originale con le coordinate OCR. Le modifiche manuali fatte sulle sillabe e sugli accordi saranno sostituite. La fotografia originale resterà disponibile.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button type="button" class="primary-btn" data-action="reparse-photo">Ricalcola accordi</button></div></div></div>`;
  }
  if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità dell'ultima versione"><h2>Novità dell'ultima versione</h2><p><strong>Acquisizione fotografica:</strong> riconoscimento più robusto delle righe con accordi, anche quando alcuni caratteri sono letti male; gli accordi riconosciuti vengono separati dal testo e mostrati nelle pillole colorate.</p><p><strong>Correzioni:</strong> possibilità di ricalcolare gli accordi dalla trascrizione originale senza dover scattare una nuova foto.</p><p><strong>Gestione spartiti:</strong> nuovo comando Elimina partitura nel menu del brano, con conferma per evitare cancellazioni involontarie.</p><p>Il riconoscimento delle note sul pentagramma non è ancora disponibile e gli accordi restano da verificare rispetto all'originale.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
 
@@ -1311,7 +1312,16 @@ function setupLongPress(){
   const chord=String(form.get('chord')||'').trim().toUpperCase();
   if(!syllable||!/^([^\s|]+)(\|[^\s|]+)*$/.test(syllable)){alert('Sillabe non valide. Separa le sillabe con | e non usare spazi.');return;}
   const added=syllable.split('|').length-1;
+  const textWasChanged=syllable.replaceAll('|','')!==parseSyllables(line.marked).filter(t=>!t.space)[m.slot]?.text;
   line.marked=replaceSyllable(line.marked,m.slot,syllable);
+  if(textWasChanged){
+   // Editing the lyric changes its character offsets. Preserve the original
+   // source boxes, but require manual reassignment instead of guessing.
+   for(const anchor of line.anchors){
+    anchor.anchorCharacterIndex=null;anchor.needsReview=true;anchor.verified=false;
+    anchor.offsetX=0;
+   }
+  }
   // Never shift a later chord to another sung syllable when a word is split.
   if(added)for(const anchor of line.anchors){if(anchor.slot>m.slot)anchor.slot+=added;}
   const existing=line.anchors.findIndex(a=>a.slot===m.slot);
