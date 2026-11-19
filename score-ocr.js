@@ -17,11 +17,11 @@
   function chordFromOcr(token) {
     const raw = String(token || "").replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹]/g, digit =>
       "⁰¹²³⁴⁵⁶⁷⁸⁹".indexOf(digit).toString());
-    const normalized = raw.replace(/^S[1lI](?=[#b0-9+\\-°()]|$)/i, "SI")
-      .replace(/^[1lI]A(?=[#b0-9+\\-°()]|$)/i, "LA")
-      .replace(/^D0(?=[#b0-9+\\-°()]|$)/i, "DO")
+    const normalized = raw.replace(/^S[1lI](?=[#b0-9+°()-]|$)/i, "SI")
+      .replace(/^[1lI]A(?=[#b0-9+°()-]|$)/i, "LA")
+      .replace(/^D0(?=[#b0-9+°()-]|$)/i, "DO")
       .replace(/^S0L/i, "SOL")
-      .replace(/^M[1l](?=[#b0-9+\\-°()]|$)/i, "MI");
+      .replace(/^M[1l](?=[#b0-9+°()-]|$)/i, "MI");
     return chordName(normalized);
   }
   function readChordRow(words, original) {
