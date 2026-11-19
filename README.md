@@ -1,6 +1,15 @@
-# Cantoria — PWA iPhone/iPad (prototipo 0.4.6 · build 20261119.7)
+# Cantoria — PWA iPhone/iPad (prototipo 0.4.9 · build 20261119.10)
 
 Prima versione sperimentale di **Cantoria**, un archivio di spartiti e scalette per le Messe, ottimizzato per iPhone e iPad.
+
+## Novità 0.4.9 — OCR fotografico (prima versione)
+
+- In **Acquisisci** puoi scattare o scegliere una foto e premere **Riconosci testo (OCR)**. Il motore Tesseract.js riconosce parole italiane e inglesi, mostra il testo modificabile e lo salva nella bozza insieme alla fotografia.
+- L'OCR è disponibile anche sulle **bozze fotografiche già in Biblioteca**: puoi ripetere il riconoscimento e salvare le correzioni senza eliminare la foto.
+- Il riconoscimento si esegue sul dispositivo, ma la **prima attivazione richiede Internet** per scaricare libreria e modelli OCR. L'app funziona anche senza OCR e conserva il normale salvataggio fotografico.
+- **Limite**: non vengono letti automaticamente pentagrammi, note, indicazioni armoniche affidabili o ancoraggi degli accordi alle sillabe. Il testo OCR va verificato e corretto prima dell'uso liturgico.
+- Nel workflow **iOS / TestFlight** i nomi della chiave API e l'Apple Team ID sono stati allineati ai repository secrets configurati. Restano necessari un bundle identifier iOS valido, il certificato Apple Distribution e il provisioning profile per la firma.
+- Corretto il controllo automatico del codice musicale/PDF, precedentemente interrotto da un limite di estrazione errato.
 
 ## Avvio
 
