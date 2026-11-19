@@ -1,0 +1,7 @@
+node_modules/
+web/
+ios/
+capacitor.config.json
+*.ipa
+*.xcarchive/
+.DS_Store
