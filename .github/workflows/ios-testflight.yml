@@ -21,7 +21,7 @@ jobs:
     timeout-minutes: 65
     env:
       IOS_BUNDLE_ID: ${{ vars.IOS_BUNDLE_ID }}
-      APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID || vars.APPLE_TEAM_ID }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -36,6 +36,9 @@ jobs:
 
       - name: Install Capacitor
         run: npm install --no-audit --no-fund
+
+      - name: Validate photo recognition parser and app scripts
+        run: npm test
 
       - name: Generate the native Xcode project
         run: bash scripts/prepare-ios.sh
@@ -64,9 +67,9 @@ jobs:
           P12_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_P12_PASSWORD }}
           PROFILE: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
           KEYCHAIN_PASSWORD: ${{ secrets.IOS_KEYCHAIN_PASSWORD }}
-          API_KEY: ${{ secrets.APP_STORE_PRIVATE_KEY }}
-          API_KEY_ID: ${{ secrets.APP_STORE_KEY_ID }}
-          API_ISSUER_ID: ${{ secrets.APP_STORE_ISSUER_ID }}
+          API_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+          API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
           for name in IOS_BUNDLE_ID APPLE_TEAM_ID P12 P12_PASSWORD PROFILE KEYCHAIN_PASSWORD API_KEY API_KEY_ID API_ISSUER_ID; do
             if [[ -z "${!name}" ]]; then
@@ -82,8 +85,8 @@ jobs:
           P12_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_P12_PASSWORD }}
           PROFILE: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
           KEYCHAIN_PASSWORD: ${{ secrets.IOS_KEYCHAIN_PASSWORD }}
-          API_KEY: ${{ secrets.APP_STORE_PRIVATE_KEY }}
-          API_KEY_ID: ${{ secrets.APP_STORE_KEY_ID }}
+          API_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+          API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
         run: |
           printf '%s' "$P12" | base64 --decode > "$RUNNER_TEMP/distribution.p12"
           printf '%s' "$PROFILE" | base64 --decode > "$RUNNER_TEMP/distribution.mobileprovision"
@@ -153,8 +156,8 @@ jobs:
       - name: Submit IPA to App Store Connect
         if: ${{ inputs.distribution == 'testflight' }}
         env:
-          API_KEY_ID: ${{ secrets.APP_STORE_KEY_ID }}
-          API_ISSUER_ID: ${{ secrets.APP_STORE_ISSUER_ID }}
+          API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
           ipa=$(find "$RUNNER_TEMP/export" -maxdepth 1 -name '*.ipa' -print -quit)
           test -n "$ipa"
