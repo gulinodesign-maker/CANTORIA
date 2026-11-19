@@ -37,6 +37,9 @@ jobs:
       - name: Install Capacitor
         run: npm install --no-audit --no-fund
 
+      - name: Validate photo recognition parser and app scripts
+        run: npm test
+
       - name: Generate the native Xcode project
         run: bash scripts/prepare-ios.sh
 
