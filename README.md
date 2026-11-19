@@ -1,4 +1,4 @@
-# Cantoria — PWA iPhone/iPad (prototipo 0.3.1)
+# Cantoria — PWA iPhone/iPad (prototipo 0.3.2)
 
 Prima versione sperimentale di **Cantoria**, un archivio di spartiti e scalette per le Messe, ottimizzato per iPhone e iPad.
 
@@ -13,6 +13,15 @@ La web app è interamente contenuta in `index.html`: non richiede Node.js, build
 3. Scegli `main` e `/(root)`, poi **Save**.
 4. Apri **https://gulinodesign-maker.github.io/CANTORIA/** in Safari, dopo che GitHub Pages ha completato la pubblicazione.
 5. Su iPhone: Safari → Condividi → **Aggiungi alla schermata Home**.
+
+## Novità v0.3.2
+
+- **Portrait iPhone/iPad:** spartito in un unico flusso con **scroll verticale continuo** dall'alto verso il basso, senza pagine né cambio pagina con swipe orizzontale. Apertura editor e salvataggio mantengono la posizione di lettura.
+- **Landscape:** impaginazione in colonne, cambio pagina con swipe orizzontale e indicatore pagine restano attivi.
+- **Barra del lettore:** controlli di trasposizione − / conteggio semitoni / + e tasto PDF più compatti per lasciare spazio allo spartito. La tonalità rimane accanto al titolo.
+- **PDF A4:** ripristinata l'impostazione avorio/verde bosco/ocra; bande colorate arrotondate (pill) sotto gli accordi, distinte per tipo di sezione, testo serif e accordi ancorati alla sillaba anche dopo il trasporto. È un PDF vettoriale multipagina generato localmente.
+- **Verifiche:** JavaScript compilato senza errori di sintassi e PDF di prova generato, contenente le pill. Il comportamento sul dispositivo reale e la resa di stampa finale richiedono comunque una prova su iPhone/iPad.
+- **Cache PWA:** aggiornata alla versione 0.3.2.
 
 ## Novità v0.3.1
 
@@ -38,7 +47,7 @@ La web app è interamente contenuta in `index.html`: non richiede Node.js, build
 
 - Biblioteca con canto dimostrativo.
 - Creazione di Messe, scelta e riordino della scaletta.
-- Lettore portrait/landscape, cambio pagina con swipe.
+- Lettore portrait con scroll verticale continuo; lettore landscape a pagine e swipe.
 - Trasposizione degli accordi (notazione italiana).
 - Legame accordo–sillaba tramite indice della sillaba, modificabile manualmente.
 - Foto da fotocamera o libreria come **riferimento per trascrivere a mano**.
