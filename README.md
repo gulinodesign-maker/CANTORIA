@@ -138,3 +138,10 @@ Nota: condivisione/importazione e layout grafico vanno ancora verificati in Safa
 - **Versione 0.4.6 · Build 20261119.7** in Impostazioni e nuova cache PWA.
 - I dati e lo storico delle Messe restano nel **salvataggio locale del browser** e nel backup JSON; non sono ancora sincronizzati tra dispositivi.
 - Controllata la sintassi JavaScript e verificata la presenza dei file aggiornati su GitHub. Il funzionamento nell'app Safari reale richiede un test sul dispositivo.
+
+## Acquisizione fotografica assistita — sperimentale (build 20261119.10)
+
+- Da **Acquisisci** scegli o scatta una foto, premi **Riconosci testo e accordi dalla foto**, correggi la trascrizione nel campo di revisione e scegli **Crea nuova partitura modificabile**. In alternativa resta disponibile **Salva solo la foto**.
+- Il motore Tesseract.js opera sul dispositivo e viene scaricato da CDN al primo utilizzo: serve Internet per caricare il motore e i modelli linguistici. La fotografia non viene inviata a un nostro server.
+- Vengono interpretati **testo e sigle degli accordi** con ancoraggi approssimativi alle parole. È indispensabile verificare gli accordi e gli ancoraggi prima di impiegare il risultato durante una celebrazione. Il modello non riconosce pentagrammi, altezze delle note, chiavi, valori ritmici né genera una trascrizione MusicXML.
+- In GitHub Actions sono usati i nomi dei secret già configurati: `APP_STORE_CONNECT_KEY_ID`, `APP_STORE_CONNECT_ISSUER_ID`, `APP_STORE_CONNECT_PRIVATE_KEY` e `APPLE_TEAM_ID`. Il workflow richiede **in aggiunta** le credenziali di firma iOS `IOS_DISTRIBUTION_P12_BASE64`, `IOS_DISTRIBUTION_P12_PASSWORD`, `IOS_PROVISIONING_PROFILE_BASE64`, `IOS_KEYCHAIN_PASSWORD` e la variabile `IOS_BUNDLE_ID`.
