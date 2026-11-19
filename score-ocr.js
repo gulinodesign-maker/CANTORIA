@@ -3,7 +3,7 @@
    No data is sent from this module to any server. */
 (function (root) {
   "use strict";
-  const CHORD = /^(SOL|DO|RE|MI|FA|LA|SI)(?:#|b)?(?:(?:maj|min|dim|aug|sus|add)?[0-9+\-°()]*)?(?:\/(?:SOL|DO|RE|MI|FA|LA|SI)(?:#|b)?)?$/i;
+  const CHORD = /^(SOL|DO|RE|MI|FA|LA|SI)(?:#|b)?(?:(?:maj|min|m|dim|aug|sus|add)?[0-9+\-°()]*)?(?:\/(?:SOL|DO|RE|MI|FA|LA|SI)(?:#|b)?)?$/i;
   const SECTION = /^(INTRO(?:DUZIONE)?|STROFA(?:\s+(?:\d+|[IVX]+))?|RITORNELLO|CORO|REFRAIN|PONTE|BRIDGE|FINALE|OUTRO|CODA)\s*:?\s*$/i;
 
   function chordName(token) {
