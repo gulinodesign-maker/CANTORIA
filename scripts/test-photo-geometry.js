@@ -102,6 +102,50 @@ const oneRead=parseGeometry({lines:[
 assert.equal(oneRead.sections[0].lines[0].anchors[1].chord,'?');
 assert.equal(oneRead.sections[0].lines[0].anchors[1].sourceSymbol,'1');
 
+// Regression for screenshot 20 Nov: "Sim M7" and "Sim MI/7" are chord
+// rows and MUST NOT be shown as sung lyrics. Unknown suffixes are not guessed.
+const photographedText=parseGeometry({lines:[
+ {words:[word('STROFA',18,10,80)]},
+ {words:[word('Sim',22,38,43),word('M7',116,38,28)]},
+ {words:[word('questo',20,68,80),word('popolo',108,68,84),
+   word('ti',208,68,23),word('eleva',241,68,68),
+   word('la',320,68,22),word('sua',353,68,40),word('lode.',402,68,65)]},
+ {words:[word('Sim',22,106,43),word('MI/7',116,106,54)]},
+ {words:[word('questo',20,136,80),word('popolo',108,136,84),
+   word('ti',208,136,23),word('eleva',241,136,68),
+   word('la',320,136,22),word('sua',353,136,40),word('lode.',402,136,65)]},
+ {words:[word('LA',20,173,29),word('RE',325,173,32)]},
+ {words:[word('Benedetto',20,202,119),word('sei',151,202,40),
+   word('Signore,',204,202,120),word('re',337,202,25),
+   word('di',374,202,20),word('vittoria,',406,202,110),
+   word('@',529,202,18)]},
+ {words:[word('AUTO-SCROLL',20,238,150)]}
+]});
+const observed=photographedText.sections.flatMap(section=>section.lines);
+assert.equal(observed.length,3);
+assert.equal(observed[0].marked,'questo popolo ti eleva la sua lode.');
+assert.equal(observed[1].marked,'questo popolo ti eleva la sua lode.');
+assert.deepEqual(Array.from(observed[0].anchors,a=>a.chord),['SIm','?']);
+assert.deepEqual(Array.from(observed[1].anchors,a=>a.chord),['SIm','?']);
+assert.equal(observed[0].anchors[1].sourceSymbol,'M7');
+assert.equal(observed[1].anchors[1].sourceSymbol,'MI/7');
+assert.equal(observed[0].anchors[1].unresolved,true);
+assert.equal(observed[2].marked,'Benedetto sei Signore, re di vittoria,');
+assert.equal(observed[2].originalOcrText,'Benedetto sei Signore, re di vittoria, @');
+assert.equal(photographedText.diagnostics.ignoredArtifacts,2);
+assert.ok(observed.every(line=>!line.marked.includes('@')&&!line.marked.includes('Sim M7')));
+assert.ok(observed.every(line=>!line.marked.includes('AUTO-SCROLL')));
+// The separated refrain marker is a section, not part of the sung text.
+const withRefrain=parseGeometry({lines:[
+ {words:[word('RIT',18,6,35),word('Ate',66,6,40),word('cantiamo',124,6,110),
+ word('Cristo',247,6,71),word('Re',329,6,29)]}
+]});
+assert.equal(withRefrain.sections[0].name,'RITORNELLO');
+assert.equal(withRefrain.sections[0].lines[0].marked,'Ate cantiamo Cristo Re');
+assert.equal(withRefrain.sections[0].lines[0].originalOcrText,'RIT Ate cantiamo Cristo Re');
+// Font-independent rendering needs no empty bar for a lyric without chords.
+assert.ok(fs.readFileSync('index.html','utf8').includes("chords||!line.sourceRowId"));
+
 // Character index survives renderer font and scale changes; never distribute evenly.
 const html=fs.readFileSync('index.html','utf8');
 const script=html.slice(html.indexOf('<script>')+8,html.indexOf('</script>',html.indexOf('<script>')));
