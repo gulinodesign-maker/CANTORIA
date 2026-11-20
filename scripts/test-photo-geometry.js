@@ -169,6 +169,8 @@ assert.ok(html.includes('Simbolo musicale non riconosciuto'));
 assert.ok(html.includes('<script src="./score-geometry.js"></script>'));
 assert.ok(fs.readFileSync('sw.js','utf8').includes("'./score-geometry.js'"));
 assert.ok(fs.readFileSync('scripts/prepare-ios.sh','utf8').includes('score-geometry.js'));
+assert.ok(!fs.readFileSync('scripts/prepare-ios.sh','utf8').includes('cp native/CantoriaViewController.swift'));
+assert.ok(!html.includes('render();probeAppleIntelligence()'), 'Native model probe must not run at startup');
 assert.ok(fs.readFileSync('scripts/prepare-ios.sh','utf8').includes('ITSAppUsesNonExemptEncryption bool false'));
 assert.ok(fs.readFileSync('.github/workflows/ios-testflight-auto.yml','utf8').includes('Verify archived export compliance declaration'));
 console.log('OK: spatial OCR anchors, ambiguity flags, source boxes, responsive/PDF model wiring');
