@@ -27,6 +27,47 @@
   song.bandColors={...(song.bandColors||{}),[kind]:color};
   return color;
  }
+ // A single row can override the palette inherited from Intro/Strofa/
+ // Ritornello/Finale. Keep overrides in the song, not in transient DOM state.
+ function rowBandOverride(song,si,li,rowIndex){
+  const section=song?.sections?.[si];
+  if(!section)return null;
+  if(Number.isInteger(rowIndex)){
+   if(rowIndex===-1)return safeBandColor(section.chordsOnlyBandColor);
+   return Array.isArray(section.chordRowsBandColors)?
+    safeBandColor(section.chordRowsBandColors[rowIndex]):null;
+  }
+  return Number.isInteger(li)?safeBandColor(section.lines?.[li]?.bandColor):null;
+ }
+ function rowBandColor(song,si,li,rowIndex){
+  const section=song?.sections?.[si];
+  if(!section)return bandColor(song,'verse');
+  return rowBandOverride(song,si,li,rowIndex)||bandColor(song,section.kind);
+ }
+ function setRowBandColor(song,si,li,rowIndex,color){
+  const section=song?.sections?.[si];
+  if(!section||!(color===''||safeBandColor(color)))
+   throw new Error('Colore o riga musicale non validi');
+  if(Number.isInteger(rowIndex)){
+   if(rowIndex===-1){
+    if(!Array.isArray(section.chordsOnly))
+     throw new Error('Introduzione non disponibile');
+    if(color)section.chordsOnlyBandColor=color;
+    else delete section.chordsOnlyBandColor;
+    return;
+   }
+   if(!Array.isArray(section.chordRows?.[rowIndex]))
+    throw new Error('Riga degli accordi non disponibile');
+   if(!Array.isArray(section.chordRowsBandColors))section.chordRowsBandColors=[];
+   if(color)section.chordRowsBandColors[rowIndex]=color;
+   else delete section.chordRowsBandColors[rowIndex];
+   return;
+  }
+  const line=Number.isInteger(li)?section.lines?.[li]:null;
+  if(!line)throw new Error('Riga del canto non disponibile');
+  if(color)line.bandColor=color;
+  else delete line.bandColor;
+ }
  function visibleLyric(marked){return String(marked||'').replace(/\|/g,'');}
  function syllableCount(marked){
   let total=0;
@@ -82,6 +123,7 @@
   return changed;
  }
  const api=Object.freeze({PALETTE,DEFAULTS,bandColor,setBandColor,
+  rowBandOverride,rowBandColor,setRowBandColor,
   visibleLyric,normalizeLyricInput,syllableCount,editLine,editSection});
  root.CantoriaEditor=api;
  if(typeof module!=='undefined'&&module.exports)module.exports=api;
