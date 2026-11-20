@@ -836,7 +836,7 @@ async function recognizePhotoText(replaceExisting=false){
    if(replaceExisting){
     const song=currentSong();
     if(song?.photoData){
-     const previous={sections:song.sections,ocrText:song.ocrText,geometryDiagnostics:song.geometryDiagnostics};
+     const previous={sections:song.sections,ocrText:song.ocrText,geometryDiagnostics:song.geometryDiagnostics,title:song.title,photoParserVersion:song.photoParserVersion,verified:song.verified};
      song.sections=structuredClone(state.geometryDraft.sections);
      song.ocrText=state.ocrText;
      song.geometryDiagnostics=structuredClone(diag);
