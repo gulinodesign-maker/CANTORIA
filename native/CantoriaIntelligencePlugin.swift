@@ -1,5 +1,5 @@
 // Embedded into the EXISTING AppDelegate.swift compilation unit by prepare-ios.sh.
-// It intentionally does not alter Main.storyboard or replace CAPBridgeViewController.
+// The storyboard points to the compiled CantoriaBridgeViewController defined below.
 // Imports FoundationModels are added at the top of AppDelegate.swift during packaging.
 
 @objc(CantoriaIntelligencePlugin)
@@ -159,16 +159,14 @@ public final class CantoriaIntelligencePlugin: CAPPlugin, CAPBridgedPlugin {
     }
 }
 
-/// Registers from AppDelegate AFTER Capacitor has loaded its stock bridge.
-/// The prior prototype changed the storyboard class and caused a black screen.
-enum CantoriaIntelligenceBootstrap {
-    private static var registered = false
-
-    @MainActor static func register(in window: UIWindow?) {
-        guard !registered,
-              let controller = window?.rootViewController as? CAPBridgeViewController,
-              let bridge = controller.bridge else { return }
-        bridge.registerPluginInstance(CantoriaIntelligencePlugin())
-        registered = true
+/// This class is appended to the existing AppDelegate.swift target source.
+/// Objective-C runtime name is explicit so Interface Builder cannot look up
+/// a non-existent App.ViewController (the cause of the 0.6.3 black screen).
+/// Capacitor calls capacitorDidLoad BEFORE the WebView imports JS plugins.
+@objc(CantoriaBridgeViewController)
+final class CantoriaBridgeViewController: CAPBridgeViewController {
+    override func capacitorDidLoad() {
+        super.capacitorDidLoad()
+        bridge?.registerPluginInstance(CantoriaIntelligencePlugin())
     }
 }
