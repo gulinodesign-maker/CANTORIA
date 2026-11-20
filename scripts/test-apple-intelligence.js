@@ -27,6 +27,15 @@ assert.ok(!prepare.includes('native/CantoriaIntelligencePlugin.swift'),
 assert.ok(!prepare.includes('native/CantoriaViewController.swift'));
 assert.ok(!prepare.includes('import FoundationModels')&&
  !prepare.includes('import Vision'),'Do not import experimental frameworks on app launch');
+const release=fs.readFileSync('.github/workflows/ios-testflight-auto.yml','utf8');
+const gate=release.indexOf('Block TestFlight release if iOS starts black');
+const upload=release.indexOf('Upload signed IPA to TestFlight');
+assert.ok(gate>=0&&upload>gate,'A black-screen test must block Apple upload');
+assert.ok(release.includes('bash scripts/verify-ios-launch.sh'));
+const launch=fs.readFileSync('scripts/verify-ios-launch.sh','utf8');
+assert.ok(launch.includes('xcrun simctl launch'));
+assert.ok(launch.includes('FAIL: Black iOS screen. Blocking TestFlight upload.'));
+
 
 // Keep the user-requested side-by-side choice visible but disable AI safely.
 assert.ok(html.includes('photo-analysis-actions'));
