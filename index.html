@@ -970,9 +970,9 @@ function fitReaderRows(){
  for(const row of paper.querySelectorAll('.music-row:not(.chords-only)')){
   const line=row.querySelector('.lyric-line');
   const band=row.querySelector('.chord-band');
-  if(!line||!band)continue;
+  if(!line)continue;
   let font=Number.parseFloat(getComputedStyle(line).fontSize);
-  const maxWidth=band.clientWidth-10;
+  const maxWidth=(band?.clientWidth||row.clientWidth)-10;
   for(let i=0;i<32&&line.getBoundingClientRect().width>maxWidth&&font>12;i++){
    font-=.5;line.style.fontSize=font+'px';
   }
@@ -1093,6 +1093,14 @@ function makeCantoriaPdf(song,shift=0){
       const font=Math.max(9,Math.min(16.4,(MAXW-14)/Math.max(1,timesWidth(text,1))));
       let prefix='',slot=0;const offsets=[];
       for(const t of tokens){if(!t.space){offsets[slot]=timesWidth(prefix,font);slot++;}prefix+=t.text;}
+      if(line.sourceRowId&&!(line.anchors||[]).length){
+        // A photographed lyric with no recognised changes is a plain lyric
+        // in both the reader AND the PDF: no empty decorative chord band.
+        ensure(32);
+        ptext(text,LEFT+7,y-17,font,'F3','0.12 0.18 0.16');
+        y-=33;
+        continue;
+      }
       const chords=(line.anchors||[]).map(a=>{
         const charIndex=Number.isInteger(a.anchorCharacterIndex)?a.anchorCharacterIndex:null;
         const base=charIndex!==null?timesWidth(text.slice(0,charIndex),font):(offsets[a.slot]??0);
