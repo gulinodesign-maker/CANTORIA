@@ -34,6 +34,16 @@ for entry in \
     /usr/libexec/PlistBuddy -c "Set :$key $value" "$plist"
 done
 
+# Export compliance: standard HTTPS/system encryption is exempt.
+# This plist is recreated on each build; never store the declaration in a throwaway iOS folder.
+/usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" "$plist" 2>/dev/null || \
+  /usr/libexec/PlistBuddy -c "Set :ITSAppUsesNonExemptEncryption false" "$plist"
+actual_encryption=$(/usr/libexec/PlistBuddy -c "Print :ITSAppUsesNonExemptEncryption" "$plist")
+if ! echo "$actual_encryption" | grep -Eiq '^(false|no|0)$'; then
+  echo "Info.plist export compliance declaration is invalid" >&2
+  exit 1
+fi
+
 # Beta icon: native 1024px variant of the existing official Cantoria PNG.
 # Replace with the approved original high-resolution icon once available as a repository asset.
 icon="ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png"

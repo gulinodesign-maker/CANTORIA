@@ -9,7 +9,13 @@
   function chordName(token) {
     const s = String(token || "").replace(/♯/g, "#").replace(/♭/g, "b")
       .replace(/^[([{]+|[\])},;:.]+$/g, "").trim();
-    return CHORD.test(s) ? s.replace(/^(SOL|DO|RE|MI|FA|LA|SI)(#|b)?/i, (all, root, accidental) => root.toUpperCase() + (accidental ? (accidental.toLowerCase() === 'b' ? 'b' : '#') : '')) : "";
+    if (!CHORD.test(s)) return "";
+    const upperNote = (root, accidental) => root.toUpperCase() +
+      (accidental ? (accidental.toLowerCase() === 'b' ? 'b' : '#') : '');
+    return s.replace(/^(SOL|DO|RE|MI|FA|LA|SI)(#|b)?/i,
+      (all, root, accidental) => upperNote(root, accidental))
+      .replace(/\/(SOL|DO|RE|MI|FA|LA|SI)(#|b)?$/i,
+        (all, root, accidental) => '/' + upperNote(root, accidental));
   }
   // OCR confuses similarly shaped characters in musical chord symbols.
   // Only repair these tokens in a row already identified as a chord row;
@@ -21,7 +27,10 @@
       .replace(/^[1lI]A(?=[#b0-9+°()-]|$)/i, "LA")
       .replace(/^D0(?=[#b0-9+°()-]|$)/i, "DO")
       .replace(/^S0L/i, "SOL")
-      .replace(/^M[1l](?=[#b0-9+°()-]|$)/i, "MI");
+      .replace(/^M[1lI](?=[#b0-9+°()-]|$)/i, "MI")
+      .replace(/\/S[1lI](?=[#b0-9+°()-]|$)/i, "/SI")
+      .replace(/\/M[1lI](?=[#b0-9+°()-]|$)/i, "/MI")
+      .replace(/\/D0(?=[#b0-9+°()-]|$)/i, "/DO");
     return chordName(normalized);
   }
   function readChordRow(words, original) {

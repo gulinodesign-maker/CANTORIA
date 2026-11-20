@@ -80,6 +80,19 @@ jobs:
             -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID" \
             archive
 
+      - name: Verify archived export compliance declaration
+        shell: bash
+        run: |
+          set -euo pipefail
+          info="$RUNNER_TEMP/Cantoria.xcarchive/Products/Applications/App.app/Info.plist"
+          test -f "$info"
+          declared=$(/usr/libexec/PlistBuddy -c 'Print :ITSAppUsesNonExemptEncryption' "$info")
+          if ! echo "$declared" | grep -Eiq '^(false|no|0)$'; then
+            echo "::error::Missing or invalid ITSAppUsesNonExemptEncryption declaration"
+            exit 1
+          fi
+          echo "Exempt encryption declaration found in archived iOS app."
+
       - name: Export IPA using Apple cloud signing
         shell: bash
         run: |

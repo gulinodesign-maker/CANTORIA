@@ -64,6 +64,44 @@ const lyrics=parseGeometry({lines:[{words:[
 assert.equal(lyrics.sections[0].lines.length,1);
 assert.equal(lyrics.sections[0].lines[0].anchors.length,0);
 
+// Regression from the photographed hymn: an isolated "i" may stand for
+// different notes, so retain a visible '?' in the chord band, not lyric text.
+const damaged=parseGeometry({lines:[
+ {words:[word('STROFA',20,10,90)]},
+ {words:[word('i',25,43,11),word('FA',90,43,27),word('DO',148,43,27)]},
+ {words:[word('ci',20,70,18),word('ha',45,70,23),word('dato',76,70,47),
+   word('la',132,70,20),word('vita,',165,70,53)]},
+ {words:[word('RE',25,110,28),word('m1⁴',90,110,40),word('Mi',148,110,29)]},
+ {words:[word('per',20,139,26),word('sempre',51,139,74),word('noi',135,139,31)]}
+]});
+assert.equal(damaged.sections[0].lines.length,2,'Keep all chord rows out of lyric text');
+assert.equal(damaged.sections[0].lines[0].marked,'ci ha dato la vita,');
+assert.deepEqual(Array.from(damaged.sections[0].lines[0].anchors,a=>a.chord),['?','FA','DO']);
+const unknown=damaged.sections[0].lines[0].anchors[0];
+assert.equal(unknown.sourceSymbol,'i');
+assert.equal(unknown.unresolved,true);
+assert.equal(unknown.confidence,0);
+assert.equal(unknown.needsReview,true);
+assert.equal(unknown.verified,false);
+assert.ok(Number.isFinite(unknown.sourceX));
+assert.deepEqual(Array.from(damaged.sections[0].lines[1].anchors,a=>a.chord),['RE','MI4','MI']);
+assert.equal(damaged.diagnostics.totalRecognized,5);
+assert.equal(damaged.diagnostics.unresolved,1);
+assert.equal(damaged.diagnostics.totalAnchored,5);
+assert.equal(damaged.diagnostics.needsReview,6);
+assert.equal(root.CantoriaOCR.chordFromOcr('s1-7'),'SI-7');
+assert.equal(root.CantoriaOCR.chordFromOcr('m1⁴'),'MI4');
+assert.equal(root.CantoriaOCR.chordFromOcr('DO/S1'),'DO/SI');
+assert.equal(root.CantoriaOCR.chordName('DO/si'),'DO/SI');
+assert.equal(root.CantoriaOCR.chordName('Mi4'),'MI4');
+// Do not hallucinate which Italian note an isolated OCR "1" represents.
+const oneRead=parseGeometry({lines:[
+ {words:[word('FA',20,5,30),word('1',75,5,12),word('DO',140,5,32)]},
+ {words:[word('Dio',20,31,35),word('è',65,31,15),word('amore',93,31,75)]}
+]});
+assert.equal(oneRead.sections[0].lines[0].anchors[1].chord,'?');
+assert.equal(oneRead.sections[0].lines[0].anchors[1].sourceSymbol,'1');
+
 // Character index survives renderer font and scale changes; never distribute evenly.
 const html=fs.readFileSync('index.html','utf8');
 const script=html.slice(html.indexOf('<script>')+8,html.indexOf('</script>',html.indexOf('<script>')));
@@ -74,7 +112,12 @@ assert.ok(html.includes('chord.sourceX-source.x0')===false); // No hard-coded x 
 assert.ok(html.includes("data-offset-x"));
 assert.ok(html.includes('style.left=x'));
 assert.ok(html.includes('song.geometryDiagnostics'));
+assert.ok(html.includes("worker.recognize(image, {}, {text:true,blocks:true})"));
+assert.ok(html.includes('photoParserVersion'));
+assert.ok(html.includes('Simbolo musicale non riconosciuto'));
 assert.ok(html.includes('<script src="./score-geometry.js"></script>'));
 assert.ok(fs.readFileSync('sw.js','utf8').includes("'./score-geometry.js'"));
 assert.ok(fs.readFileSync('scripts/prepare-ios.sh','utf8').includes('score-geometry.js'));
+assert.ok(fs.readFileSync('scripts/prepare-ios.sh','utf8').includes('ITSAppUsesNonExemptEncryption bool false'));
+assert.ok(fs.readFileSync('.github/workflows/ios-testflight-auto.yml','utf8').includes('Verify archived export compliance declaration'));
 console.log('OK: spatial OCR anchors, ambiguity flags, source boxes, responsive/PDF model wiring');
