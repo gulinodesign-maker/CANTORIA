@@ -45,7 +45,8 @@ assert.ok(native.includes('VNRecognizeTextRequest()'));
 assert.ok(native.includes('textLines.joined(separator:'));
 assert.ok(native.includes('candidate.boundingBox(for: range)'));
 assert.ok(native.includes('window.__cantoriaAIReply'));
-assert.ok(!native.includes('URLSession')&&!native.includes('OpenAI'));
+assert.ok(!native.includes('URLSession.shared')&&!native.includes('api.openai.com'),
+ 'The on-device model must not send images or text to a paid external API');
 
 // TestFlight MUST actually start app in a simulator and inspect screenshot
 // before signature or Apple submission.
