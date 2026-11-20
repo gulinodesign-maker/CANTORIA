@@ -1494,11 +1494,26 @@ function setupLongPress(){
   e.preventDefault();
   if(!state.modal){cancel();activate(target);}
  });
- // Single taps no longer open the editor. A long press is always required.
+ // A single tap on a lyric opens its whole-line editor.
+ // Long-press continues to edit one chord or one syllable precisely.
  root.addEventListener('click',e=>{
   const t=e.target.closest('#readerPaper [data-action="edit-chord"], #readerPaper [data-action="edit-chord-only"], #readerPaper [data-action="add-chord"]');
   if(t){e.preventDefault();e.stopImmediatePropagation();}
+  const lyric=e.target.closest('#readerPaper .lyric-line[data-section][data-line]');
+  if(lyric&&!state.modal){
+   e.preventDefault();e.stopImmediatePropagation();
+   state.modal={type:'lyric-edit',si:Number(lyric.dataset.section),li:Number(lyric.dataset.line)};
+   render();
+  }
  },true);
+ root.addEventListener('keydown',e=>{
+  if(!['Enter',' '].includes(e.key)||state.modal)return;
+  const lyric=e.target.closest('#readerPaper .lyric-line[data-section][data-line]');
+  if(!lyric)return;
+  e.preventDefault();
+  state.modal={type:'lyric-edit',si:Number(lyric.dataset.section),li:Number(lyric.dataset.line)};
+  render();
+ });
  root.addEventListener('submit',e=>{
   if(e.target.id!=='syllableEditForm')return;
   e.preventDefault();e.stopImmediatePropagation();
