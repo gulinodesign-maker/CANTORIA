@@ -76,7 +76,10 @@
       symbol:t.symbol, originalSymbol:t.word.text, bbox:t.word.bbox,
       confidence:t.word.confidence
     })), unresolved:tokens.filter(t=>!t.symbol).map(t=>({
-      originalSymbol:t.word.text, bbox:t.word.bbox, confidence:t.word.confidence
+      // A damaged chord must NEVER become sung lyrics, nor be silently lost.
+      // A solitary "i" / "1" may come from SI or MI: keep '?' until corrected.
+      symbol:'?',unresolved:true,
+      originalSymbol:t.word.text,bbox:t.word.bbox,confidence:0
     }))};
   }
   function charCoordinates(row) {
@@ -110,7 +113,7 @@
     return chars;
   }
   function bindChord(source,lyric,chars) {
-    const x=source.bbox.x0, halfHeight=(lyric.bbox.y1-lyric.bbox.y0)/2;
+    const x=source.bbox.x0;
     const ranked=chars.map(c=>({c,d:Math.abs(c.bbox.x0-x)})).sort((a,b)=>a.d-b.d);
     const best=ranked[0], runner=ranked[1];
     if(!best)return {chord:source.symbol, sourceSymbol:source.originalSymbol,
@@ -120,7 +123,7 @@
     const gap=best.d/(width||1);
     const ambiguous=runner&&Math.abs(best.d-runner.d)<width*0.25;
     const wordOnly=!best.c.precise;
-    const confidence=Math.max(0,Math.min(1,(source.confidence||0)/100))*
+    const confidence=(source.unresolved?0:Math.max(0,Math.min(1,(source.confidence||0)/100)))*
       (wordOnly?0.6:1)*(gap>2?0.35:gap>0.8?0.7:1)*(ambiguous?0.55:1);
     const before=lyric.text.slice(0,best.c.index);
     const priorWords=(before.match(/\S+/g)||[]).length;
@@ -133,7 +136,8 @@
       offsetX:x-best.c.bbox.x0,
       anchorMethod:wordOnly?'word-estimated':'character-box',
       confidence:Number(confidence.toFixed(3)),
-      verified:false,needsReview:wordOnly||gap>0.8||!!ambiguous||
+      verified:false,unresolved:!!source.unresolved,
+      needsReview:!!source.unresolved||wordOnly||gap>0.8||!!ambiguous||
         confidence<0.88||source.originalSymbol!==source.symbol,
       sourceLineBBox:lyric.bbox,
       sourceRowId:source.rowId||null
@@ -147,7 +151,8 @@
     function leftover() {
       if(!pending)return;
       const sec=ensure();
-      const row=pending.row, items=pending.chords;
+      const row=pending.row,items=[...pending.chords,...pending.unresolved]
+        .sort((a,b)=>a.bbox.x0-b.bbox.x0);
       if(!sec.lines.length&&!sec.chordsOnly){sec.chordsOnly=items.map(c=>c.symbol);
         sec.chordsOnlyGeometry=items.map(c=>({symbol:c.symbol,sourceX:c.bbox.x0,
           sourceBBox:c.bbox,sourceLineBBox:row.bbox,needsReview:true}));
@@ -172,12 +177,14 @@
         // The user can remove or rename it after comparing the photo.
       }
       const sec=ensure(),chars=charCoordinates(row);
-      const anchors=pending?pending.chords.map(c=>bindChord({...c,rowId:pending.row.id},row,chars)):[];
+      const chordItems=pending?[...pending.chords,...pending.unresolved]
+        .sort((a,b)=>a.bbox.x0-b.bbox.x0):[];
+      const anchors=chordItems.map(c=>bindChord({...c,rowId:pending.row.id},row,chars));
       const uncertain=pending?pending.unresolved:[];
-      diagnostics.totalAnchored+=anchors.length;
+      diagnostics.totalAnchored+=anchors.filter(a=>!a.unresolved).length;
       diagnostics.unresolved+=uncertain.length;
       diagnostics.estimated+=anchors.filter(a=>a.anchorMethod==='word-estimated').length;
-      diagnostics.needsReview+=anchors.filter(a=>a.needsReview).length+uncertain.length;
+      diagnostics.needsReview+=anchors.filter(a=>a.needsReview).length;
       sec.lines.push({id:'photo-line-'+sec.lines.length,marked:row.text,
         originalText:row.text,sourceLineBBox:row.bbox,
         sourceRowId:row.id,anchors,
