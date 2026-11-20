@@ -419,6 +419,7 @@
 .chord-label.uncertain{color:#9b512d!important;text-decoration:underline dotted;text-underline-offset:3px}
 .reader-layer .lyric-line.without-chords{margin-top:0;padding-top:2px}
 .reader-layer .chord-band{overflow:visible}
+.song-save-button{display:block;width:100%;min-height:46px;margin:10px 0 12px}
 </style>
   <title>Cantoria — Canti per la liturgia cattolica</title>
 </head>
@@ -579,18 +580,20 @@ function describeTonality(song,shift=0){
   return `${note} ${mode}`;
 }
 function chordLabel(c){return escape(transposeChord(c,state.shift)).replace(/(\d*[24])$/, s=>`<sup>${s}</sup>`);}
-function chordOnlyBand(chords,kind,geometry){
+function chordOnlyBand(chords,kind,geometry,si=-1,rowIndex=-1,isPrint=false){
  const positioned=Array.isArray(geometry)&&geometry.length===chords.length&&
   geometry.every(g=>Number.isFinite(g.sourceX)&&g.sourceLineBBox?.x1>g.sourceLineBBox?.x0);
+ const editable=!isPrint&&si>=0;
  const labels=chords.map((chord,i)=>{
   const src=geometry?.[i],bbox=src?.sourceLineBBox;
   const x=positioned?100*(src.sourceX-bbox.x0)/(bbox.x1-bbox.x0):0;
-  return `<span class="chord-label" ${positioned?`style="left:${x.toFixed(4)}%;position:absolute"`:''}>${chordLabel(chord)}</span>`;
+  const tag=editable?'button':'span';
+  return `<${tag} class="chord-label ${editable?'editable':''}" ${positioned?`style="left:${x.toFixed(4)}%;position:absolute"`:''} ${editable?`type="button" data-action="edit-chord-only" data-section="${si}" data-row-index="${rowIndex}" data-chord="${i}" title="Tieni premuto per correggere"`:''}>${chordLabel(chord)}</${tag}>`;
  }).join('');
  return `<div class="music-row ${escapeAttr(kind)} chords-only"><div class="chord-band" ${positioned?'style="display:block"':''}>${labels}</div></div>`;
 }
-function introChords(section){return chordOnlyBand(section.chordsOnly,section.kind,section.chordsOnlyGeometry);}
-function outroChords(section){return (section.chordRows||[]).map((row,i)=>chordOnlyBand(row,section.kind,section.chordRowsGeometry?.[i])).join('');}
+function introChords(section,si=-1,isPrint=false){return chordOnlyBand(section.chordsOnly,section.kind,section.chordsOnlyGeometry,si,-1,isPrint);}
+function outroChords(section,si=-1,isPrint=false){return (section.chordRows||[]).map((row,i)=>chordOnlyBand(row,section.kind,section.chordRowsGeometry?.[i],si,i,isPrint)).join('');}
 function lineHTML(section,line,si,li,isPrint=false){
   const tokens = parseSyllables(line.marked);
   let slot=0;
@@ -607,7 +610,7 @@ function lineHTML(section,line,si,li,isPrint=false){
   return `<div class="music-row ${escapeAttr(section.kind)}" data-row="s${si}-l${li}">${chordBand}<div class="lyric-line ${chordBand?'':'without-chords'}">${lyrics}</div></div>`;
 }
 function groupHeading(label,continued=false){return `<div class="section-title ${continued?'continued':''}">${escape(label)}${continued?' · segue':''}</div>`;}
-function sectionsAllHTML(song,isPrint=false){return (song.sections||[]).map((sec,si)=>`<section class="music-group ${isPrint?'print-section':''}">${groupHeading(sec.name)}${sec.chordsOnly?introChords(sec):''}${(sec.lines||[]).map((ln,li)=>lineHTML(sec,ln,si,li,isPrint)).join('')}${sec.chordRows?outroChords(sec):''}</section>`).join('');}
+function sectionsAllHTML(song,isPrint=false){return (song.sections||[]).map((sec,si)=>`<section class="music-group ${isPrint?'print-section':''}">${groupHeading(sec.name)}${sec.chordsOnly?introChords(sec,si,isPrint):''}${(sec.lines||[]).map((ln,li)=>lineHTML(sec,ln,si,li,isPrint)).join('')}${sec.chordRows?outroChords(sec,si,isPrint):''}</section>`).join('');}
 function flatEntries(song){const res=[];(song.sections||[]).forEach((sec,si)=>{if(sec.chordsOnly)res.push({si,type:'intro',sec,first:true});(sec.lines||[]).forEach((line,li)=>res.push({si,type:'line',sec,line,li,first:li===0}));(sec.chordRows||[]).forEach((row,i)=>res.push({si,type:'outro',sec,row,rowIndex:i,first:i===0}));});return res;}
 function pageList(song){
  const items=flatEntries(song),columns=readerColumns();
@@ -631,7 +634,7 @@ function pageList(song){
  }
  return pages;
 }
-function entriesHTML(entries){if(!entries.length)return '<p>Questo canto non ha ancora righe.</p>';let lastSection=-1;return entries.map((e,idx)=>{let heading='';if(e.si!==lastSection){heading=groupHeading(e.sec.name,!e.first);lastSection=e.si;}return heading+(e.type==='intro'?introChords(e.sec):e.type==='outro'?chordOnlyBand(e.row,e.sec.kind,e.sec.chordRowsGeometry?.[e.rowIndex]):lineHTML(e.sec,e.line,e.si,e.li));}).join('');}
+function entriesHTML(entries){if(!entries.length)return '<p>Questo canto non ha ancora righe.</p>';let lastSection=-1;return entries.map((e,idx)=>{let heading='';if(e.si!==lastSection){heading=groupHeading(e.sec.name,!e.first);lastSection=e.si;}return heading+(e.type==='intro'?introChords(e.sec,e.si):e.type==='outro'?chordOnlyBand(e.row,e.sec.kind,e.sec.chordRowsGeometry?.[e.rowIndex],e.si,e.rowIndex):lineHTML(e.sec,e.line,e.si,e.li));}).join('');}
 function readerColumns(){const w=window.innerWidth,h=window.innerHeight;return ((w>=650&&w>h)||w>=760)?2:1;}
 function photoReaderHTML(song){
  return `<div class="reader-layer reader-portrait reader-photo" id="readerLayer" data-song="${escapeAttr(song.id)}">
@@ -863,7 +866,7 @@ function modalHTML(){const m=state.modal;
 
  if(m.type==='song-options'){
   const song=currentSong();if(!song)return '';
-  if(song.photoData&&!song.sections?.length) return `<div class="modal-shade"><div class="modal-card song-options song-options-compact" role="dialog" aria-modal="true" aria-label="Opzioni brano"><div class="song-options-header"><div><h2>Opzioni</h2><p>${escape(song.title)}</p></div><button type="button" class="song-close" data-action="close-modal" aria-label="Chiudi">×</button></div><p class="photo-draft-notice">Bozza da fotografia</p>${songInfoEditor(song)}<div class="song-export-primary"><button class="primary-btn" type="button" data-action="share-song">Esporta brano Cantoria</button><button class="outline-btn" type="button" data-action="download-song">Scarica file</button></div><div class="song-options-divider"></div><button type="button" class="outline-btn" data-action="ask-delete-song" style="width:100%;color:#943b31;border-color:#b26b62;margin-top:8px">Elimina partitura</button></div></div>`;
+  if(song.photoData&&!song.sections?.length) return `<div class="modal-shade"><div class="modal-card song-options song-options-compact" role="dialog" aria-modal="true" aria-label="Opzioni brano"><div class="song-options-header"><div><h2>Opzioni</h2><p>${escape(song.title)}</p></div><button type="button" class="song-close" data-action="close-modal" aria-label="Chiudi">×</button></div><p class="photo-draft-notice">Bozza da fotografia</p>${songInfoEditor(song)}<button type="button" class="primary-btn song-save-button" data-action="save-song">Salva brano</button><div class="song-export-primary"><button class="primary-btn" type="button" data-action="share-song">Esporta brano Cantoria</button><button class="outline-btn" type="button" data-action="download-song">Scarica file</button></div><div class="song-options-divider"></div><button type="button" class="outline-btn" data-action="ask-delete-song" style="width:100%;color:#943b31;border-color:#b26b62;margin-top:8px">Elimina partitura</button></div></div>`;
   const roots=['DO','DO#','RE','MIb','MI','FA','FA#','SOL','LAb','LA','SIb','SI'];
   const key=String(song.key||'').toUpperCase();
   const options=roots.flatMap(root=>['maggiore','minore'].map(mode=>{
@@ -874,6 +877,7 @@ function modalHTML(){const m=state.modal;
     <div class="song-options-header"><div><h2>Opzioni</h2><p>${escape(song.title)}</p></div><button type="button" class="song-close" data-action="close-modal" aria-label="Chiudi opzioni">×</button></div>
     <div class="song-transport" aria-label="Tonalità e trasporto"><button type="button" class="song-transport-btn" data-action="shift-down" aria-label="Abbassa di un semitono">−</button><button type="button" class="song-transport-key" data-action="reset-shift" title="Tocca per azzerare la trasposizione"><strong>${escape(describeTonality(song,state.shift))}</strong><small>${state.shift>0?'+':''}${state.shift} semitoni</small></button><button type="button" class="song-transport-btn" data-action="shift-up" aria-label="Alza di un semitono">+</button></div>
     ${songInfoEditor(song)}
+    <button type="button" class="primary-btn song-save-button" data-action="save-song">Salva brano</button>
     ${song.photoData?'<button class="outline-btn" type="button" data-action="show-original-photo" style="width:100%;margin:8px 0">Vedi fotografia originale</button>':''}
     <details class="compact-details"><summary>Cambia tonalità originale</summary><div class="field"><select id="songKeyInline" name="songKeyInline" aria-label="Tonalità originale"><option value="" ${key?'':'selected'}>Da definire</option>${options}</select></div></details>
     <div class="song-options-divider"></div>
@@ -899,6 +903,12 @@ if(m.type==='new-mass')return `<div class="modal-shade"><form class="modal-card"
  if(m.type==='reuse-mass')return reuseMassFormHTML(m);
  if(m.type==='add-to-mass')return `<div class="modal-shade"><form class="modal-card" id="addToMassForm"><h2>Aggiungi alla Messa</h2><p>Il canto verrà inserito in fondo alla scaletta. Potrai spostarlo successivamente.</p>${m.massId?`<input type="hidden" name="massId" value="${escapeAttr(m.massId)}">`:`<div class="field"><label>Messa</label><select name="massId">${store.masses.map(x=>`<option value="${escapeAttr(x.id)}">${escape(x.name)}</option>`).join('')}</select></div>`}<div class="field"><label>Canto</label><select name="songId">${store.songs.map(s=>`<option value="${escapeAttr(s.id)}" ${s.id===m.songId?'selected':''}>${escape(s.title)}</option>`).join('')}</select></div><div class="field"><label>Momento</label><select name="label"><option>Ingresso</option><option>Atto penitenziale</option><option>Gloria</option><option>Salmo</option><option>Alleluia</option><option>Offertorio</option><option>Santo</option><option>Comunione</option><option>Ringraziamento</option><option>Canto finale</option></select></div><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button class="primary-btn">Aggiungi</button></div></form></div>`;
  if(m.type==='syllable-edit')return syllableModalHTML(m);
+ if(m.type==='chord-only-edit'){
+  const sec=currentSong()?.sections[m.si];
+  const list=m.rowIndex<0?sec?.chordsOnly:sec?.chordRows?.[m.rowIndex];
+  if(!list||!Number.isInteger(m.ai)||m.ai<0||m.ai>=list.length)return '';
+  return `<div class="modal-shade"><form class="modal-card" id="chordOnlyEditForm"><h2>Correggi accordo</h2><p>Accordo di introduzione o finale.</p><div class="field"><label>Accordo</label><input name="chord" value="${escapeAttr(list[m.ai])}" required autofocus></div><div class="modal-actions"><button type="button" class="outline-btn" data-action="delete-chord-only">Elimina accordo</button><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button class="primary-btn">Conferma</button></div></form></div>`;
+ }
  if(m.type==='chord-edit'){const s=currentSong(),line=s?.sections[m.si]?.lines[m.li];if(!line)return '';const tokens=parseSyllables(line.marked).filter(x=>!x.space);const a=line.anchors[m.ai];return `<div class="modal-shade"><form class="modal-card" id="chordEditForm"><h2>${m.ai===-1?'Aggiungi accordo':'Correggi accordo'}</h2><p>Scegli la sillaba esatta. L'accordo rimarrà agganciato a quella sillaba durante la trasposizione e l'impaginazione.</p><div class="field"><label>Accordo (notazione italiana)</label><input name="chord" value="${escapeAttr(a?.chord||'')}" placeholder="Es. SOL#7" required autofocus></div><div class="field"><label>Sillaba di ancoraggio</label><select name="slot">${tokens.map((t,i)=>`<option value="${i}" ${i===(a?.slot??m.slot)?'selected':''}>${i+1} · ${escape(t.text)}</option>`).join('')}</select></div><div class="modal-actions">${m.ai!==-1?'<button type="button" class="outline-btn" data-action="delete-chord">Elimina accordo</button>':''}<button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button class="primary-btn">Conferma e salva</button></div></form></div>`;}
  return '';
 }
@@ -922,44 +932,26 @@ function alignChords(scope=document){
  for(const row of scope.querySelectorAll('.music-row:not(.chords-only)')){
   const band=row.querySelector('.chord-band'),lyric=row.querySelector('.lyric-line');
   if(!band||!lyric)continue;
-  const bandRect=band.getBoundingClientRect();
-  const labels=[...band.querySelectorAll('.chord-label[data-slot]')];
-  const placements=[];
-  for(const label of labels){
-   const charIndex=Number(label.dataset.charIndex);
-   // An empty index is NOT zero; manual anchors use the syllable start.
-   const precise=label.dataset.charIndex!==''&&Number.isInteger(charIndex);
-   const charRect=precise?readerCharRect(lyric,charIndex):null;
+  const bandRect=band.getBoundingClientRect(),placements=[];
+  for(const label of band.querySelectorAll('.chord-label[data-slot]')){
+   const index=Number(label.dataset.charIndex);
+   const precise=label.dataset.charIndex!==''&&Number.isInteger(index);
+   const charRect=precise?readerCharRect(lyric,index):null;
    const syllable=lyric.querySelector(`.syllable[data-slot="${label.dataset.slot}"]`);
-   const sylRect=syllable?.getBoundingClientRect();
-   if(!charRect&&!sylRect)continue;
-   let x=(charRect||sylRect).left-bandRect.left;
+   const rect=charRect||syllable?.getBoundingClientRect();
+   if(!rect)continue;
+   let x=rect.left-bandRect.left;
    if(charRect){
-    const offset=Number(label.dataset.offsetX),sourceWidth=Number(label.dataset.sourceCharWidth);
-    if(Number.isFinite(offset)&&Number.isFinite(sourceWidth)&&sourceWidth>0){
-     // Convert source advance/anticipation to the new character width.
-     x+=(offset/sourceWidth)*charRect.width;
-    }
+    const offset=Number(label.dataset.offsetX),width=Number(label.dataset.sourceCharWidth);
+    if(Number.isFinite(offset)&&Number.isFinite(width)&&width>0)x+=(offset/width)*charRect.width;
    }
-   // Never change the horizontal coordinate just to distribute chord labels.
-   const width=label.getBoundingClientRect().width;
-   placements.push({label,x,width,lane:0});
-   label.style.left=x+'px';
+   placements.push({label,x:Math.max(0,x),width:label.getBoundingClientRect().width});
   }
-  // If labels overlap at their TRUE X coordinates, add vertical lanes.
-  // Horizontal alignment with the original syllable remains unchanged.
-  const ends=[];
-  for(const item of placements.sort((a,b)=>a.x-b.x)){
-   let lane=ends.findIndex(end=>item.x>=end+5);
-   if(lane<0)lane=ends.length;
-   ends[lane]=item.x+item.width;
-   item.lane=lane;
-  }
-  const lanes=Math.max(1,ends.length),laneHeight=26;
-  band.style.height=Math.max(27,lanes*laneHeight+3)+'px';
-  placements.forEach(item=>{
-   item.label.style.top=(item.lane*laneHeight+laneHeight/2+1)+'px';
-  });
+  // Resolve any collision horizontally, never by stacking into extra pill lanes.
+  placements.sort((a,b)=>a.x-b.x);
+  for(let i=1;i<placements.length;i++)placements[i].x=Math.max(placements[i].x,placements[i-1].x+placements[i-1].width+6);
+  band.style.height='27px';
+  for(const item of placements){item.label.style.left=item.x+'px';item.label.style.top='50%';}
   const right=Math.max(band.clientWidth,...placements.map(p=>p.x+p.width+8));
   if(right>band.clientWidth)band.style.width=Math.ceil(right)+'px';
  }
@@ -1238,6 +1230,12 @@ root.addEventListener('click',e=>{
  if(action==='read-mass-song'){const x=currentMass()?.items.find(i=>i.id===el.dataset.item);if(x)openSong(x.songId,x.shift,x.id);return;}
  if(action==='next-page'||action==='prev-page'){state.page+=action==='next-page'?1:-1;render();return;}
  if(action==='song-options'){state.modal={type:'song-options'};render();return;}
+  if(action==='save-song'){
+   const song=currentSong();if(!song)return;
+   const previous=song.savedAt;song.savedAt=new Date().toISOString();
+   if(!saveStore(store)){song.savedAt=previous;notify('Salvataggio non riuscito: memoria insufficiente.');return;}
+   state.modal=null;notify('Brano salvato in Biblioteca.');return;
+  }
  if(action==='edit-tonality'){state.modal={type:'tonality-edit'};render();return;}
  if(action==='export-song'){exportSongFile(store.songs.find(s=>s.id===el.dataset.song),'share');return;}
  if(action==='share-song'||action==='download-song'){exportSongFile(currentSong(),action==='share-song'?'share':'download');return;}
@@ -1257,6 +1255,14 @@ root.addEventListener('click',e=>{
  if(action==='mass-shift-up'||action==='mass-shift-down'){if(currentMass()?.celebratedAt)return;modifyMassItem(el.dataset.item,item=>{item.shift=Math.max(-11,Math.min(11,item.shift+(action==='mass-shift-up'?1:-1)));});return;}
  if(action==='rename-mass'){const m=currentMass();if(m?.celebratedAt)return;const n=prompt('Nome della Messa',m?.name||'');if(n&&m){m.name=n.trim();persist();render();}return;}
  if(action==='edit-chord'){openChordModal(+el.dataset.section,+el.dataset.line,+el.dataset.chord);return;}
+  if(action==='edit-chord-only'){state.modal={type:'chord-only-edit',si:+el.dataset.section,rowIndex:+el.dataset.rowIndex,ai:+el.dataset.chord};render();return;}
+  if(action==='delete-chord-only'){
+   const m=state.modal,sec=currentSong()?.sections[m?.si];
+   const row=m?.rowIndex<0?sec?.chordsOnly:sec?.chordRows?.[m.rowIndex];
+   const geom=m?.rowIndex<0?sec?.chordsOnlyGeometry:sec?.chordRowsGeometry?.[m.rowIndex];
+   if(row&&Number.isInteger(m.ai)&&m.ai>=0&&m.ai<row.length){row.splice(m.ai,1);if(Array.isArray(geom))geom.splice(m.ai,1);persist();state.modal=null;render();}
+   return;
+  }
  if(action==='add-chord'){openChordModal(+el.dataset.section,+el.dataset.line,-1,+el.dataset.slot);return;}
  if(action==='delete-chord'){const m=state.modal,ln=currentSong()?.sections[m.si]?.lines[m.li];if(ln){ln.anchors.splice(m.ai,1);persist();state.modal=null;render();}return;}
  if(action==='backup'){exportJSON(store);return;}
@@ -1267,8 +1273,17 @@ root.addEventListener('submit',e=>{e.preventDefault();const form=e.target;const 
  if(form.id==='reuseMassForm'){const source=store.masses.find(x=>x.id===state.modal?.massId);const name=String(f.get('massName')||'').trim();if(!source||!name)return;const copy={id:makeId(),name,date:String(f.get('massDate')||''),items:(source.items||[]).map(item=>({id:makeId(),songId:item.songId,label:item.label,shift:item.shift||0}))};store.masses.unshift(copy);state.massId=copy.id;state.view='masses';state.modal=null;persist();render();return;}
  if(form.id==='songInfoForm'){const song=currentSong(),title=String(f.get('title')||'').trim(),author=String(f.get('author')||'').trim();if(!song||!title)return;song.title=title;song.author=author;persist();state.modal={type:'song-options'};render();return;}
  if(form.id==='addToMassForm'){const m=store.masses.find(x=>x.id===f.get('massId'));if(!m||m.celebratedAt)return;const songId=String(f.get('songId'));if(!store.songs.some(x=>x.id===songId))return;m.items.push({id:makeId(),songId,label:String(f.get('label')||'Canto'),shift:0});state.massId=m.id;state.view='masses';state.modal=null;persist();render();return;}
- if(form.id==='chordEditForm'){const m=state.modal,ln=currentSong()?.sections[m.si]?.lines[m.li];if(!ln)return;const chord=String(f.get('chord')||'').trim().toUpperCase(),slot=Number(f.get('slot'));if(!chord||!Number.isInteger(slot))return;if(m.ai===-1)ln.anchors.push({slot,chord,verified:true,needsReview:false,anchorCharacterIndex:null,offsetX:0});else ln.anchors[m.ai]={...ln.anchors[m.ai],slot,chord,symbol:chord,verified:true,needsReview:false,anchorCharacterIndex:null,offsetX:0};ln.anchors.sort((a,b)=>a.slot-b.slot);persist();state.modal=null;render();return;}
- if(form.id==='tonalityForm'){const song=currentSong();if(song){song.key=String(f.get('songKey')||'');persist();}state.modal=null;render();return;}
+ if(form.id==='chordEditForm'){const m=state.modal,ln=currentSong()?.sections[m.si]?.lines[m.li];if(!ln)return;const chord=window.CantoriaOCR?.chordName(String(f.get('chord')||'').trim())||'',slot=Number(f.get('slot'));if(!chord||!Number.isInteger(slot)){notify('Accordo non valido, es. MI/7.');return;}if(m.ai===-1)ln.anchors.push({slot,chord,verified:true,needsReview:false,anchorCharacterIndex:null,offsetX:0});else ln.anchors[m.ai]={...ln.anchors[m.ai],slot,chord,symbol:chord,verified:true,needsReview:false,anchorCharacterIndex:null,offsetX:0};ln.anchors.sort((a,b)=>a.slot-b.slot);persist();state.modal=null;render();return;}
+ if(form.id==='chordOnlyEditForm'){
+   const m=state.modal,sec=currentSong()?.sections[m?.si];
+   const row=m?.rowIndex<0?sec?.chordsOnly:sec?.chordRows?.[m.rowIndex];
+   const geom=m?.rowIndex<0?sec?.chordsOnlyGeometry:sec?.chordRowsGeometry?.[m.rowIndex];
+   const chord=window.CantoriaOCR?.chordName(String(f.get('chord')||'').trim())||'';
+   if(!row||!chord||!Number.isInteger(m.ai)||m.ai<0||m.ai>=row.length){notify('Accordo non valido.');return;}
+   row[m.ai]=chord;if(Array.isArray(geom)&&geom[m.ai])geom[m.ai].symbol=chord;
+   persist();state.modal=null;render();return;
+  }
+  if(form.id==='tonalityForm'){const song=currentSong();if(song){song.key=String(f.get('songKey')||'');persist();}state.modal=null;render();return;}
   if(form.id==='photoSongForm'){
   if(!state.photoURL){notify('Prima scegli una fotografia.');return;}
   const mode=e.submitter?.value==='score'?'score':'photo';
@@ -1298,8 +1313,9 @@ function setupLongPress(){
  const cancel=()=>{if(timer){clearTimeout(timer);timer=null;}pending=null;};
  const activate=(target)=>{
   const si=Number(target.dataset.section),li=Number(target.dataset.line);
-  if(!Number.isInteger(si)||!Number.isInteger(li))return;
-  if(target.classList.contains('chord-label'))openChordModal(si,li,Number(target.dataset.chord));
+  if(!Number.isInteger(si)||(!Number.isInteger(li)&&target.dataset.action!=='edit-chord-only'))return;
+  if(target.dataset.action==='edit-chord-only'){state.modal={type:'chord-only-edit',si,rowIndex:Number(target.dataset.rowIndex),ai:Number(target.dataset.chord)};render();}
+   else if(target.classList.contains('chord-label'))openChordModal(si,li,Number(target.dataset.chord));
   else{state.modal={type:'syllable-edit',si,li,slot:Number(target.dataset.slot)};render();}
  };
  root.addEventListener('pointerdown',e=>{
@@ -1319,7 +1335,7 @@ function setupLongPress(){
  });
  // Single taps no longer open the editor. A long press is always required.
  root.addEventListener('click',e=>{
-  const t=e.target.closest('#readerPaper [data-action="edit-chord"], #readerPaper [data-action="add-chord"]');
+  const t=e.target.closest('#readerPaper [data-action="edit-chord"], #readerPaper [data-action="edit-chord-only"], #readerPaper [data-action="add-chord"]');
   if(t){e.preventDefault();e.stopImmediatePropagation();}
  },true);
  root.addEventListener('submit',e=>{
@@ -1328,7 +1344,7 @@ function setupLongPress(){
   const m=state.modal,line=currentSong()?.sections[m.si]?.lines[m.li];if(!line)return;
   const form=new FormData(e.target);
   const syllable=String(form.get('syllable')||'').trim();
-  const chord=String(form.get('chord')||'').trim().toUpperCase();
+  const chord=window.CantoriaOCR?.chordName(String(form.get('chord')||'').trim())||'';
   if(!syllable||!/^([^\s|]+)(\|[^\s|]+)*$/.test(syllable)){alert('Sillabe non valide. Separa le sillabe con | e non usare spazi.');return;}
   const added=syllable.split('|').length-1;
   const textWasChanged=syllable.replaceAll('|','')!==parseSyllables(line.marked).filter(t=>!t.space)[m.slot]?.text;
