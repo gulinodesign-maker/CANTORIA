@@ -72,7 +72,8 @@ const placementContext={
  readerCharRect(){return null}
 };
 vm.createContext(placementContext);vm.runInContext(placementCode,placementContext);
-vm.runInContext('alignChords(scope)',{...placementContext,scope:{querySelectorAll(){return [row]}}});
+placementContext.scope={querySelectorAll(){return [row]}};
+vm.runInContext('alignChords(scope)',placementContext);
 const positions=labels.map(label=>({
  x:parseFloat(label.style.left),
  width:label.getBoundingClientRect().width
