@@ -236,9 +236,10 @@ assert.ok(html.includes('readerCharRect'));
 assert.ok(html.includes('data-char-index'));
 assert.ok(html.includes('chord.sourceX-source.x0')===false); // No hard-coded x distribution
 assert.ok(html.includes("data-offset-x"));
-assert.ok(html.includes("item.label.style.left=item.x"));
+assert.ok(html.includes("p.label.style.left=Math.max(0,p.x)"));
 assert.ok(html.includes('song.geometryDiagnostics'));
-assert.ok(html.includes("band.style.height='27px'"));
+assert.ok(html.includes("maxWidth=Math.max(24,band.clientWidth)"));
+assert.ok(html.includes("fitSongToDisplay();alignChords();"));
 assert.ok(!html.includes('lanes*laneHeight'));
 assert.ok(html.includes('data-action="save-song"'));
 assert.ok(html.includes('data-action="edit-chord-only"'));
