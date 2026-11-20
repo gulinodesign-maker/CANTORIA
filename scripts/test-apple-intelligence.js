@@ -34,7 +34,9 @@ for(const source of [
 ])assert.ok(native.includes(source),'Native iOS feature missing: '+source);
 assert.ok(prepare.includes('ios/App/App/AppDelegate.swift'),
   'Register inside already-compiled AppDelegate, not an uncompiled Swift file');
-assert.ok(prepare.includes("src.replace('import Capacitor'"));
+assert.ok(prepare.includes("'import Capacitor'"));
+assert.ok(prepare.includes("'import FoundationModels"));
+assert.ok(prepare.includes("import Vision"));
 assert.ok(prepare.includes('CantoriaBridgeViewController: CAPBridgeViewController'));
 assert.ok(prepare.includes('AppDelegate.swift in Sources'));
 assert.ok(prepare.includes('customClass="CantoriaBridgeViewController"'));
