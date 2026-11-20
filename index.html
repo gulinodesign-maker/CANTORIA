@@ -1401,6 +1401,31 @@ root.addEventListener('submit',e=>{e.preventDefault();const form=e.target;const 
 
  if(form.id==='reuseMassForm'){const source=store.masses.find(x=>x.id===state.modal?.massId);const name=String(f.get('massName')||'').trim();if(!source||!name)return;const copy={id:makeId(),name,date:String(f.get('massDate')||''),items:(source.items||[]).map(item=>({id:makeId(),songId:item.songId,label:item.label,shift:item.shift||0}))};store.masses.unshift(copy);state.massId=copy.id;state.view='masses';state.modal=null;persist();render();return;}
  if(form.id==='songInfoForm'){const song=currentSong(),title=String(f.get('title')||'').trim(),author=String(f.get('author')||'').trim();if(!song||!title)return;song.title=title;song.author=author;persist();state.modal={type:'song-options'};render();return;}
+ if(form.id==='lyricEditForm'){
+  const m=state.modal,line=currentSong()?.sections?.[m?.si]?.lines?.[m?.li];if(!line)return;
+  const backup=structuredClone(line);
+  try{window.CantoriaEditor.editLine(line,String(f.get('lyrics')||''));}
+  catch(err){alert(err.message);return;}
+  if(!saveStore(store)){Object.assign(line,backup);alert('Non è stato possibile salvare il testo.');return;}
+  state.modal=null;notify('Testo salvato. Verifica gli accordi sulla foto.');return;
+ }
+ if(form.id==='sectionTextEditForm'){
+  const m=state.modal,section=currentSong()?.sections?.[m?.si];if(!section)return;
+  const backup=structuredClone(section.lines);let changed=0;
+  try{changed=window.CantoriaEditor.editSection(section,String(f.get('lyrics')||''));}
+  catch(err){alert(err.message);return;}
+  if(!saveStore(store)){section.lines=backup;alert('Impossibile salvare la sezione.');return;}
+  state.modal=null;notify(changed+' righe aggiornate. Controlla gli accordi.');return;
+ }
+ if(form.id==='bandColorsForm'){
+  const song=currentSong();if(!song)return;
+  const old=structuredClone(song.bandColors||{});
+  try{for(const kind of ['intro','verse','chorus','outro'])
+    window.CantoriaEditor.setBandColor(song,kind,String(f.get(kind)||''));}
+  catch(err){song.bandColors=old;alert(err.message);return;}
+  if(!saveStore(store)){song.bandColors=old;alert('Impossibile salvare i colori.');return;}
+  state.modal=null;notify('Colori delle pill salvati nel brano.');return;
+ }
  if(form.id==='addToMassForm'){const m=store.masses.find(x=>x.id===f.get('massId'));if(!m||m.celebratedAt)return;const songId=String(f.get('songId'));if(!store.songs.some(x=>x.id===songId))return;m.items.push({id:makeId(),songId,label:String(f.get('label')||'Canto'),shift:0});state.massId=m.id;state.view='masses';state.modal=null;persist();render();return;}
  if(form.id==='chordEditForm'){const m=state.modal,ln=currentSong()?.sections[m.si]?.lines[m.li];if(!ln)return;const chord=window.CantoriaOCR?.chordName(String(f.get('chord')||'').trim())||'',slot=Number(f.get('slot'));if(!chord||!Number.isInteger(slot)){notify('Accordo non valido, es. MI/7.');return;}if(m.ai===-1)ln.anchors.push({slot,chord,verified:true,needsReview:false,anchorCharacterIndex:null,offsetX:0});else ln.anchors[m.ai]={...ln.anchors[m.ai],slot,chord,symbol:chord,verified:true,needsReview:false,anchorCharacterIndex:null,offsetX:0};ln.anchors.sort((a,b)=>a.slot-b.slot);persist();state.modal=null;render();return;}
  if(form.id==='chordOnlyEditForm'){
@@ -1431,7 +1456,14 @@ root.addEventListener('submit',e=>{e.preventDefault();const form=e.target;const 
  }
 });
 root.addEventListener('input',e=>{if(e.target.id==='photoSongTitle'){state.photoTitle=e.target.value;return;}if(e.target.id==='photoOcrText'){state.ocrText=e.target.value.slice(0,20000);return;}if(e.target.id==='search'){state.filter=e.target.value;const pos=e.target.selectionStart;render();const s=root.querySelector('#search');s?.focus();if(s?.setSelectionRange)s.setSelectionRange(pos,pos);}});
-root.addEventListener('change',async e=>{if(e.target.id==='songKeyInline'){const song=currentSong();if(song){song.key=e.target.value;persist();render();}return;}if(e.target.id==='songImportInput'){const file=e.target.files?.[0];if(!file)return;try{if(file.size>3000000)throw new Error('File troppo grande');const song=importSongFile(await file.text());notify('Brano importato: '+song.title);}catch(err){notify('Importazione non riuscita: '+err.message);}return;}if(e.target.id==='photoCameraInput'||e.target.id==='photoLibraryInput'){
+root.addEventListener('change',async e=>{
+ if(e.target.matches('#bandColorsForm select')){
+  const preview=root.querySelector('[data-preview="'+e.target.name+'"]');
+  if(preview&&window.CantoriaEditor.PALETTE.some(p=>p.value===e.target.value))
+   preview.style.background=e.target.value;
+  return;
+ }
+ if(e.target.id==='songKeyInline'){const song=currentSong();if(song){song.key=e.target.value;persist();render();}return;}if(e.target.id==='songImportInput'){const file=e.target.files?.[0];if(!file)return;try{if(file.size>3000000)throw new Error('File troppo grande');const song=importSongFile(await file.text());notify('Brano importato: '+song.title);}catch(err){notify('Importazione non riuscita: '+err.message);}return;}if(e.target.id==='photoCameraInput'||e.target.id==='photoLibraryInput'){
  const file=e.target.files?.[0];if(!file)return;
  try{state.photoURL=await compressScorePhoto(file);state.photoTitle='';state.ocrText='';state.geometryDraft=null;state.geometryRawText='';state.ocrStatus='';render();}
  catch(err){console.error(err);notify('Impossibile aprire la foto. Prova un file JPEG o PNG.');}
