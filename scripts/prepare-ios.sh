@@ -29,6 +29,13 @@ npx cap sync ios
 # or change Main.storyboard until a proper native runtime launch test passes.
 # The classic photo OCR remains available with all local user data preserved.
 
+# Fail closed if a future change restores a custom storyboard controller
+# without an explicit successful launch test.
+if ! grep -q 'customClass="CAPBridgeViewController" customModule="Capacitor"' ios/App/App/Base.lproj/Main.storyboard; then
+  echo "Unsafe custom iOS controller detected: refusing possible black-screen build." >&2
+  exit 1
+fi
+
 # Required prompts for photo-based song capture on iOS.
 plist="ios/App/App/Info.plist"
 for entry in \
