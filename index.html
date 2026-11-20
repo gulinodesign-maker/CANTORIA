@@ -909,39 +909,74 @@ async function probeAppleIntelligence(){
  }catch(err){state.appleAIAvailable=false;}
  finally{state.appleAIProbeBusy=false;}
 }
-function proposedAppleCorrections(output){
+function proposedAppleCorrections(output,eligible){
  let raw=String(output||'').trim();
- if(!raw.startsWith('[')){const a=raw.indexOf('['),b=raw.lastIndexOf(']');if(a<0||b<a)return [];raw=raw.slice(a,b+1);}
- const changes=JSON.parse(raw);if(!Array.isArray(changes))return [];
- return changes.slice(0,35).flatMap(x=>{
+ if(!raw.startsWith('[')){
+  const a=raw.indexOf('['),b=raw.lastIndexOf(']');
+  if(a<0||b<a)return [];
+  raw=raw.slice(a,b+1);
+ }
+ const changes=JSON.parse(raw);
+ if(!Array.isArray(changes))return [];
+ return changes.slice(0,40).flatMap(x=>{
   const si=Number(x.si),li=Number(x.li),ai=Number(x.ai);
   if(![si,li,ai].every(Number.isInteger))return [];
+  if(eligible&&!eligible.has(si+':'+li+':'+ai))return [];
   const anchor=state.geometryDraft?.sections?.[si]?.lines?.[li]?.anchors?.[ai];
   if(!anchor||anchor.verified)return [];
-  const after=window.CantoriaOCR?.chordName(x.chord)||'';
+  const after=window.CantoriaOCR?.chordName(String(x.chord||''))||'';
   if(!after||after===anchor.chord)return [];
-  return [{si,li,ai,before:anchor.chord,after,reason:String(x.reason||'Da verificare sulla foto').slice(0,130)}];
+  return {si,li,ai,before:anchor.chord,after,
+   reason:String(x.reason||'Controlla sulla fotografia').slice(0,130)};
  });
 }
 async function improvePhotoWithApple(){
- const plugin=nativeAppleIntelligence();
- if(!plugin||!state.appleAIAvailable||state.appleAIBusy)return;
+ const native=nativeAppleIntelligence();
+ if(!native||!state.appleAIAvailable||state.appleAIBusy)return;
  if(!state.geometryDraft?.hasGeometry||state.ocrText.trim()!==state.geometryRawText)return;
+ // Candidates retain original chord glyphs, coordinates and nearby Italian lyrics.
+ // Prioritize uncertain glyphs to avoid unnecessary local-model inference.
  const candidates=[];
  state.geometryDraft.sections.forEach((section,si)=>(section.lines||[]).forEach((line,li)=>
   (line.anchors||[]).forEach((anchor,ai)=>{
-   if(anchor.needsReview&&!anchor.verified&&candidates.length<35)candidates.push({si,li,ai,source:anchor.sourceSymbol||anchor.chord,chord:anchor.chord,lyric:line.marked.slice(0,120)});
+   if(!anchor.verified&&candidates.length<54)candidates.push({
+    si,li,ai,source:String(anchor.sourceSymbol||anchor.chord||'').slice(0,20),
+    chord:anchor.chord,sourceX:Number(anchor.sourceX)||0,
+    uncertain:!!anchor.unresolved,lyric:line.marked.slice(0,125),
+    section:section.kind
+   });
   })));
- if(!candidates.length){notify('Nessun accordo incerto da analizzare.');return;}
+ if(!candidates.length){
+  state.ocrStatus='Apple Vision ha letto la partitura: non ci sono accordi incerti da revisionare.';
+  return;
+ }
  state.appleAIBusy=true;state.appleSuggestions=[];render();
  try{
-  const result=await plugin.improve({candidates:JSON.stringify(candidates)});
-  state.appleSuggestions=proposedAppleCorrections(result?.suggestion||'');
-  notify(state.appleSuggestions.length?'Suggerimenti pronti: controllali prima di applicarli.':'Nessuna correzione affidabile proposta.');
- }catch(err){console.error('Apple Intelligence:',err);notify('Apple Intelligence non disponibile per questa analisi.');}
- finally{state.appleAIBusy=false;render();}
+  const changes=[];
+  for(let offset=0;offset<candidates.length;offset+=18){
+   const batch=candidates.slice(offset,offset+18);
+   state.ocrStatus='Apple Intelligence: controllo '+(offset+1)+'–'+
+     Math.min(offset+batch.length,candidates.length)+' di '+candidates.length+' accordi…';
+   const result=await native.improve({candidates:JSON.stringify(batch)});
+   const allowed=new Set(batch.map(x=>x.si+':'+x.li+':'+x.ai));
+   changes.push(...proposedAppleCorrections(result?.suggestion||'[]',allowed));
+  }
+  const seen=new Set();
+  state.appleSuggestions=changes.filter(x=>{
+   const key=x.si+':'+x.li+':'+x.ai;
+   if(seen.has(key))return false;
+   seen.add(key);return true;
+  }).slice(0,40);
+  if(state.appleSuggestions.length){
+   notify(state.appleSuggestions.length+' correzioni proposte: controllale prima di applicarle.');
+  }else{
+   state.ocrStatus='Apple Vision ha letto la foto; il modello non propone correzioni musicali sicure.';
+  }
+ }catch(err){
+  console.error('Apple Intelligence:',err);
+  state.ocrStatus='Apple Vision ha completato la lettura, ma la revisione AI non è riuscita. Puoi correggere manualmente.';
+ }finally{state.appleAIBusy=false;render();}
 }
-
 function captureHTML(){
  return `<div class="page-heading"><div><h1>Acquisisci un canto</h1></div></div>
   <section class="panel capture-photo-card">
@@ -1537,7 +1572,7 @@ root.addEventListener('click',e=>{
    let applied=0;
    for(const x of state.appleSuggestions){
     const anchor=state.geometryDraft?.sections?.[x.si]?.lines?.[x.li]?.anchors?.[x.ai];
-    if(anchor&&!anchor.verified&&anchor.chord===x.before){anchor.chord=x.after;anchor.symbol=x.after;anchor.needsReview=true;applied++;}
+    if(anchor&&!anchor.verified&&anchor.chord===x.before){anchor.chord=x.after;anchor.symbol=x.after;anchor.unresolved=false;anchor.needsReview=true;applied++;}
    }
    state.appleSuggestions=[];render();notify(applied+' suggerimenti applicati alla bozza. Verifica sulla foto.');return;
   }
@@ -1705,7 +1740,8 @@ root.addEventListener('change',async e=>{
  }
  if(e.target.id==='songKeyInline'){const song=currentSong();if(song){song.key=e.target.value;persist();render();}return;}if(e.target.id==='songImportInput'){const file=e.target.files?.[0];if(!file)return;try{if(file.size>3000000)throw new Error('File troppo grande');const song=importSongFile(await file.text());notify('Brano importato: '+song.title);}catch(err){notify('Importazione non riuscita: '+err.message);}return;}if(e.target.id==='photoCameraInput'||e.target.id==='photoLibraryInput'){
  const file=e.target.files?.[0];if(!file)return;
- try{state.photoURL=await compressScorePhoto(file);state.photoTitle='';state.ocrText='';state.geometryDraft=null;state.geometryRawText='';state.ocrStatus='';render();}
+ try{state.photoURL=await compressScorePhoto(file);state.photoTitle='';state.ocrText='';state.geometryDraft=null;state.geometryRawText='';state.ocrStatus='';state.appleSuggestions=[];render();
+  setTimeout(probeAppleIntelligence,250);}
  catch(err){console.error(err);notify('Impossibile aprire la foto. Prova un file JPEG o PNG.');}
  return;
 }if(e.target.id==='backupInput'){const file=e.target.files?.[0];if(!file)return;try{const data=importJSON(await file.text());store.songs=data.songs.map(normalizedSong);store.masses=data.masses;persist();state.view='library';notify('Backup ripristinato.');}catch(err){notify('Impossibile leggere il backup.');}}});
@@ -1814,7 +1850,14 @@ root.addEventListener('touchend',e=>{if(!e.target.closest('#readerPaper'))return
 window.addEventListener('resize',()=>{if(state.songId){state.page=0;render();}});
 window.addEventListener('beforeprint',()=>{const holder=document.querySelector('#print-sheet');if(holder&&currentSong()&&!holder.innerHTML)holder.innerHTML=`<div class="print-body"><div class="print-head">${escape(currentSong().title)}</div>${sectionsAllHTML(currentSong(),true)}</div>`;alignChords(holder||document);});
 if('serviceWorker'in navigator&&location.protocol.startsWith('http'))window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
-render();</script>
+render();
+ // The plugin is registered only after the stock Capacitor bridge is ready;
+ // capability probing never runs a model or processes the user's photograph.
+ setTimeout(probeAppleIntelligence,900);
+ setTimeout(probeAppleIntelligence,2600);
+ window.addEventListener('focus',probeAppleIntelligence);
+ window.addEventListener('pageshow',probeAppleIntelligence);
+</script>
 <script src="./score-ocr.js"></script>
 <script src="./score-geometry.js"></script>
   <script src="./score-editor.js"></script>
