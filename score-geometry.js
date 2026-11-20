@@ -338,7 +338,7 @@
         for(let j=size+3;j+size<=all.length-3;j++){
           const score=Array.from({length:size},(_,k)=>
             norm(all[k].marked)===norm(all[j+k].marked)).filter(Boolean).length;
-          if(score>=3&&score/size>=0.75){found={size,j,score};break;}
+          if(score>=3&&score===size){found={size,j,score};break;}
         }
       }
       if(found){
