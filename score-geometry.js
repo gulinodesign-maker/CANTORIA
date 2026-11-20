@@ -91,12 +91,12 @@
       words.some(w=>/[a-zà-öø-ÿ]{2,}/.test(w.text));
   }
   // Spurious OCR marks are NOT chords, lyrics or useful unknown notes.
-  const OCR_MARK = /^[\\\\|~^=<>«»{}()[\\]_.+*–—-]+$/;
+  const OCR_MARK = /^[^A-Za-zÀ-ÿ0-9]+$/;
   const CHORD_ANNOTATION = /^(?:intro|rit(?:ornello)?|strofa|finale|outro|fine)[:,;.]?$/i;
   function isNumberedTitle(row) {
     // e.g. "63 FRUTTO DELLA NOSTRA TERRA Francesco Buttazzo".
     // Source titles belong to metadata, not the sung lyrics.
-    return /^\\d{1,3}\\s+(?:[A-ZÀ-Ý]{3,}\\s+){2,}/.test(row.text.trim());
+    return /^[0-9]{1,3}[ ]+/.test(row.text.trim()) && row.words.slice(1).filter(w=>/^[A-ZÀ-Ý]{3,}$/.test(w.text)).length>=3;
   }
   function classifyChordRow(row,nextRow) {
     const words=row.words.filter(w=>!JUNK_TOKEN.test(w.text)&&
