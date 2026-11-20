@@ -209,6 +209,25 @@ const sungNotes=parseGeometry({lines:[
 assert.equal(sungNotes.sections[0].lines.length,2);
 assert.equal(sungNotes.sections[0].lines[0].marked,'Mi la fa sol');
 
+// No graphic artifacts should survive OCR, even when attached to real words.
+const ornaments=parseGeometry({lines:[
+ {words:[word('STROFA',20,10,90)]},
+ {words:[word('Pane',20,50,45),word('della',75,50,55),word('quotidianità.',140,50,140),
+   word('==',293,50,20),word('ge',330,50,21)]},
+ {words:[word('Tu',20,89,30),word('che',60,89,35),word('lo',105,89,20),
+   word('prendevi',135,89,85),word('T°',233,89,28),word('/',269,89,14)]},
+ {words:[word('ma',20,128,29),word('«',58,128,11)]},
+ {words:[word('Oggi',20,166,48),word('vieni',75,166,60),
+   word('qui.',150,166,42),word('\\)',199,166,24),word('+',235,166,12)]},
+ {words:[word('Frutto',20,206,70),word('della',103,206,57),
+   word('terra',179,206,55),word('(',247,206,12),word('—',273,206,25)]}
+]});
+const cleanLines=ornaments.sections.flatMap(sec=>sec.lines);
+assert.deepEqual(Array.from(cleanLines,l=>l.marked),[
+ 'Pane della quotidianità.','Tu che lo prendevi','Oggi vieni qui.','Frutto della terra'
+]);
+assert.ok(ornaments.diagnostics.ignoredArtifacts>=7);
+
 // Character index survives renderer font and scale changes; never distribute evenly.
 const html=fs.readFileSync('index.html','utf8');
 const script=html.slice(html.indexOf('<script>')+8,html.indexOf('</script>',html.indexOf('<script>')));

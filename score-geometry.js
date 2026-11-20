@@ -68,7 +68,10 @@
   const JUNK_TOKEN = /^[@©®™�¤]+$/;
   const UI_LABEL = /^(?:AUTO[\s-]*SCROLL|SCORRIMENTO\s+AUTOMATICO)(?:\s+(?:ON|OFF|ATTIVO|DISATTIVO))?$/i;
   function isEditorialRow(row) {
-    return UI_LABEL.test(row.text.trim());
+    const text=row.text.trim();
+    // Stray final pieces, such as "ma «", come from non-lyric marks on
+    // photographed score borders and must not create a new sung line.
+    return UI_LABEL.test(text)||/^[a-zà-ÿ]{1,3}\s*[«»]+$/i.test(text);
   }
   function isChordLikeToken(raw,symbol) {
     if(symbol)return true;
@@ -135,19 +138,43 @@
       confidence:t.word.confidence
     })),unresolved};
   }
+  // Filter OCR graphic marks from the lyric layer, not from chord symbols.
+  // Keep common sung punctuation (comma, apostrophe, period, ?, ! and
+  // in-word hyphen), but discard scanner scratches, slashes, brackets, etc.
+  function cleanLyricToken(raw) {
+    const source=String(raw||'').normalize('NFC');
+    if(!/[\p{L}\p{N}]/u.test(source))return '';
+    let cleaned=source.replace(JUNK_SYMBOLS,'')
+      .replace(/[^\p{L}\p{N}'’.,!?;:\-]/gu,'')
+      .replace(/^[—–-]+|[—–-]+$/g,'');
+    // A single 'T' read from 'T°' is still a scan artefact, not a word.
+    if(/^[A-Z]$/.test(cleaned)&&/[°\\/~=+]/.test(source))return '';
+    if(!/[\p{L}\p{N}]/u.test(cleaned))return '';
+    return cleaned;
+  }
   function cleanLyricRow(row,diagnostics) {
     if(isEditorialRow(row)) {
       diagnostics.ignoredArtifacts++;
       return null;
     }
-    const words=row.words.map(w=>{
-      const filtered=w.text.replace(JUNK_SYMBOLS,'');
-      if(filtered!==w.text)diagnostics.ignoredArtifacts++;
-      return {...w,text:filtered,symbols:filtered===w.text?w.symbols:[]};
-    }).filter(w=>w.text&&w.text.trim());
-    if(!words.length)return null;
-    return {...row,words,
-      text:words.map(w=>w.text).join(' '),bbox:union(words.map(w=>w.bbox)),
+    const cleanedWords=[];
+    for(let i=0;i<row.words.length;i++){
+      const original=row.words[i],text=cleanLyricToken(original.text);
+      if(text!==original.text)diagnostics.ignoredArtifacts++;
+      if(!text)continue;
+      // OCR endings like "quotidianità. == ge": the two-letter fragment
+      // immediately after a removed decoration is not a lyric.
+      const precededByMark=i>0&&!cleanLyricToken(row.words[i-1].text);
+      if(i===row.words.length-1&&precededByMark&&/^[a-zà-ÿ]{1,2}$/i.test(text)
+        &&row.words.slice(0,i-1).some(w=>/[.!?]$/.test(w.text))){
+        diagnostics.ignoredArtifacts++;
+        continue;
+      }
+      cleanedWords.push({...original,text,symbols:text===original.text?original.symbols:[]});
+    }
+    if(!cleanedWords.length)return null;
+    return {...row,words:cleanedWords,
+      text:cleanedWords.map(w=>w.text).join(' '),bbox:union(cleanedWords.map(w=>w.bbox)),
       originalOcrText:row.text};
   }
   function charCoordinates(row) {
