@@ -661,6 +661,7 @@ function readerHTML(){
   <button class="reader-menu-btn" type="button" data-action="song-options" aria-label="Opzioni brano: tonalità, trasporto, PDF ed esportazione" title="Opzioni brano">☰</button>
  </header>
  <div class="reader-stage" id="readerStage"><article class="reader-paper" id="readerPaper" tabindex="0">
+  ${song.photoData&&song.photoParserVersion!==2?'<div class="reader-warning" role="status">Questa partitura usa il vecchio riconoscimento. Apri ☰ e scegli Riconosci di nuovo dalla fotografia per applicare le correzioni.</div>':''}
   ${song.photoData?(()=>{const anchors=song.sections.flatMap(sec=>(sec.lines||[]).flatMap(line=>line.anchors||[]));const pending=anchors.filter(a=>a.needsReview&&!a.verified).length;const unresolved=song.sections.reduce((n,sec)=>n+(sec.lines||[]).reduce((m,line)=>m+(line.unresolvedChords?.length||0),0),0);return pending||unresolved?`<div class="reader-warning" role="status">${pending} accordi da controllare con la foto${unresolved?' · '+unresolved+' simboli non letti':''}. Tieni premuto per correggere.</div>`:''})():''}
   <div class="sheet-columns" style="--reader-cols:${cols}">${columns.map(col=>`<div class="sheet-column">${entriesHTML(col)}</div>`).join('')}</div>
  </article></div></div>`;
