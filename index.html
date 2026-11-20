@@ -424,18 +424,26 @@
 .apple-ai-suggestions{border:1px solid #c4b89e;background:#f0ede7;border-radius:9px;padding:10px;margin:10px 0;font-size:13px}
 .apple-ai-suggestions ul{padding-left:19px;max-height:160px;overflow:auto}
 
-/* 0.6.6: never alter the font size of individual lyric lines.
-   Preserve exact chord offsets by horizontally scrolling long score rows. */
+/* 0.6.7: the widest sung phrase sets ONE font size for the entire song.
+   No sideways scrolling or row-dependent font sizes in the reader. */
 @media screen{
- .reader-layer:not(.reader-photo) .reader-stage{overflow:auto!important;touch-action:pan-x pan-y!important;overscroll-behavior-x:contain}
- .reader-layer:not(.reader-photo) .reader-paper{width:max-content!important;min-width:100%!important;max-width:none!important}
- .reader-layer:not(.reader-photo) .sheet-column{width:max-content;min-width:100%}
- .reader-layer:not(.reader-photo) .music-row{width:max-content;min-width:100%}
- .reader-layer:not(.reader-photo) .chord-band{min-width:100%}
+ .reader-layer:not(.reader-photo) .reader-stage{
+  overflow-x:hidden!important;overflow-y:auto!important;touch-action:pan-y!important;
+ }
+ .reader-layer:not(.reader-photo) .reader-paper{
+  width:100%!important;min-width:0!important;max-width:100%!important;
+  overflow:hidden!important;
+ }
+ .reader-layer:not(.reader-photo) .sheet-columns{width:100%!important;min-width:0!important}
+ .reader-layer:not(.reader-photo) .sheet-column{width:100%!important;min-width:0!important}
+ .reader-layer:not(.reader-photo) .music-row{width:100%!important;min-width:0!important}
+ .reader-layer:not(.reader-photo) .chord-band{width:100%!important;min-width:0!important;cursor:pointer;touch-action:pan-y;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
  .reader-layer .lyric-line{font-size:var(--reader-font)!important;line-height:1.3!important;white-space:nowrap}
  .reader-layer .lyric-line .syllable,.reader-layer .lyric-line .space-syl{font-size:inherit!important;line-height:inherit!important}
  .reader-layer .lyric-line[role="button"]{cursor:pointer}
  .reader-layer .lyric-line[role="button"]:focus-visible{outline:2px dashed #ad9157;outline-offset:4px}
+ .reader-layer .reader-warning{max-width:100%!important;white-space:normal!important;overflow-wrap:anywhere}
+ .reader-layer .chord-band[data-action="edit-band"]:focus-visible{outline:2px dashed #ad9157;outline-offset:2px}
  .chord-label.unresolved{min-width:23px;min-height:24px}
  .chord-label.unresolved .unresolved-spot{display:block;width:20px;height:1px;border-bottom:1px dotted #a77c55;opacity:.65}
  .band-color-field{display:flex;align-items:center;gap:10px}
@@ -444,6 +452,8 @@
  .lyric-text-editor{width:100%;font:normal 17px/1.5 Georgia,"Times New Roman",serif!important;min-height:115px!important}
  .section-lyric-editor{min-height:220px!important}
  .song-edit-action{width:100%;margin:6px 0;min-height:44px}
+ .band-chord-list{display:grid;gap:7px;margin:14px 0}
+ .band-chord-list button{justify-content:flex-start;width:100%;text-align:left}
 }
 </style>
   <title>Cantoria — Canti per la liturgia cattolica</title>
