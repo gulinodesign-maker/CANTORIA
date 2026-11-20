@@ -423,6 +423,28 @@
 .apple-ai-button{display:block;width:100%;min-height:44px;margin:7px 0 10px!important}
 .apple-ai-suggestions{border:1px solid #c4b89e;background:#f0ede7;border-radius:9px;padding:10px;margin:10px 0;font-size:13px}
 .apple-ai-suggestions ul{padding-left:19px;max-height:160px;overflow:auto}
+
+/* 0.6.6: never alter the font size of individual lyric lines.
+   Preserve exact chord offsets by horizontally scrolling long score rows. */
+@media screen{
+ .reader-layer:not(.reader-photo) .reader-stage{overflow:auto!important;touch-action:pan-x pan-y!important;overscroll-behavior-x:contain}
+ .reader-layer:not(.reader-photo) .reader-paper{width:max-content!important;min-width:100%!important;max-width:none!important}
+ .reader-layer:not(.reader-photo) .sheet-column{width:max-content;min-width:100%}
+ .reader-layer:not(.reader-photo) .music-row{width:max-content;min-width:100%}
+ .reader-layer:not(.reader-photo) .chord-band{min-width:100%}
+ .reader-layer .lyric-line{font-size:var(--reader-font)!important;line-height:1.3!important;white-space:nowrap}
+ .reader-layer .lyric-line .syllable,.reader-layer .lyric-line .space-syl{font-size:inherit!important;line-height:inherit!important}
+ .reader-layer .lyric-line[role="button"]{cursor:pointer}
+ .reader-layer .lyric-line[role="button"]:focus-visible{outline:2px dashed #ad9157;outline-offset:4px}
+ .chord-label.unresolved{min-width:23px;min-height:24px}
+ .chord-label.unresolved .unresolved-spot{display:block;width:20px;height:1px;border-bottom:1px dotted #a77c55;opacity:.65}
+ .band-color-field{display:flex;align-items:center;gap:10px}
+ .band-color-field select{flex:1;min-width:0}
+ .band-color-preview{display:inline-block;width:44px;height:25px;border:1px solid #bfb7a9;border-radius:20px;flex-shrink:0}
+ .lyric-text-editor{width:100%;font:normal 17px/1.5 Georgia,"Times New Roman",serif!important;min-height:115px!important}
+ .section-lyric-editor{min-height:220px!important}
+ .song-edit-action{width:100%;margin:6px 0;min-height:44px}
+}
 </style>
   <title>Cantoria — Canti per la liturgia cattolica</title>
 </head>
@@ -583,6 +605,10 @@ function describeTonality(song,shift=0){
   return `${note} ${mode}`;
 }
 function chordLabel(c){return escape(transposeChord(c,state.shift)).replace(/(\d*[24])$/, s=>`<sup>${s}</sup>`);}
+function musicBandStyle(kind){
+ const color=window.CantoriaEditor?.bandColor(currentSong(),kind);
+ return color?`style="--band-color:${color}"`:'';
+}
 function chordOnlyBand(chords,kind,geometry,si=-1,rowIndex=-1,isPrint=false){
  const positioned=Array.isArray(geometry)&&geometry.length===chords.length&&
   geometry.every(g=>Number.isFinite(g.sourceX)&&g.sourceLineBBox?.x1>g.sourceLineBBox?.x0);
@@ -591,9 +617,9 @@ function chordOnlyBand(chords,kind,geometry,si=-1,rowIndex=-1,isPrint=false){
   const src=geometry?.[i],bbox=src?.sourceLineBBox;
   const x=positioned?100*(src.sourceX-bbox.x0)/(bbox.x1-bbox.x0):0;
   const tag=editable?'button':'span';
-  return `<${tag} class="chord-label ${editable?'editable':''}" ${positioned?`style="left:${x.toFixed(4)}%;position:absolute"`:''} ${editable?`type="button" data-action="edit-chord-only" data-section="${si}" data-row-index="${rowIndex}" data-chord="${i}" title="Tieni premuto per correggere"`:''}>${chordLabel(chord)}</${tag}>`;
+  return `<${tag} class="chord-label ${editable?'editable':''} ${chord==='?'?'unresolved':''}" ${positioned?`style="left:${x.toFixed(4)}%;position:absolute"`:''} ${editable?`type="button" data-action="edit-chord-only" data-section="${si}" data-row-index="${rowIndex}" data-chord="${i}" title="Tieni premuto per correggere"`:''}>${chord==='?'?'<span class="unresolved-spot" aria-hidden="true"></span>':chordLabel(chord)}</${tag}>`;
  }).join('');
- return `<div class="music-row ${escapeAttr(kind)} chords-only"><div class="chord-band" ${positioned?'style="display:block"':''}>${labels}</div></div>`;
+ return `<div class="music-row ${escapeAttr(kind)} chords-only" ${musicBandStyle(kind)}><div class="chord-band" ${positioned?'style="display:block"':''}>${labels}</div></div>`;
 }
 function introChords(section,si=-1,isPrint=false){return chordOnlyBand(section.chordsOnly,section.kind,section.chordsOnlyGeometry,si,-1,isPrint);}
 function outroChords(section,si=-1,isPrint=false){return (section.chordRows||[]).map((row,i)=>chordOnlyBand(row,section.kind,section.chordRowsGeometry?.[i],si,i,isPrint)).join('');}
@@ -606,11 +632,11 @@ function lineHTML(section,line,si,li,isPrint=false){
     const cIndex=Number.isInteger(a.anchorCharacterIndex)?a.anchorCharacterIndex:'';
     const offset=Number.isFinite(a.offsetX)?a.offsetX:'';
     const sourceWidth=Number.isFinite(a.sourceCharWidth)?a.sourceCharWidth:'';
-    return `<${tag} class="chord-label ${isPrint?'':'editable'} ${uncertain?'uncertain':''}" data-slot="${a.slot}" data-char-index="${cIndex}" data-offset-x="${offset}" data-source-char-width="${sourceWidth}" ${isPrint?'':`data-action="edit-chord" data-section="${si}" data-line="${li}" data-chord="${ai}"`} title="${escapeAttr(a.unresolved?'Simbolo musicale non riconosciuto (letto: '+(a.sourceSymbol||'?')+'). Tieni premuto e correggi.':uncertain?'Posizione da verificare sulla foto':'Accordo')}" aria-label="${a.unresolved?'Simbolo da verificare: ': 'Accordo '}${escapeAttr(a.chord)}${uncertain?' da verificare':''}">${chordLabel(a.chord)}</${tag}>`;
+    return `<${tag} class="chord-label ${isPrint?'':'editable'} ${uncertain?'uncertain':''} ${a.unresolved?'unresolved':''}" data-slot="${a.slot}" data-char-index="${cIndex}" data-offset-x="${offset}" data-source-char-width="${sourceWidth}" ${isPrint?'':`data-action="edit-chord" data-section="${si}" data-line="${li}" data-chord="${ai}"`} title="${escapeAttr(a.unresolved?'Simbolo musicale non riconosciuto (letto: '+(a.sourceSymbol||'?')+'). Tieni premuto e correggi.':uncertain?'Posizione da verificare sulla foto':'Accordo')}" aria-label="${a.unresolved?'Simbolo da verificare: ': 'Accordo '}${escapeAttr(a.chord)}${uncertain?' da verificare':''}">${a.unresolved?'<span class="unresolved-spot" aria-hidden="true"></span>':chordLabel(a.chord)}</${tag}>`;
   }).join('');
   // A photographed lyric without recognised chords needs no blank chord bar.
   const chordBand=chords||!line.sourceRowId?`<div class="chord-band">${chords}</div>`:'';
-  return `<div class="music-row ${escapeAttr(section.kind)}" data-row="s${si}-l${li}">${chordBand}<div class="lyric-line ${chordBand?'':'without-chords'}">${lyrics}</div></div>`;
+  return `<div class="music-row ${escapeAttr(section.kind)}" ${musicBandStyle(section.kind)} data-row="s${si}-l${li}">${chordBand}<div class="lyric-line ${chordBand?'':'without-chords'}" ${isPrint?'':`data-section="${si}" data-line="${li}" role="button" tabindex="0" aria-label="Modifica testo della riga"`}>${lyrics}</div></div>`;
 }
 function groupHeading(label,continued=false){return `<div class="section-title ${continued?'continued':''}">${escape(label)}${continued?' · segue':''}</div>`;}
 function sectionsAllHTML(song,isPrint=false){return (song.sections||[]).map((sec,si)=>`<section class="music-group ${isPrint?'print-section':''}">${groupHeading(sec.name)}${sec.chordsOnly?introChords(sec,si,isPrint):''}${(sec.lines||[]).map((ln,li)=>lineHTML(sec,ln,si,li,isPrint)).join('')}${sec.chordRows?outroChords(sec,si,isPrint):''}</section>`).join('');}
@@ -1009,21 +1035,7 @@ function alignChords(scope=document){
   if(right>band.clientWidth)band.style.width=Math.ceil(right)+'px';
  }
 }
-function fitReaderRows(){
- const paper=document.querySelector('#readerPaper');
- if(!paper)return;
- for(const row of paper.querySelectorAll('.music-row:not(.chords-only)')){
-  const line=row.querySelector('.lyric-line');
-  const band=row.querySelector('.chord-band');
-  if(!line)continue;
-  let font=Number.parseFloat(getComputedStyle(line).fontSize);
-  const maxWidth=(band?.clientWidth||row.clientWidth)-10;
-  for(let i=0;i<32&&line.getBoundingClientRect().width>maxWidth&&font>12;i++){
-   font-=.5;line.style.fontSize=font+'px';
-  }
- }
-}
-function render(){const oldStage=document.querySelector('#readerStage'),oldReader=document.querySelector('#readerLayer');const oldSong=oldReader?.dataset.song,oldScroll=oldStage?.scrollTop||0;root.innerHTML=appHTML();requestAnimationFrame(()=>{fitReaderRows();alignChords();const newStage=document.querySelector('#readerStage'),newReader=document.querySelector('#readerLayer');if(newStage&&oldSong===newReader?.dataset.song&&newReader?.classList.contains('reader-portrait'))newStage.scrollTop=oldScroll;});}
+function render(){const oldStage=document.querySelector('#readerStage'),oldReader=document.querySelector('#readerLayer');const oldSong=oldReader?.dataset.song,oldScroll=oldStage?.scrollTop||0;root.innerHTML=appHTML();requestAnimationFrame(()=>{alignChords();const newStage=document.querySelector('#readerStage'),newReader=document.querySelector('#readerLayer');if(newStage&&oldSong===newReader?.dataset.song&&newReader?.classList.contains('reader-portrait'))newStage.scrollTop=oldScroll;});}
 function compressScorePhoto(file){
  if(!file.type.startsWith('image/')||file.size>25000000)return Promise.reject(new Error('Formato o dimensione non supportati'));
  return new Promise((resolve,reject)=>{
@@ -1438,5 +1450,6 @@ if('serviceWorker'in navigator&&location.protocol.startsWith('http'))window.addE
 render();</script>
 <script src="./score-ocr.js"></script>
 <script src="./score-geometry.js"></script>
+  <script src="./score-editor.js"></script>
 </body>
 </html>
