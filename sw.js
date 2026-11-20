@@ -1,4 +1,4 @@
-const CACHE='cantoria-shell-v0.6.9-photo-reference-pdf-20261120';
+const CACHE='cantoria-shell-v0.7.0-vision-apple-intelligence-20261120';
 const FILES=['./','./index.html','./score-ocr.js','./score-geometry.js','./score-editor.js','./manifest.webmanifest','./assets/cantoria-icona-ufficiale-045.png'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(FILES)));self.skipWaiting();});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));self.clients.claim();});

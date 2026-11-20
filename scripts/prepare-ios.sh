@@ -23,9 +23,49 @@ if [[ ! -d ios/App/App.xcodeproj ]]; then
 fi
 npx cap sync ios
 
-# Roll back the experimental custom iOS ViewController (0.6.3), which was
-# introduced immediately before a reported black launch screen.
-# Keep Capacitor's stock WebView lifecycle until runtime startup is confirmed.
+# Register a local native plugin at capacitorDidLoad(), before WebView loading.
+# To prevent the old "Unknown class" black screen, the ViewController subclass
+# is appended to AppDelegate.swift, which is confirmed in the Xcode Sources phase.
+# Its explicit Obj-C runtime name is used by Main.storyboard without a module
+# qualifier; the class is guaranteed to compile in the existing App target.
+app_delegate="ios/App/App/AppDelegate.swift"
+storyboard="ios/App/App/Base.lproj/Main.storyboard"
+project="ios/App/App.xcodeproj/project.pbxproj"
+python3 - "$app_delegate" "$storyboard" "$project" <<'PY'
+import sys
+from pathlib import Path
+
+app, storyboard, project = map(Path, sys.argv[1:])
+src = app.read_text(encoding='utf-8')
+if 'import Capacitor' not in src:
+    raise SystemExit('Capacitor AppDelegate template missing')
+if 'AppDelegate.swift in Sources' not in project.read_text(encoding='utf-8'):
+    raise SystemExit('AppDelegate.swift is not compiled into the iOS target')
+if 'import FoundationModels' not in src:
+    src = src.replace(
+        'import Capacitor',
+        'import Capacitor\nimport FoundationModels\nimport Vision', 1
+    )
+native = Path('native/CantoriaIntelligencePlugin.swift').read_text(encoding='utf-8')
+if '@objc(CantoriaBridgeViewController)' not in native:
+    raise SystemExit('Native compiled ViewController class missing')
+app.write_text(src + '\n' + native, encoding='utf-8')
+
+xml = storyboard.read_text(encoding='utf-8')
+old = 'customClass="CAPBridgeViewController" customModule="Capacitor"'
+if xml.count(old) != 1:
+    raise SystemExit('Unexpected storyboard bridge class; refusing unsafe modification')
+xml = xml.replace(old, 'customClass="CantoriaBridgeViewController"', 1)
+storyboard.write_text(xml, encoding='utf-8')
+PY
+
+grep -q 'CantoriaBridgeViewController: CAPBridgeViewController' "$app_delegate"
+grep -q 'bridge?.registerPluginInstance(CantoriaIntelligencePlugin())' "$app_delegate"
+grep -q 'customClass="CantoriaBridgeViewController"' "$storyboard"
+if grep -q 'customModule="App"' "$storyboard"; then
+  echo "Refusing module-qualified storyboard class (black-screen risk)" >&2
+  exit 1
+fi
 
 # Required prompts for photo-based song capture on iOS.
 plist="ios/App/App/Info.plist"

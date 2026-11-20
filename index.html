@@ -460,6 +460,15 @@
  .band-chord-list{display:grid;gap:7px;margin:14px 0}
  .band-chord-list button{justify-content:flex-start;width:100%;text-align:left}
 }
+
+ .photo-analysis-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-bottom:8px}
+ .photo-analysis-actions button{width:100%;min-width:0;min-height:51px;padding:8px 6px;margin:0!important;
+  font-size:clamp(11.5px,3.05vw,14px);line-height:1.3;white-space:normal;text-wrap:balance}
+ .photo-analysis-actions .apple-ai-button{background:#284d41;color:#fff;border-color:#284d41}
+ .photo-analysis-actions .apple-ai-button:disabled{background:#e6e7e4;color:#7a847d;border-color:#c4ccc5;opacity:1}
+ .apple-ai-availability{font-size:11px;color:#717970;line-height:1.4;margin:1px 0 9px}
+ .apple-ai-availability.available{color:#426c4e}
+
 </style>
   <title>Cantoria — Canti per la liturgia cattolica</title>
 </head>
@@ -773,9 +782,18 @@ function photoOcrFormHTML(inReader=false) {
  const ready=draft.trim().length>0&&!!state.geometryDraft?.hasGeometry&&
   state.geometryDraft.sections?.some(s=>s.lines?.length)&&draft.trim()===state.geometryRawText;
  return '<section class="photo-ocr-panel" aria-label="Riconoscimento foto">' +
-  '<button type="button" class="outline-btn photo-ocr-start" data-action="recognize-photo"' + (state.ocrBusy?' disabled':'') + '>' +
-  (state.ocrBusy?'Riconoscimento in corso…':'Riconosci testo e accordi') + '</button>' +
-  (ready&&state.appleAIAvailable?'<button type="button" class="outline-btn apple-ai-button" data-action="improve-photo-apple"'+(state.appleAIBusy?' disabled':'')+'>✦ '+(state.appleAIBusy?'Apple Intelligence in corso…':'Migliora con Apple Intelligence')+'</button>':'') +
+  '<div class="photo-analysis-actions" role="group" aria-label="Scegli il tipo di analisi">' +
+  '<button type="button" class="outline-btn photo-ocr-start" data-action="recognize-photo"' +
+  ((state.ocrBusy||state.appleAIBusy)?' disabled':'') + '>◉ ' +
+  (state.ocrBusy&&!state.appleAIBusy?'Analisi…':'Classica') + '</button>' +
+  '<button type="button" class="primary-btn apple-ai-button" data-action="recognize-apple"' +
+  ((!state.appleAIAvailable||state.ocrBusy||state.appleAIBusy)?' disabled':'') +
+  ' title="Apple Vision e Apple Intelligence, solo su dispositivi compatibili">✦ ' +
+  (state.appleAIBusy?'AI in corso…':'Apple Intelligence') + '</button>' +
+  '</div>' +
+  (!state.appleAIAvailable?
+    '<p class="apple-ai-availability" id="appleAIAvailability">Apple Intelligence si attiva solo sui dispositivi compatibili, con il modello disponibile e abilitato. L’analisi classica funziona comunque.</p>':
+    '<p class="apple-ai-availability available">Apple Vision e Apple Intelligence sul dispositivo · nessun costo per analisi.</p>') +
    (state.appleSuggestions.length?'<div class="apple-ai-suggestions" role="status"><p>'+state.appleSuggestions.length+' suggerimenti da verificare:</p><ul>'+state.appleSuggestions.map(x=>'<li>'+escape(x.before)+' → <strong>'+escape(x.after)+'</strong> · '+escape(x.reason)+'</li>').join('')+'</ul><button type="button" class="primary-btn" data-action="apply-apple-suggestions">Applica suggerimenti</button><button type="button" class="outline-btn" data-action="discard-apple-suggestions">Scarta</button></div>':'') +
    '<p class="photo-ocr-status" id="ocrStatus" aria-live="polite">' +
   escape(state.ocrStatus||'Dopo la lettura, correggi le parole e gli accordi.') + '</p>' +
@@ -801,38 +819,54 @@ function photoSectionsFromText(text){
  if(!sections.some(s=>s.lines?.length))throw new Error('Nessuna riga di canto riconosciuta con coordinate geometriche. Salva la foto e riprova.');
  return sections;
 }
-async function recognizePhotoText(replaceExisting=false){
- if(state.ocrBusy)return;
+async function recognizePhotoText(replaceExisting=false,mode='classic'){
+ if(state.ocrBusy||state.appleAIBusy)return;
+ if(mode==='apple'&&!state.appleAIAvailable){
+  notify('Apple Intelligence non disponibile. Usa Classica oppure abilita Apple Intelligence sul dispositivo.');
+  return;
+ }
  if(!state.songId)state.photoTitle=document.getElementById("photoSongTitle")?.value||state.photoTitle||"";
  const image=state.songId?currentSong()?.photoData:state.photoURL;
  if(!image){notify('Prima scatta o scegli una foto.');return;}
- state.ocrBusy=true;state.ocrStatus='Caricamento motore OCR…';render();
+ state.ocrBusy=true;state.ocrStatus=mode==='apple'?'Apple Vision: lettura della foto sul dispositivo…':'Caricamento motore OCR…';render();
  let worker;
  try{
-  await loadOcrLibrary();
-  worker=await window.Tesseract.createWorker('ita+eng',1,{logger:message=>{
-   if(message.status==='recognizing text'&&typeof message.progress==='number'){
-    state.ocrStatus='Lettura del testo: '+Math.round(message.progress*100)+'%';
-   }else if(message.status==='loading language traineddata'){
-    state.ocrStatus='Caricamento lingua italiana e inglese…';
-   }
-   const status=document.getElementById('ocrStatus');
-   if(status)status.textContent=state.ocrStatus;
-  }});
-  state.ocrStatus='Analisi della fotografia…';
-  await worker.setParameters({preserve_interword_spaces:"1"});
-  // Explicitly request measured word/character boxes alongside the text.
-  // Never infer chord positions from whitespace-only OCR output.
-  const result=await worker.recognize(image, {}, {text:true,blocks:true});
+  let result;
+  if(mode==='apple'){
+   const native=nativeAppleIntelligence();
+   if(!native)throw new Error('Plugin Apple Intelligence non disponibile');
+   const data=await native.recognize({image});
+   result={data};
+  }else{
+   await loadOcrLibrary();
+   worker=await window.Tesseract.createWorker('ita+eng',1,{logger:message=>{
+    if(message.status==='recognizing text'&&typeof message.progress==='number'){
+     state.ocrStatus='Lettura del testo: '+Math.round(message.progress*100)+'%';
+    }else if(message.status==='loading language traineddata'){
+     state.ocrStatus='Caricamento lingua italiana e inglese…';
+    }
+    const status=document.getElementById('ocrStatus');
+    if(status)status.textContent=state.ocrStatus;
+   }});
+   state.ocrStatus='Analisi classica della fotografia…';
+   await worker.setParameters({preserve_interword_spaces:"1"});
+   result=await worker.recognize(image, {}, {text:true,blocks:true});
+  }
   state.ocrText=String(result.data?.text||'').trim().slice(0,20000);
    state.appleSuggestions=[];
   state.geometryRawText=state.ocrText;
   state.geometryDraft=window.CantoriaGeometry?.parseGeometry(result.data)||null;
+  if(mode==='apple'&&state.geometryDraft?.hasGeometry&&state.geometryDraft?.sections?.some(s=>s.lines?.length)){
+   state.ocrStatus='Apple Intelligence: controllo delle sigle incerte…';
+   await improvePhotoWithApple();
+  }
   const diag=state.geometryDraft?.diagnostics;
   if(!state.geometryDraft?.sections?.some(s=>s.lines?.length)){
    state.ocrStatus='Non sono disponibili coordinate sufficienti per associare gli accordi. Salva la foto e riprova.';
   }else{
-   state.ocrStatus='Coordinate conservate. '+diag.totalAnchored+' accordi associati; '+diag.needsReview+' associazioni da verificare con l’originale.';
+   state.ocrStatus='Coordinate conservate. '+diag.totalAnchored+' accordi associati; '+diag.needsReview+
+    ' associazioni da verificare con l’originale.'+
+    (mode==='apple'?' Apple Intelligence: '+state.appleSuggestions.length+' suggerimenti da controllare.':'');
    if(replaceExisting){
     const song=currentSong();
     if(song?.photoData){
@@ -852,7 +886,9 @@ async function recognizePhotoText(replaceExisting=false){
   }
  }catch(err){
   console.error('OCR:',err);
-  state.ocrStatus='OCR non riuscito. Verifica la connessione e riprova; la foto resta disponibile.';
+  state.ocrStatus=mode==='apple'?
+    'Lettura Apple non riuscita. Puoi provare Classica: la foto è conservata.':
+    'OCR non riuscito. Verifica la connessione e riprova; la foto resta disponibile.';
  }finally{
   if(worker){try{await worker.terminate();}catch(err){console.warn('Chiusura OCR:',err);}}
   state.ocrBusy=false;render();
@@ -873,39 +909,74 @@ async function probeAppleIntelligence(){
  }catch(err){state.appleAIAvailable=false;}
  finally{state.appleAIProbeBusy=false;}
 }
-function proposedAppleCorrections(output){
+function proposedAppleCorrections(output,eligible){
  let raw=String(output||'').trim();
- if(!raw.startsWith('[')){const a=raw.indexOf('['),b=raw.lastIndexOf(']');if(a<0||b<a)return [];raw=raw.slice(a,b+1);}
- const changes=JSON.parse(raw);if(!Array.isArray(changes))return [];
- return changes.slice(0,35).flatMap(x=>{
+ if(!raw.startsWith('[')){
+  const a=raw.indexOf('['),b=raw.lastIndexOf(']');
+  if(a<0||b<a)return [];
+  raw=raw.slice(a,b+1);
+ }
+ const changes=JSON.parse(raw);
+ if(!Array.isArray(changes))return [];
+ return changes.slice(0,40).flatMap(x=>{
   const si=Number(x.si),li=Number(x.li),ai=Number(x.ai);
   if(![si,li,ai].every(Number.isInteger))return [];
+  if(eligible&&!eligible.has(si+':'+li+':'+ai))return [];
   const anchor=state.geometryDraft?.sections?.[si]?.lines?.[li]?.anchors?.[ai];
   if(!anchor||anchor.verified)return [];
-  const after=window.CantoriaOCR?.chordName(x.chord)||'';
+  const after=window.CantoriaOCR?.chordName(String(x.chord||''))||'';
   if(!after||after===anchor.chord)return [];
-  return [{si,li,ai,before:anchor.chord,after,reason:String(x.reason||'Da verificare sulla foto').slice(0,130)}];
+  return {si,li,ai,before:anchor.chord,after,
+   reason:String(x.reason||'Controlla sulla fotografia').slice(0,130)};
  });
 }
 async function improvePhotoWithApple(){
- const plugin=nativeAppleIntelligence();
- if(!plugin||!state.appleAIAvailable||state.appleAIBusy)return;
+ const native=nativeAppleIntelligence();
+ if(!native||!state.appleAIAvailable||state.appleAIBusy)return;
  if(!state.geometryDraft?.hasGeometry||state.ocrText.trim()!==state.geometryRawText)return;
+ // Candidates retain original chord glyphs, coordinates and nearby Italian lyrics.
+ // Prioritize uncertain glyphs to avoid unnecessary local-model inference.
  const candidates=[];
  state.geometryDraft.sections.forEach((section,si)=>(section.lines||[]).forEach((line,li)=>
   (line.anchors||[]).forEach((anchor,ai)=>{
-   if(anchor.needsReview&&!anchor.verified&&candidates.length<35)candidates.push({si,li,ai,source:anchor.sourceSymbol||anchor.chord,chord:anchor.chord,lyric:line.marked.slice(0,120)});
+   if(!anchor.verified&&candidates.length<54)candidates.push({
+    si,li,ai,source:String(anchor.sourceSymbol||anchor.chord||'').slice(0,20),
+    chord:anchor.chord,sourceX:Number(anchor.sourceX)||0,
+    uncertain:!!anchor.unresolved,lyric:line.marked.slice(0,125),
+    section:section.kind
+   });
   })));
- if(!candidates.length){notify('Nessun accordo incerto da analizzare.');return;}
+ if(!candidates.length){
+  state.ocrStatus='Apple Vision ha letto la partitura: non ci sono accordi incerti da revisionare.';
+  return;
+ }
  state.appleAIBusy=true;state.appleSuggestions=[];render();
  try{
-  const result=await plugin.improve({candidates:JSON.stringify(candidates)});
-  state.appleSuggestions=proposedAppleCorrections(result?.suggestion||'');
-  notify(state.appleSuggestions.length?'Suggerimenti pronti: controllali prima di applicarli.':'Nessuna correzione affidabile proposta.');
- }catch(err){console.error('Apple Intelligence:',err);notify('Apple Intelligence non disponibile per questa analisi.');}
- finally{state.appleAIBusy=false;render();}
+  const changes=[];
+  for(let offset=0;offset<candidates.length;offset+=18){
+   const batch=candidates.slice(offset,offset+18);
+   state.ocrStatus='Apple Intelligence: controllo '+(offset+1)+'–'+
+     Math.min(offset+batch.length,candidates.length)+' di '+candidates.length+' accordi…';
+   const result=await native.improve({candidates:JSON.stringify(batch)});
+   const allowed=new Set(batch.map(x=>x.si+':'+x.li+':'+x.ai));
+   changes.push(...proposedAppleCorrections(result?.suggestion||'[]',allowed));
+  }
+  const seen=new Set();
+  state.appleSuggestions=changes.filter(x=>{
+   const key=x.si+':'+x.li+':'+x.ai;
+   if(seen.has(key))return false;
+   seen.add(key);return true;
+  }).slice(0,40);
+  if(state.appleSuggestions.length){
+   notify(state.appleSuggestions.length+' correzioni proposte: controllale prima di applicarle.');
+  }else{
+   state.ocrStatus='Apple Vision ha letto la foto; il modello non propone correzioni musicali sicure.';
+  }
+ }catch(err){
+  console.error('Apple Intelligence:',err);
+  state.ocrStatus='Apple Vision ha completato la lettura, ma la revisione AI non è riuscita. Puoi correggere manualmente.';
+ }finally{state.appleAIBusy=false;render();}
 }
-
 function captureHTML(){
  return `<div class="page-heading"><div><h1>Acquisisci un canto</h1></div></div>
   <section class="panel capture-photo-card">
@@ -922,7 +993,7 @@ function captureHTML(){
      </form>`:`<p class="photo-capture-hint">Fotografa lo spartito per iniziare.</p>`}
   </section>`;
 }
-function settingsHTML(){return `<div class="page-heading"><div><div class="eyebrow">Versione 0.6.9</div><h1>Impostazioni</h1></div></div><div class="form-wrap"><div class="panel"><h3>Dati e salvataggi</h3><p>I canti e le scalette sono attualmente memorizzati <strong>solo nel browser di questo dispositivo</strong>. Non sono ancora sincronizzati su iCloud o GitHub.</p><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px"><button class="outline-btn" data-action="backup">Scarica backup JSON</button><label class="outline-btn" style="cursor:pointer">Ripristina backup<input type="file" id="backupInput" accept="application/json" style="display:none"></label></div></div><div class="panel"><h3>Ultimo aggiornamento</h3><p>Scopri le modifiche e le migliorie introdotte con la versione più recente.</p><button type="button" class="outline-btn" data-action="show-release-notes">Novità dell'ultima versione</button></div><div class="panel"><h3>Modello musicale</h3><p>Gli accordi delle fotografie conservano anche coordinate OCR, indice del carattere e livello di affidabilità. La disposizione grafica non cambia il loro ancoraggio musicale.</p><div class="alert" style="margin-top:15px">OCR geometrico sperimentale: dove sono disponibili soltanto i riquadri delle parole gli ancoraggi ai caratteri sono stimati e sempre da verificare. Se mancano le coordinate, l'app non inventa una posizione. Le note sul pentagramma non sono ancora riconosciute.</div></div></div>`;}
+function settingsHTML(){return `<div class="page-heading"><div><div class="eyebrow">Versione 0.7.0</div><h1>Impostazioni</h1></div></div><div class="form-wrap"><div class="panel"><h3>Dati e salvataggi</h3><p>I canti e le scalette sono attualmente memorizzati <strong>solo nel browser di questo dispositivo</strong>. Non sono ancora sincronizzati su iCloud o GitHub.</p><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px"><button class="outline-btn" data-action="backup">Scarica backup JSON</button><label class="outline-btn" style="cursor:pointer">Ripristina backup<input type="file" id="backupInput" accept="application/json" style="display:none"></label></div></div><div class="panel"><h3>Ultimo aggiornamento</h3><p>Scopri le modifiche e le migliorie introdotte con la versione più recente.</p><button type="button" class="outline-btn" data-action="show-release-notes">Novità dell'ultima versione</button></div><div class="panel"><h3>Modello musicale</h3><p>Gli accordi delle fotografie conservano anche coordinate OCR, indice del carattere e livello di affidabilità. La disposizione grafica non cambia il loro ancoraggio musicale.</p><div class="alert" style="margin-top:15px">OCR geometrico sperimentale: dove sono disponibili soltanto i riquadri delle parole gli ancoraggi ai caratteri sono stimati e sempre da verificare. Se mancano le coordinate, l'app non inventa una posizione. Le note sul pentagramma non sono ancora riconosciute.</div></div></div>`;}
 function appHTML(){
  const views={home:homeHTML,library:libraryHTML,masses:massesHTML,capture:captureHTML,settings:settingsHTML};
  const builder=views[state.view]||homeHTML;
@@ -1037,7 +1108,7 @@ function modalHTML(){const m=state.modal;
   const song=currentSong();if(!song?.photoData)return '';
   return `<div class="modal-shade"><div class="modal-card" role="alertdialog" aria-modal="true" aria-label="Conferma ricalcolo accordi"><h2>Ricalcolare gli accordi?</h2><p>La partitura verrà ricalcolata dalla fotografia originale con le coordinate OCR. Le modifiche manuali fatte sulle sillabe e sugli accordi saranno sostituite. La fotografia originale resterà disponibile.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button type="button" class="primary-btn" data-action="reparse-photo">Ricalcola accordi</button></div></div></div>`;
  }
- if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità dell'ultima versione"><h2>Novità dell'ultima versione</h2><p><strong>Versione 0.6.9:</strong> PDF ridisegnato secondo il riferimento approvato: intestazioni, separatori dorati, primo ritornello azzurro, strofe verdi, ritornello ripetuto arancione, font unico e accordi affiancati senza impilamento verticale. La ricostruzione delle sezioni considera i versi ripetuti e il parser filtra i frammenti OCR evidentemente danneggiati. Per i brani precedenti usa Riconosci di nuovo dalla fotografia o importa una partitura verificata.</p><p><strong>Versione 0.6.8:</strong> tieni premuto su uno spazio vuoto della pill accordi per scegliere il colore esclusivamente di quella fascia. Tieni premuto direttamente su un accordo per correggerlo. Ogni colore viene salvato nel brano, anche su introduzioni e finali, e può tornare al colore della sezione.</p><p><strong>Versione 0.6.7:</strong> la frase più lunga determina la dimensione unica del testo per tutto il brano: nessun verso esce dal display e non è necessario scorrere orizzontalmente. Le pill colorate si modificano tenendo premuto in qualsiasi punto della fascia degli accordi; puoi correggere o aggiungere accordi senza impilarli. Restano attivi la modifica delle parole con un tocco, i colori per sezione e il comando Salva brano nel menu ☰.</p><p><strong>Versione 0.6.6:</strong> testo del canto con carattere uniforme senza riduzioni per riga; rimozione dei simboli grafici letti dall'OCR; modifica delle parole toccando una riga o un'intera sezione dal menu ☰; scelta e salvataggio dei colori delle pill separatamente per Intro, Strofa, Ritornello e Finale. Gli accordi non letti non mostrano simboli inventati. Per ripulire brani già acquisiti usa ☰ → Riconosci di nuovo dalla fotografia (prima salva un backup se hai fatto correzioni manuali).</p><p><strong>Nuovo riconoscimento 0.6.5:</strong> le righe di accordi in maiuscolo/minuscolo misto (Sol Do Sol Re, Mi- Si- Do Re) vengono riconosciute sopra il testo, gli accordi dubbi restano modificabili e le intestazioni numerate non vengono cantate. Per i brani già acquisiti, dal menu ☰ usa Riconosci di nuovo dalla fotografia; il ricalcolo sostituisce eventuali modifiche manuali.</p><p><strong>Acquisizione da fotografia:</strong> le sigle difficili come SIm M7 o SIm MI/7 restano nella fascia degli accordi, anche quando l'OCR ne riconosce soltanto una parte. I simboli incerti sono segnalati con ?, senza spostarli nel testo.</p><p><strong>Pulizia e leggibilità:</strong> eliminati i simboli estranei come @ e le scritte dei comandi del dispositivo; le righe senza accordi non generano fasce vuote. Riconosciuta l'indicazione RIT all'inizio del ritornello.</p><p><strong>Verifica musicale:</strong> ogni accordo mantiene la propria posizione OCR; quelli incerti richiedono correzione sulla fotografia originale. Restano disponibili la modifica manuale, Elimina partitura e la dichiarazione automatica della crittografia esente.</p><p><strong>Versione 0.6.3:</strong> MI/7 riconosciuto; accordi affiancati senza impilamento; accordi di introduzione e finale modificabili; Salva brano nel menu ☰; Apple Intelligence sarà riattivata dopo la verifica del componente nativo: per sicurezza resta momentaneamente disabilitata.</p><p>Il riconoscimento delle note sul pentagramma non è ancora disponibile e gli accordi restano da verificare rispetto all'originale.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
+ if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità dell'ultima versione"><h2>Novità dell'ultima versione</h2><p><strong>Versione 0.7.0:</strong> due pulsanti affiancati nell'acquisizione: Classica (motore OCR tradizionale) e Apple Intelligence (Apple Vision sul dispositivo con lettura delle parole e coordinate, poi revisione locale dei simboli musicali incerti mediante Foundation Models). Il secondo pulsante è attivo solo sui dispositivi compatibili, senza costi API. Le correzioni proposte restano da confermare. Conservati l'editing delle parole, gli accordi e i colori delle pill, il PDF e Salva brano.</p><p><strong>Versione 0.6.9:</strong> PDF ridisegnato secondo il riferimento approvato: intestazioni, separatori dorati, primo ritornello azzurro, strofe verdi, ritornello ripetuto arancione, font unico e accordi affiancati senza impilamento verticale. La ricostruzione delle sezioni considera i versi ripetuti e il parser filtra i frammenti OCR evidentemente danneggiati. Per i brani precedenti usa Riconosci di nuovo dalla fotografia o importa una partitura verificata.</p><p><strong>Versione 0.6.8:</strong> tieni premuto su uno spazio vuoto della pill accordi per scegliere il colore esclusivamente di quella fascia. Tieni premuto direttamente su un accordo per correggerlo. Ogni colore viene salvato nel brano, anche su introduzioni e finali, e può tornare al colore della sezione.</p><p><strong>Versione 0.6.7:</strong> la frase più lunga determina la dimensione unica del testo per tutto il brano: nessun verso esce dal display e non è necessario scorrere orizzontalmente. Le pill colorate si modificano tenendo premuto in qualsiasi punto della fascia degli accordi; puoi correggere o aggiungere accordi senza impilarli. Restano attivi la modifica delle parole con un tocco, i colori per sezione e il comando Salva brano nel menu ☰.</p><p><strong>Versione 0.6.6:</strong> testo del canto con carattere uniforme senza riduzioni per riga; rimozione dei simboli grafici letti dall'OCR; modifica delle parole toccando una riga o un'intera sezione dal menu ☰; scelta e salvataggio dei colori delle pill separatamente per Intro, Strofa, Ritornello e Finale. Gli accordi non letti non mostrano simboli inventati. Per ripulire brani già acquisiti usa ☰ → Riconosci di nuovo dalla fotografia (prima salva un backup se hai fatto correzioni manuali).</p><p><strong>Nuovo riconoscimento 0.6.5:</strong> le righe di accordi in maiuscolo/minuscolo misto (Sol Do Sol Re, Mi- Si- Do Re) vengono riconosciute sopra il testo, gli accordi dubbi restano modificabili e le intestazioni numerate non vengono cantate. Per i brani già acquisiti, dal menu ☰ usa Riconosci di nuovo dalla fotografia; il ricalcolo sostituisce eventuali modifiche manuali.</p><p><strong>Acquisizione da fotografia:</strong> le sigle difficili come SIm M7 o SIm MI/7 restano nella fascia degli accordi, anche quando l'OCR ne riconosce soltanto una parte. I simboli incerti sono segnalati con ?, senza spostarli nel testo.</p><p><strong>Pulizia e leggibilità:</strong> eliminati i simboli estranei come @ e le scritte dei comandi del dispositivo; le righe senza accordi non generano fasce vuote. Riconosciuta l'indicazione RIT all'inizio del ritornello.</p><p><strong>Verifica musicale:</strong> ogni accordo mantiene la propria posizione OCR; quelli incerti richiedono correzione sulla fotografia originale. Restano disponibili la modifica manuale, Elimina partitura e la dichiarazione automatica della crittografia esente.</p><p><strong>Versione 0.6.3:</strong> MI/7 riconosciuto; accordi affiancati senza impilamento; accordi di introduzione e finale modificabili; Salva brano nel menu ☰; Apple Intelligence sarà riattivata dopo la verifica del componente nativo: per sicurezza resta momentaneamente disabilitata.</p><p>Il riconoscimento delle note sul pentagramma non è ancora disponibile e gli accordi restano da verificare rispetto all'originale.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
 
  if(m.type==='song-options'){
   const song=currentSong();if(!song)return '';
@@ -1494,13 +1565,14 @@ root.addEventListener('click',e=>{
   state.modal=null;state.page=0;recognizePhotoText(true);return;
  }
  if(action==='recognize-photo'){recognizePhotoText();return;}
+  if(action==='recognize-apple'){recognizePhotoText(false,'apple');return;}
   if(action==='improve-photo-apple'){improvePhotoWithApple();return;}
   if(action==='discard-apple-suggestions'){state.appleSuggestions=[];render();return;}
   if(action==='apply-apple-suggestions'){
    let applied=0;
    for(const x of state.appleSuggestions){
     const anchor=state.geometryDraft?.sections?.[x.si]?.lines?.[x.li]?.anchors?.[x.ai];
-    if(anchor&&!anchor.verified&&anchor.chord===x.before){anchor.chord=x.after;anchor.symbol=x.after;anchor.needsReview=true;applied++;}
+    if(anchor&&!anchor.verified&&anchor.chord===x.before){anchor.chord=x.after;anchor.symbol=x.after;anchor.unresolved=false;anchor.needsReview=true;applied++;}
    }
    state.appleSuggestions=[];render();notify(applied+' suggerimenti applicati alla bozza. Verifica sulla foto.');return;
   }
@@ -1668,7 +1740,8 @@ root.addEventListener('change',async e=>{
  }
  if(e.target.id==='songKeyInline'){const song=currentSong();if(song){song.key=e.target.value;persist();render();}return;}if(e.target.id==='songImportInput'){const file=e.target.files?.[0];if(!file)return;try{if(file.size>3000000)throw new Error('File troppo grande');const song=importSongFile(await file.text());notify('Brano importato: '+song.title);}catch(err){notify('Importazione non riuscita: '+err.message);}return;}if(e.target.id==='photoCameraInput'||e.target.id==='photoLibraryInput'){
  const file=e.target.files?.[0];if(!file)return;
- try{state.photoURL=await compressScorePhoto(file);state.photoTitle='';state.ocrText='';state.geometryDraft=null;state.geometryRawText='';state.ocrStatus='';render();}
+ try{state.photoURL=await compressScorePhoto(file);state.photoTitle='';state.ocrText='';state.geometryDraft=null;state.geometryRawText='';state.ocrStatus='';state.appleSuggestions=[];render();
+  setTimeout(probeAppleIntelligence,250);}
  catch(err){console.error(err);notify('Impossibile aprire la foto. Prova un file JPEG o PNG.');}
  return;
 }if(e.target.id==='backupInput'){const file=e.target.files?.[0];if(!file)return;try{const data=importJSON(await file.text());store.songs=data.songs.map(normalizedSong);store.masses=data.masses;persist();state.view='library';notify('Backup ripristinato.');}catch(err){notify('Impossibile leggere il backup.');}}});
@@ -1777,7 +1850,14 @@ root.addEventListener('touchend',e=>{if(!e.target.closest('#readerPaper'))return
 window.addEventListener('resize',()=>{if(state.songId){state.page=0;render();}});
 window.addEventListener('beforeprint',()=>{const holder=document.querySelector('#print-sheet');if(holder&&currentSong()&&!holder.innerHTML)holder.innerHTML=`<div class="print-body"><div class="print-head">${escape(currentSong().title)}</div>${sectionsAllHTML(currentSong(),true)}</div>`;alignChords(holder||document);});
 if('serviceWorker'in navigator&&location.protocol.startsWith('http'))window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
-render();</script>
+render();
+ // The plugin is registered only after the stock Capacitor bridge is ready;
+ // capability probing never runs a model or processes the user's photograph.
+ setTimeout(probeAppleIntelligence,900);
+ setTimeout(probeAppleIntelligence,2600);
+ window.addEventListener('focus',probeAppleIntelligence);
+ window.addEventListener('pageshow',probeAppleIntelligence);
+</script>
 <script src="./score-ocr.js"></script>
 <script src="./score-geometry.js"></script>
   <script src="./score-editor.js"></script>
