@@ -41,8 +41,10 @@ assert.ok(prepare.includes('CantoriaBridgeViewController: CAPBridgeViewControlle
 assert.ok(prepare.includes('AppDelegate.swift in Sources'));
 assert.ok(prepare.includes('customClass="CantoriaBridgeViewController"'));
 assert.ok(prepare.includes('Unexpected storyboard bridge class'));
-assert.ok(!prepare.includes('customModule="App"'),
-  'Storyboard class has an explicit Obj-C runtime name, avoiding module mismatch');
+assert.ok(prepare.includes("xml.replace(old, 'customClass=\"CantoriaBridgeViewController\"'"),
+  'Storyboard class must be replaced with its explicit Obj-C name');
+assert.ok(prepare.includes('Refusing module-qualified storyboard class'),
+  'Build must reject a module-qualified native controller');
 assert.ok(!prepare.includes('CantoriaIntelligenceBootstrap.register'),
   'Do not register after WebView load: JS plugin headers would be missing');
 assert.ok(!prepare.includes('cp native/CantoriaViewController.swift'),
