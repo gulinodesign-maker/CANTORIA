@@ -15,6 +15,7 @@ jobs:
           node scripts/test-photo-ocr.js
           node scripts/test-photo-geometry.js
           node scripts/test-editor.js
+          node scripts/test-reader-fit.js
       - name: Check inline JS and generate a sample PDF
         run: |
           node - <<'NODE'
