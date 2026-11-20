@@ -254,4 +254,49 @@ assert.ok(!fs.readFileSync('scripts/prepare-ios.sh','utf8').includes('cp native/
 assert.ok(!html.includes('render();probeAppleIntelligence()'), 'Native model probe must not run at startup');
 assert.ok(fs.readFileSync('scripts/prepare-ios.sh','utf8').includes('ITSAppUsesNonExemptEncryption bool false'));
 assert.ok(fs.readFileSync('.github/workflows/ios-testflight-auto.yml','utf8').includes('Verify archived export compliance declaration'));
+// Source regression: opening four-line refrain repeats after a four-line verse,
+// and a final second verse follows. Source image has NO printed headings.
+const ch=[
+ 'Ti esalto Dio mio re','canterò in eterno a Te',
+ 'io voglio lodarti Signor','e benedirti alleluja.'
+];
+const v1=[
+ 'Il Signore è degno di ogni lode','non si può misurar la sua grandezza',
+ 'Ogni vivente proclami la sua gloria,','la sua opera è giustizia e verità.'
+];
+const v2=[
+ 'Il Signore è paziente e pietoso,','lento all’ira e ricco di grazia;',
+ 'tenerezza ha per ogni creatura,','il Signore è buono verso tutti.'
+];
+const chordRows=[
+ ['DO','SOL','DO','LA-'],['RE-','DO','SOL7'],
+ ['DO','LA-','RE-','SOL7'],['DO','SOL7','DO'],
+ ['FA','DO','SOL','DO'],['FA','DO','SOL','7'],
+ ['LA-','FA6','DO','FA'],['DO','SOL','DO']
+];
+const allLyrics=[...ch,...v1,...ch,...v2];
+const scanRows=[];
+allLyrics.forEach((text,i)=>{
+ const chords=chordRows[i%8];
+ const cy=20+i*52;
+ scanRows.push({words:chords.map((c,j)=>word(c,40+j*123,cy,Math.max(15,c.length*12)))});
+ scanRows.push({words:text.split(/\s+/).map((t,j)=>word(t,25+j*62,cy+20,Math.max(16,t.length*8)))});
+ if(i===6)scanRows.push({words:[
+  word('pO',35,cy+40),word('5',80,cy+40),word('oa',112,cy+40),
+  word('SOG',156,cy+40),word('BD',212,cy+40)
+ ]});
+});
+const photoReference=parseGeometry({lines:scanRows});
+assert.deepEqual(Array.from(photoReference.sections,s=>s.name),
+ ['RITORNELLO','STROFA 1','RITORNELLO','STROFA 2']);
+assert.deepEqual(Array.from(photoReference.sections,s=>s.lines.length),[4,4,4,4]);
+assert.equal(photoReference.sections[0].firstRefrain,true);
+assert.equal(photoReference.sections[0].kind,'chorus');
+assert.equal(photoReference.sections[2].kind,'chorus');
+assert.equal(photoReference.diagnostics.refrainInferredFromRepeats,true);
+assert.equal(photoReference.diagnostics.suggestedTitle,'Ti esalto Dio mio re');
+assert.ok(!photoReference.sections.some(s=>s.lines.some(l=>l.marked.includes('SOG'))));
+assert.deepEqual(Array.from(photoReference.sections[1].lines[1].anchors,a=>a.chord),
+ ['FA','DO','SOL','7']);
+
 console.log('OK: spatial OCR anchors, ambiguity flags, source boxes, responsive/PDF model wiring');
