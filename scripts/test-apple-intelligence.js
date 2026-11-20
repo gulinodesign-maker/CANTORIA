@@ -29,14 +29,20 @@ for(const source of [
   'CAPPluginMethod(name: "improve"','VNRecognizeTextRequest()',
   'SystemLanguageModel.default.availability','LanguageModelSession(instructions:',
   'text.boundingBox(for: range)','text.boundingBox(for: charRange)',
-  'bridge.registerPluginInstance(CantoriaIntelligencePlugin())'
+  'bridge?.registerPluginInstance(CantoriaIntelligencePlugin())',
+  '@objc(CantoriaBridgeViewController)', 'override func capacitorDidLoad()'
 ])assert.ok(native.includes(source),'Native iOS feature missing: '+source);
 assert.ok(prepare.includes('ios/App/App/AppDelegate.swift'),
   'Register inside already-compiled AppDelegate, not an uncompiled Swift file');
 assert.ok(prepare.includes("src.replace('import Capacitor'"));
-assert.ok(prepare.includes('CantoriaIntelligenceBootstrap.register'));
-assert.ok(prepare.includes('customClass="CAPBridgeViewController" customModule="Capacitor"'),
-  'Stock Capacitor storyboard must never change to an uncompiled custom controller');
+assert.ok(prepare.includes('CantoriaBridgeViewController: CAPBridgeViewController'));
+assert.ok(prepare.includes('AppDelegate.swift in Sources'));
+assert.ok(prepare.includes('customClass="CantoriaBridgeViewController"'));
+assert.ok(prepare.includes('Unexpected storyboard bridge class'));
+assert.ok(!prepare.includes('customModule="App"'),
+  'Storyboard class has an explicit Obj-C runtime name, avoiding module mismatch');
+assert.ok(!prepare.includes('CantoriaIntelligenceBootstrap.register'),
+  'Do not register after WebView load: JS plugin headers would be missing');
 assert.ok(!prepare.includes('cp native/CantoriaViewController.swift'),
   'Black-screen prototype must never be copied again');
 
