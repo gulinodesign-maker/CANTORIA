@@ -1633,12 +1633,26 @@ function setupLongPress(){
  const activate=(target)=>{
   const si=Number(target.dataset.section),li=Number(target.dataset.line);
   if(!Number.isInteger(si)||!currentSong()?.sections?.[si])return;
+  // A chord symbol has priority over its parent pill, even when the
+  // chord text or its superscript is the initial pointer target.
+  if(target.classList.contains('chord-label')){
+   const ai=Number(target.dataset.chord);
+   if(!Number.isInteger(ai)||ai<0)return;
+   if(target.dataset.action==='edit-chord-only'){
+    state.modal={type:'chord-only-edit',si,rowIndex:Number(target.dataset.rowIndex),ai};
+    render();return;
+   }
+   if(target.dataset.action==='edit-chord'&&Number.isInteger(li)){
+    openChordModal(si,li,ai);return;
+   }
+  }
+  // Only untouched background of the colored chord bar changes its color.
   if(target.dataset.action==='edit-band'){
    const isChordOnly=target.hasAttribute('data-row-index');
    if(!isChordOnly&&!Number.isInteger(li))return;
    state.modal=isChordOnly?
-    {type:'band-chords',si,rowIndex:Number(target.dataset.rowIndex)}:
-    {type:'band-chords',si,li};
+    {type:'row-band-color',si,rowIndex:Number(target.dataset.rowIndex)}:
+    {type:'row-band-color',si,li};
    render();return;
   }
   if(!Number.isInteger(li))return;
@@ -1647,7 +1661,7 @@ function setupLongPress(){
  };
  root.addEventListener('pointerdown',e=>{
   if(e.button!==0||state.modal)return;
-  const target=e.target.closest('#readerPaper .chord-band[data-action="edit-band"], #readerPaper .syllable.clickable');
+  const target=e.target.closest('#readerPaper .chord-label.editable, #readerPaper .chord-band[data-action="edit-band"], #readerPaper .syllable.clickable');
   if(!target)return;
   cancel();x=e.clientX;y=e.clientY;pending=target;
   timer=setTimeout(()=>{timer=null;const t=pending;pending=null;if(t)activate(t);},530);
@@ -1655,7 +1669,7 @@ function setupLongPress(){
  root.addEventListener('pointermove',e=>{if(pending&&(Math.abs(e.clientX-x)>11||Math.abs(e.clientY-y)>11))cancel();});
  for(const type of ['pointerup','pointercancel','pointerleave'])root.addEventListener(type,cancel);
  root.addEventListener('contextmenu',e=>{
-  const target=e.target.closest('#readerPaper .chord-band[data-action="edit-band"], #readerPaper .syllable.clickable');
+  const target=e.target.closest('#readerPaper .chord-label.editable, #readerPaper .chord-band[data-action="edit-band"], #readerPaper .syllable.clickable');
   if(!target)return;
   e.preventDefault();
   if(!state.modal){cancel();activate(target);}
@@ -1674,6 +1688,8 @@ function setupLongPress(){
  },true);
  root.addEventListener('keydown',e=>{
   if(!['Enter',' '].includes(e.key)||state.modal)return;
+  const chord=e.target.closest('#readerPaper .chord-label.editable');
+  if(chord){e.preventDefault();activate(chord);return;}
   const band=e.target.closest('#readerPaper .chord-band[data-action="edit-band"]');
   if(band){e.preventDefault();activate(band);return;}
   const lyric=e.target.closest('#readerPaper .lyric-line[data-section][data-line]');
