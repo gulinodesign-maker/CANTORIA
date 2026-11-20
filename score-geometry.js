@@ -62,34 +62,78 @@
     if(!a)return '';
     return a.chordName(name)||a.chordFromOcr?.(name)||'';
   }
+  // Browser UI labels, watermarks and OCR punctuation are not sung lyrics.
+  // Keep ordinary punctuation and hyphenation; strip ONLY known artefacts.
+  const JUNK_SYMBOLS = /[@©®™�¤]/g;
+  const JUNK_TOKEN = /^[@©®™�¤]+$/;
+  const UI_LABEL = /^(?:AUTO[\s-]*SCROLL|SCORRIMENTO\s+AUTOMATICO)(?:\s+(?:ON|OFF|ATTIVO|DISATTIVO))?$/i;
+  function isEditorialRow(row) {
+    return UI_LABEL.test(row.text.trim());
+  }
+  function isChordLikeToken(raw,symbol) {
+    if(symbol)return true;
+    const token=String(raw||'').replace(JUNK_SYMBOLS,'').trim();
+    if(!token||token.length>13)return false;
+    // Isolated I/1 are ambiguous but MAY belong to a real chord row.
+    if(/^[iIl1]$/.test(token))return true;
+    // An OCR-damaged symbol has a short note-like root or chord suffix.
+    // Never classify entire ordinary Italian words by uppercase alone.
+    if(/^(?:S[Il1]|M[Il1]|[Dd][Oo0]|[Rr][Ee]|[Ff][Aa]|[Ll][Aa]|[Ss][Oo0][Ll]|[Ss][Ii])(?:[#♯b♭0-9⁰¹²³⁴⁵⁶⁷⁸⁹+°/()-]|m|M|sus|maj|min|dim|add)*$/i.test(token))
+      return true;
+    return /^[A-Z]{1,2}[#♯b♭]?[0-9⁰¹²³⁴⁵⁶⁷⁸⁹+°/()-]{1,5}$/.test(token) ||
+      /^(?:M|m|MI|Mi|SI|Si)\/[0-9⁰¹²³⁴⁵⁶⁷⁸⁹]{1,2}$/.test(token);
+  }
+  function isLikelyLyricBelow(row,below) {
+    if(!below||!row.bbox||!below.bbox||below.bbox.y0<=row.bbox.y0)return false;
+    const words=below.words.filter(w=>!JUNK_TOKEN.test(w.text));
+    const regular=words.filter(w=>!note(w.text)).length;
+    return words.length>=2 && regular>=Math.ceil(words.length*0.6) &&
+      words.some(w=>/[a-zà-öø-ÿ]{2,}/.test(w.text));
+  }
   function classifyChordRow(row,nextRow) {
-    const tokens=row.words.map(w=>({word:w,symbol:note(w.text)}));
+    const words=row.words.filter(w=>!JUNK_TOKEN.test(w.text));
+    if(!words.length||words.length>9)return null;
+    const tokens=words.map(w=>({word:w,symbol:note(w.text)}));
     const valid=tokens.filter(t=>t.symbol);
     const uppercase=tokens.filter(t=>t.word.text===t.word.text.toUpperCase()&&
       /[A-Z]/.test(t.word.text)).length;
-    // An OCR line above a normal lyric line is more likely a chord line.
-    // Require this geometrical context when OCR has damaged letter casing.
-    const nextWords=nextRow?.words||[];
-    const nextIsLyric=nextWords.length>=2 &&
-      nextWords.filter(w=>!note(w.text)).length>=Math.ceil(nextWords.length*0.6) &&
-      nextWords.some(w=>/[a-zà-öø-ÿ]/.test(w.text)) &&
-      row.bbox?.y0 < nextRow.bbox?.y0;
-    // "RE m1⁴ Mi" must remain a chord row; "Mi la fa sol" remains lyrics.
-    const likely=tokens.length===1 ?
-      valid.length===1&&(uppercase===1||
-        (nextIsLyric&&/[0-9#♯♭+\-]/.test(row.text))) :
-      valid.length>=2&&valid.length/tokens.length>=0.6&&
-      (uppercase>=2||(uppercase>=1&&nextIsLyric));
-    if(!likely)return null;
-    return {row, chords:tokens.filter(t=>t.symbol).map(t=>({
-      symbol:t.symbol, originalSymbol:t.word.text, bbox:t.word.bbox,
+    const belowIsLyric=isLikelyLyricBelow(row,nextRow);
+    const allLookLikeChords=tokens.every(t=>isChordLikeToken(t.word.text,t.symbol));
+    const hasStrongShape=tokens.some(t=>/[0-9⁰¹²³⁴⁵⁶⁷⁸⁹#♯♭+°/()-]/.test(t.word.text));
+    // Two or more clearly printed notes need no nearby lyric: they may be
+    // an intro/finale. But mixed-case or OCR-damaged notes require geometry.
+    const obvious=valid.length>=2 &&
+      valid.length/tokens.length>=0.6 && uppercase>=2;
+    const contextual=belowIsLyric && allLookLikeChords && (
+      // "SIm M7", "SIm MI/7": do not leak the incomplete chord into the verse.
+      (valid.length>=1 && (uppercase>=1||hasStrongShape)) ||
+      // Rare case: every note is damaged, but all tokens look like chords.
+      (valid.length===0 && hasStrongShape && uppercase>=1)
+    );
+    const single=tokens.length===1&&valid.length===1&&uppercase===1;
+    if(!(single||obvious||contextual))return null;
+    return {row,chords:tokens.filter(t=>t.symbol).map(t=>({
+      symbol:t.symbol,originalSymbol:t.word.text,bbox:t.word.bbox,
       confidence:t.word.confidence
-    })), unresolved:tokens.filter(t=>!t.symbol).map(t=>({
-      // A damaged chord must NEVER become sung lyrics, nor be silently lost.
-      // A solitary "i" / "1" may come from SI or MI: keep '?' until corrected.
-      symbol:'?',unresolved:true,
-      originalSymbol:t.word.text,bbox:t.word.bbox,confidence:0
+    })),unresolved:tokens.filter(t=>!t.symbol).map(t=>({
+      symbol:'?',unresolved:true,originalSymbol:t.word.text,
+      bbox:t.word.bbox,confidence:0
     }))};
+  }
+  function cleanLyricRow(row,diagnostics) {
+    if(isEditorialRow(row)) {
+      diagnostics.ignoredArtifacts++;
+      return null;
+    }
+    const words=row.words.map(w=>{
+      const filtered=w.text.replace(JUNK_SYMBOLS,'');
+      if(filtered!==w.text)diagnostics.ignoredArtifacts++;
+      return {...w,text:filtered,symbols:filtered===w.text?w.symbols:[]};
+    }).filter(w=>w.text&&w.text.trim());
+    if(!words.length)return null;
+    return {...row,words,
+      text:words.map(w=>w.text).join(' '),bbox:union(words.map(w=>w.bbox)),
+      originalOcrText:row.text};
   }
   function charCoordinates(row) {
     let offset=0;const chars=[];
@@ -155,7 +199,7 @@
   function parseGeometry(data) {
     const rows=extractRows(data),sections=[];let current=null,pending=null;
     const diagnostics={totalRecognized:0,totalAnchored:0,unresolved:0,estimated:0,
-      needsReview:0,sourceRows:rows.length,sourceMethod:'tesseract-bbox'};
+      needsReview:0,ignoredArtifacts:0,sourceRows:rows.length,sourceMethod:'tesseract-bbox'};
     function ensure(){if(!current){current=section('STROFA',sections.length);sections.push(current);}return current;}
     function leftover() {
       if(!pending)return;
@@ -173,6 +217,7 @@
     }
     for(let rowIndex=0;rowIndex<rows.length;rowIndex++){
       const row=rows[rowIndex],nextRow=rows[rowIndex+1];
+      if(isEditorialRow(row)){diagnostics.ignoredArtifacts++;continue;}
       if(HEAD.test(row.text.trim())){
         leftover();current=section(row.text.trim().replace(/:\s*$/,''),sections.length);
         sections.push(current);continue;
@@ -186,18 +231,27 @@
         // Do not drop a text row just because it resembles a title.
         // The user can remove or rename it after comparing the photo.
       }
-      const sec=ensure(),chars=charCoordinates(row);
+      // Standalone RIT / RIT. at the beginning of a lyric is a SECTION label,
+      // not a word the congregation is supposed to sing.
+      let lyricSource=row;
+      if(row.words.length>=3&&/^RIT(?:[.:])?$/i.test(row.words[0].text)){
+        current=section('RITORNELLO',sections.length);sections.push(current);
+        lyricSource={...row,words:row.words.slice(1)};
+      }
+      const lyric=cleanLyricRow(lyricSource,diagnostics);
+      if(!lyric)continue;
+      const sec=ensure(),chars=charCoordinates(lyric);
       const chordItems=pending?[...pending.chords,...pending.unresolved]
         .sort((a,b)=>a.bbox.x0-b.bbox.x0):[];
-      const anchors=chordItems.map(c=>bindChord({...c,rowId:pending.row.id},row,chars));
+      const anchors=chordItems.map(c=>bindChord({...c,rowId:pending.row.id},lyric,chars));
       const uncertain=pending?pending.unresolved:[];
       diagnostics.totalAnchored+=anchors.filter(a=>!a.unresolved).length;
       diagnostics.unresolved+=uncertain.length;
       diagnostics.estimated+=anchors.filter(a=>a.anchorMethod==='word-estimated').length;
       diagnostics.needsReview+=anchors.filter(a=>a.needsReview).length;
-      sec.lines.push({id:'photo-line-'+sec.lines.length,marked:row.text,
-        originalText:row.text,sourceLineBBox:row.bbox,
-        sourceRowId:row.id,anchors,
+      sec.lines.push({id:'photo-line-'+sec.lines.length,marked:lyric.text,
+        originalText:lyric.text,originalOcrText:row.text,
+        sourceLineBBox:row.bbox,sourceRowId:row.id,anchors,
         unresolvedChords:uncertain.map(c=>({...c,needsReview:true}))});
       pending=null;
     }
