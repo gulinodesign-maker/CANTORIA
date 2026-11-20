@@ -70,8 +70,8 @@ assert.equal(proposals[0].after,'MI/7');
 assert.equal(proposals[0].before,'?');
 assert.equal(context.state.geometryDraft.sections[0].lines[0].anchors[0].chord,'?',
  'AI suggestions must NOT automatically overwrite the source score');
-assert.deepEqual(context.testProposals('[]',new Set(['0:0:0'])),[]);
-assert.deepEqual(context.testProposals('Questo non è JSON',new Set(['0:0:0'])),[]);
+assert.equal(context.testProposals('[]',new Set(['0:0:0'])).length,0);
+assert.equal(context.testProposals('Questo non è JSON',new Set(['0:0:0'])).length,0);
 
 // Apple Vision returns measured word/character boxes in the existing OCR shape.
 const root={};vm.runInNewContext(fs.readFileSync('score-ocr.js','utf8'),{globalThis:root,module:{exports:{}}});
