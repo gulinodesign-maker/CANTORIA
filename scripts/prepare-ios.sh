@@ -44,12 +44,12 @@ if 'AppDelegate.swift in Sources' not in project.read_text(encoding='utf-8'):
 if 'import FoundationModels' not in src:
     src = src.replace(
         'import Capacitor',
-        'import Capacitor\\nimport FoundationModels\\nimport Vision', 1
+        'import Capacitor\nimport FoundationModels\nimport Vision', 1
     )
 native = Path('native/CantoriaIntelligencePlugin.swift').read_text(encoding='utf-8')
 if '@objc(CantoriaBridgeViewController)' not in native:
     raise SystemExit('Native compiled ViewController class missing')
-app.write_text(src + '\\n' + native, encoding='utf-8')
+app.write_text(src + '\n' + native, encoding='utf-8')
 
 xml = storyboard.read_text(encoding='utf-8')
 old = 'customClass="CAPBridgeViewController" customModule="Capacitor"'
