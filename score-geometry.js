@@ -105,7 +105,10 @@
     const words=row.words.filter(w=>!JUNK_TOKEN.test(w.text)&&
       !OCR_MARK.test(w.text)&&!CHORD_ANNOTATION.test(w.text));
     if(!words.length||words.length>12)return null;
-    const tokens=words.map(w=>({word:w,symbol:note(w.text)}));
+    // A standalone seventh is printed as "7" in some chord sheets.
+    // Preserve it only inside a geometrically confirmed chord row.
+    const tokens=words.map(w=>({word:w,symbol:note(w.text)||
+      (w.text.trim()==='7'?'7':'')}));
     const valid=tokens.filter(t=>t.symbol);
     const uppercase=tokens.filter(t=>t.word.text===t.word.text.toUpperCase()&&
       /[A-Z]/.test(t.word.text)).length;
