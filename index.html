@@ -416,6 +416,8 @@
 .photo-ocr-panel textarea{width:100%;min-height:130px;white-space:pre-wrap;}
 .photo-ocr-panel button{margin:0 0 6px;}
 .photo-ocr-status{font-size:13px;line-height:1.5;color:#466453;margin:8px 0;}
+.chord-label.uncertain{color:#9b512d!important;text-decoration:underline dotted;text-underline-offset:3px}
+.reader-layer .chord-band{overflow:visible}
 </style>
   <title>Cantoria — Canti per la liturgia cattolica</title>
 </head>
@@ -597,7 +599,7 @@ function lineHTML(section,line,si,li,isPrint=false){
     const cIndex=Number.isInteger(a.anchorCharacterIndex)?a.anchorCharacterIndex:'';
     const offset=Number.isFinite(a.offsetX)?a.offsetX:'';
     const sourceWidth=Number.isFinite(a.sourceCharWidth)?a.sourceCharWidth:'';
-    return `<${tag} class="chord-label ${isPrint?'':'editable'} ${uncertain?'uncertain':''}" data-slot="${a.slot}" data-char-index="${cIndex}" data-offset-x="${offset}" data-source-char-width="${sourceWidth}" ${isPrint?'':`data-action="edit-chord" data-section="${si}" data-line="${li}" data-chord="${ai}"`} title="${uncertain?'Posizione da verificare sulla foto':'Accordo'}" aria-label="Accordo ${escapeAttr(a.chord)}${uncertain?' da verificare':''}">${chordLabel(a.chord)}</${tag}>`;
+    return `<${tag} class="chord-label ${isPrint?'':'editable'} ${uncertain?'uncertain':''}" data-slot="${a.slot}" data-char-index="${cIndex}" data-offset-x="${offset}" data-source-char-width="${sourceWidth}" ${isPrint?'':`data-action="edit-chord" data-section="${si}" data-line="${li}" data-chord="${ai}"`} title="${escapeAttr(a.unresolved?'Simbolo musicale non riconosciuto (letto: '+(a.sourceSymbol||'?')+'). Tieni premuto e correggi.':uncertain?'Posizione da verificare sulla foto':'Accordo')}" aria-label="${a.unresolved?'Simbolo da verificare: ': 'Accordo '}${escapeAttr(a.chord)}${uncertain?' da verificare':''}">${chordLabel(a.chord)}</${tag}>`;
   }).join('');
   return `<div class="music-row ${escapeAttr(section.kind)}" data-row="s${si}-l${li}"><div class="chord-band">${chords}</div><div class="lyric-line">${lyrics}</div></div>`;
 }
@@ -764,7 +766,9 @@ async function recognizePhotoText(replaceExisting=false){
   }});
   state.ocrStatus='Analisi della fotografia…';
   await worker.setParameters({preserve_interword_spaces:"1"});
-  const result=await worker.recognize(image);
+  // Explicitly request measured word/character boxes alongside the text.
+  // Never infer chord positions from whitespace-only OCR output.
+  const result=await worker.recognize(image, {}, {text:true,blocks:true});
   state.ocrText=String(result.data?.text||'').trim().slice(0,20000);
   state.geometryRawText=state.ocrText;
   state.geometryDraft=window.CantoriaGeometry?.parseGeometry(result.data)||null;
@@ -812,7 +816,7 @@ function captureHTML(){
      </form>`:`<p class="photo-capture-hint">Fotografa lo spartito per iniziare.</p>`}
   </section>`;
 }
-function settingsHTML(){return `<div class="page-heading"><div><div class="eyebrow">Versione 0.6.0</div><h1>Impostazioni</h1></div></div><div class="form-wrap"><div class="panel"><h3>Dati e salvataggi</h3><p>I canti e le scalette sono attualmente memorizzati <strong>solo nel browser di questo dispositivo</strong>. Non sono ancora sincronizzati su iCloud o GitHub.</p><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px"><button class="outline-btn" data-action="backup">Scarica backup JSON</button><label class="outline-btn" style="cursor:pointer">Ripristina backup<input type="file" id="backupInput" accept="application/json" style="display:none"></label></div></div><div class="panel"><h3>Ultimo aggiornamento</h3><p>Scopri le modifiche e le migliorie introdotte con la versione più recente.</p><button type="button" class="outline-btn" data-action="show-release-notes">Novità dell'ultima versione</button></div><div class="panel"><h3>Modello musicale</h3><p>Gli accordi delle fotografie conservano anche coordinate OCR, indice del carattere e livello di affidabilità. La disposizione grafica non cambia il loro ancoraggio musicale.</p><div class="alert" style="margin-top:15px">OCR geometrico sperimentale: dove sono disponibili soltanto i riquadri delle parole gli ancoraggi ai caratteri sono stimati e sempre da verificare. Se mancano le coordinate, l'app non inventa una posizione. Le note sul pentagramma non sono ancora riconosciute.</div></div></div>`;}
+function settingsHTML(){return `<div class="page-heading"><div><div class="eyebrow">Versione 0.6.1</div><h1>Impostazioni</h1></div></div><div class="form-wrap"><div class="panel"><h3>Dati e salvataggi</h3><p>I canti e le scalette sono attualmente memorizzati <strong>solo nel browser di questo dispositivo</strong>. Non sono ancora sincronizzati su iCloud o GitHub.</p><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px"><button class="outline-btn" data-action="backup">Scarica backup JSON</button><label class="outline-btn" style="cursor:pointer">Ripristina backup<input type="file" id="backupInput" accept="application/json" style="display:none"></label></div></div><div class="panel"><h3>Ultimo aggiornamento</h3><p>Scopri le modifiche e le migliorie introdotte con la versione più recente.</p><button type="button" class="outline-btn" data-action="show-release-notes">Novità dell'ultima versione</button></div><div class="panel"><h3>Modello musicale</h3><p>Gli accordi delle fotografie conservano anche coordinate OCR, indice del carattere e livello di affidabilità. La disposizione grafica non cambia il loro ancoraggio musicale.</p><div class="alert" style="margin-top:15px">OCR geometrico sperimentale: dove sono disponibili soltanto i riquadri delle parole gli ancoraggi ai caratteri sono stimati e sempre da verificare. Se mancano le coordinate, l'app non inventa una posizione. Le note sul pentagramma non sono ancora riconosciute.</div></div></div>`;}
 function appHTML(){
  const views={home:homeHTML,library:libraryHTML,masses:massesHTML,capture:captureHTML,settings:settingsHTML};
  const builder=views[state.view]||homeHTML;
@@ -850,7 +854,7 @@ function modalHTML(){const m=state.modal;
   const song=currentSong();if(!song||!song.photoData||!song.ocrText)return '';
   return `<div class="modal-shade"><div class="modal-card" role="alertdialog" aria-modal="true" aria-label="Conferma ricalcolo accordi"><h2>Ricalcolare gli accordi?</h2><p>La partitura verrà ricalcolata dalla fotografia originale con le coordinate OCR. Le modifiche manuali fatte sulle sillabe e sugli accordi saranno sostituite. La fotografia originale resterà disponibile.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button type="button" class="primary-btn" data-action="reparse-photo">Ricalcola accordi</button></div></div></div>`;
  }
- if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità dell'ultima versione"><h2>Novità dell'ultima versione</h2><p><strong>Nuovo algoritmo geometrico:</strong> il riconoscimento conserva le coordinate originali dei riquadri OCR, collega gli accordi ai caratteri e preserva eventuali anticipi; gli ancoraggi stimati sono contrassegnati come da verificare.</p><p><strong>Precisione prima della grafica:</strong> la visualizzazione e il PDF non spostano gli accordi orizzontalmente per distanziarli; le collisioni usano corsie verticali. Si può ricalcolare la partitura dalla foto con nuove coordinate.</p><p><strong>Gestione spartiti:</strong> restano disponibili Elimina partitura con conferma e la modifica manuale degli ancoraggi.</p><p>Il riconoscimento delle note sul pentagramma non è ancora disponibile e gli accordi restano da verificare rispetto all'originale.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
+ if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità dell'ultima versione"><h2>Novità dell'ultima versione</h2><p><strong>Riconoscimento degli accordi:</strong> corretti i casi in cui l'OCR scambia la lettera I con il numero 1 o legge caratteri minuscoli; i nomi delle note vengono uniformati in maiuscolo. Un simbolo ambiguo viene mostrato come ? nella fascia degli accordi, senza diventare testo cantato.</p><p><strong>Allineamento musicale:</strong> gli accordi restano sopra il testo nelle fasce colorate. Le coordinate OCR e gli ancoraggi sono conservati; le collocazioni incerte devono essere verificate sulla foto.</p><p><strong>TestFlight:</strong> aggiunta automaticamente nell'app iOS la dichiarazione di crittografia esente prevista da Apple. Rimangono disponibili la modifica degli accordi e l'eliminazione confermata degli spartiti.</p><p>Il riconoscimento delle note sul pentagramma non è ancora disponibile e gli accordi restano da verificare rispetto all'originale.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
 
  if(m.type==='song-options'){
   const song=currentSong();if(!song)return '';
