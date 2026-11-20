@@ -23,6 +23,22 @@ if [[ ! -d ios/App/App.xcodeproj ]]; then
 fi
 npx cap sync ios
 
+# Register an optional native, on-device Apple Intelligence bridge in the existing
+# Xcode target, without changing the app interface or enabling automatic AI reads.
+cp native/CantoriaViewController.swift ios/App/App/ViewController.swift
+storyboard="ios/App/App/Base.lproj/Main.storyboard"
+if [[ -f "$storyboard" ]]; then
+  python3 - "$storyboard" <<'PY'
+import sys
+from pathlib import Path
+path = Path(sys.argv[1])
+content = path.read_text(encoding='utf-8')
+content = content.replace('customClass="CAPBridgeViewController"', 'customClass="ViewController"')
+content = content.replace('customModule="Capacitor"', 'customModule="App"')
+path.write_text(content, encoding='utf-8')
+PY
+fi
+
 # Required prompts for photo-based song capture on iOS.
 plist="ios/App/App/Info.plist"
 for entry in \
