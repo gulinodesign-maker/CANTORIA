@@ -940,6 +940,30 @@ function syllableModalHTML(m){
 }
 function songInfoEditor(song){return `<details class="compact-details"><summary>Modifica titolo e autore</summary><form id="songInfoForm" class="song-info-form"><div class="field"><label for="editSongTitle">Titolo</label><input id="editSongTitle" name="title" maxlength="160" required value="${escapeAttr(song.title)}"></div><div class="field"><label for="editSongAuthor">Autore</label><input id="editSongAuthor" name="author" maxlength="160" placeholder="Nome dell'autore" value="${escapeAttr(song.author||'')}"></div><button type="submit" class="primary-btn">Salva</button></form></details>`;}
 
+function chordBandEditModal(m){
+ const sec=currentSong()?.sections?.[m.si];
+ if(!sec)return '';
+ const isChordOnly=Number.isInteger(m.rowIndex);
+ const line=isChordOnly?null:sec.lines?.[m.li];
+ const chords=isChordOnly?(m.rowIndex<0?sec.chordsOnly:sec.chordRows?.[m.rowIndex]):line?.anchors;
+ if(!Array.isArray(chords))return '';
+ const cells=line?parseSyllables(line.marked).filter(x=>!x.space):[];
+ const rows=chords.map((a,i)=>{
+  const chord=isChordOnly?a:a.chord;
+  const text=chord==='?'?'Accordo da identificare':chord;
+  const syllable=!isChordOnly?cells[a.slot]?.text:'';
+  return `<button type="button" class="outline-btn" data-action="select-band-chord" data-chord="${i}">
+   <strong>${escape(text)}</strong>${syllable?' · '+escape(syllable):''}
+   </button>`;
+ }).join('');
+ return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Modifica accordi della pill">
+  <h2>Accordi · ${escape(sec.name)}</h2>
+  <p>Seleziona l'accordo da correggere, eliminare o spostare. La pill mantiene altezza costante; gli accordi restano sulla stessa riga.</p>
+  <div class="band-chord-list">${rows||'<p>Nessun accordo ancora presente.</p>'}</div>
+  <button type="button" class="outline-btn song-edit-action" data-action="add-band-chord">Aggiungi accordo</button>
+  <div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Chiudi</button></div>
+ </div></div>`;
+}
 function lyricTextEditModal(m){
  const line=currentSong()?.sections?.[m.si]?.lines?.[m.li];if(!line)return '';
  const content=window.CantoriaEditor.visibleLyric(line.marked);
@@ -1027,6 +1051,7 @@ function modalHTML(){const m=state.modal;
 if(m.type==='new-mass')return `<div class="modal-shade"><form class="modal-card" id="newMassForm"><h2>Nuova Messa</h2><div class="field"><label for="massName">Nome</label><input id="massName" name="massName" placeholder="Messa domenicale" required autofocus maxlength="160"></div><div class="field"><label for="massDate">Data</label><input type="date" id="massDate" name="massDate"></div><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button class="primary-btn">Crea</button></div></form></div>`;
  if(m.type==='reuse-mass')return reuseMassFormHTML(m);
  if(m.type==='add-to-mass')return `<div class="modal-shade"><form class="modal-card" id="addToMassForm"><h2>Aggiungi alla Messa</h2><p>Il canto verrà inserito in fondo alla scaletta. Potrai spostarlo successivamente.</p>${m.massId?`<input type="hidden" name="massId" value="${escapeAttr(m.massId)}">`:`<div class="field"><label>Messa</label><select name="massId">${store.masses.map(x=>`<option value="${escapeAttr(x.id)}">${escape(x.name)}</option>`).join('')}</select></div>`}<div class="field"><label>Canto</label><select name="songId">${store.songs.map(s=>`<option value="${escapeAttr(s.id)}" ${s.id===m.songId?'selected':''}>${escape(s.title)}</option>`).join('')}</select></div><div class="field"><label>Momento</label><select name="label"><option>Ingresso</option><option>Atto penitenziale</option><option>Gloria</option><option>Salmo</option><option>Alleluia</option><option>Offertorio</option><option>Santo</option><option>Comunione</option><option>Ringraziamento</option><option>Canto finale</option></select></div><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button class="primary-btn">Aggiungi</button></div></form></div>`;
+ if(m.type==='band-chords')return chordBandEditModal(m);
  if(m.type==='lyric-edit')return lyricTextEditModal(m);
  if(m.type==='section-text-edit')return sectionTextEditModal(m);
  if(m.type==='band-colors')return bandColorsModal();
@@ -1435,6 +1460,15 @@ root.addEventListener('click',e=>{
   return;
  }
  if(action==='band-colors'){state.modal={type:'band-colors'};render();return;}
+ if(action==='select-band-chord'||action==='add-band-chord'){
+  const m=state.modal;if(m?.type!=='band-chords')return;
+  const ai=action==='add-band-chord'?-1:Number(el.dataset.chord);
+  if(action==='select-band-chord'&&(!Number.isInteger(ai)||ai<0))return;
+  if(Number.isInteger(m.rowIndex)){
+   state.modal={type:'chord-only-edit',si:m.si,rowIndex:m.rowIndex,ai};render();
+  }else{openChordModal(m.si,m.li,ai);}
+  return;
+ }
   if(action==='save-song'){
    const song=currentSong();if(!song)return;
    const previous=song.savedAt;song.savedAt=new Date().toISOString();
