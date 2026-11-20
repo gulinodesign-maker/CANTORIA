@@ -819,38 +819,54 @@ function photoSectionsFromText(text){
  if(!sections.some(s=>s.lines?.length))throw new Error('Nessuna riga di canto riconosciuta con coordinate geometriche. Salva la foto e riprova.');
  return sections;
 }
-async function recognizePhotoText(replaceExisting=false){
- if(state.ocrBusy)return;
+async function recognizePhotoText(replaceExisting=false,mode='classic'){
+ if(state.ocrBusy||state.appleAIBusy)return;
+ if(mode==='apple'&&!state.appleAIAvailable){
+  notify('Apple Intelligence non disponibile. Usa Classica oppure abilita Apple Intelligence sul dispositivo.');
+  return;
+ }
  if(!state.songId)state.photoTitle=document.getElementById("photoSongTitle")?.value||state.photoTitle||"";
  const image=state.songId?currentSong()?.photoData:state.photoURL;
  if(!image){notify('Prima scatta o scegli una foto.');return;}
- state.ocrBusy=true;state.ocrStatus='Caricamento motore OCR…';render();
+ state.ocrBusy=true;state.ocrStatus=mode==='apple'?'Apple Vision: lettura della foto sul dispositivo…':'Caricamento motore OCR…';render();
  let worker;
  try{
-  await loadOcrLibrary();
-  worker=await window.Tesseract.createWorker('ita+eng',1,{logger:message=>{
-   if(message.status==='recognizing text'&&typeof message.progress==='number'){
-    state.ocrStatus='Lettura del testo: '+Math.round(message.progress*100)+'%';
-   }else if(message.status==='loading language traineddata'){
-    state.ocrStatus='Caricamento lingua italiana e inglese…';
-   }
-   const status=document.getElementById('ocrStatus');
-   if(status)status.textContent=state.ocrStatus;
-  }});
-  state.ocrStatus='Analisi della fotografia…';
-  await worker.setParameters({preserve_interword_spaces:"1"});
-  // Explicitly request measured word/character boxes alongside the text.
-  // Never infer chord positions from whitespace-only OCR output.
-  const result=await worker.recognize(image, {}, {text:true,blocks:true});
+  let result;
+  if(mode==='apple'){
+   const native=nativeAppleIntelligence();
+   if(!native)throw new Error('Plugin Apple Intelligence non disponibile');
+   const data=await native.recognize({image});
+   result={data};
+  }else{
+   await loadOcrLibrary();
+   worker=await window.Tesseract.createWorker('ita+eng',1,{logger:message=>{
+    if(message.status==='recognizing text'&&typeof message.progress==='number'){
+     state.ocrStatus='Lettura del testo: '+Math.round(message.progress*100)+'%';
+    }else if(message.status==='loading language traineddata'){
+     state.ocrStatus='Caricamento lingua italiana e inglese…';
+    }
+    const status=document.getElementById('ocrStatus');
+    if(status)status.textContent=state.ocrStatus;
+   }});
+   state.ocrStatus='Analisi classica della fotografia…';
+   await worker.setParameters({preserve_interword_spaces:"1"});
+   result=await worker.recognize(image, {}, {text:true,blocks:true});
+  }
   state.ocrText=String(result.data?.text||'').trim().slice(0,20000);
    state.appleSuggestions=[];
   state.geometryRawText=state.ocrText;
   state.geometryDraft=window.CantoriaGeometry?.parseGeometry(result.data)||null;
+  if(mode==='apple'&&state.geometryDraft?.hasGeometry&&state.geometryDraft?.sections?.some(s=>s.lines?.length)){
+   state.ocrStatus='Apple Intelligence: controllo delle sigle incerte…';
+   await improvePhotoWithApple();
+  }
   const diag=state.geometryDraft?.diagnostics;
   if(!state.geometryDraft?.sections?.some(s=>s.lines?.length)){
    state.ocrStatus='Non sono disponibili coordinate sufficienti per associare gli accordi. Salva la foto e riprova.';
   }else{
-   state.ocrStatus='Coordinate conservate. '+diag.totalAnchored+' accordi associati; '+diag.needsReview+' associazioni da verificare con l’originale.';
+   state.ocrStatus='Coordinate conservate. '+diag.totalAnchored+' accordi associati; '+diag.needsReview+
+    ' associazioni da verificare con l’originale.'+
+    (mode==='apple'?' Apple Intelligence: '+state.appleSuggestions.length+' suggerimenti da controllare.':'');
    if(replaceExisting){
     const song=currentSong();
     if(song?.photoData){
@@ -870,7 +886,9 @@ async function recognizePhotoText(replaceExisting=false){
   }
  }catch(err){
   console.error('OCR:',err);
-  state.ocrStatus='OCR non riuscito. Verifica la connessione e riprova; la foto resta disponibile.';
+  state.ocrStatus=mode==='apple'?
+    'Lettura Apple non riuscita. Puoi provare Classica: la foto è conservata.':
+    'OCR non riuscito. Verifica la connessione e riprova; la foto resta disponibile.';
  }finally{
   if(worker){try{await worker.terminate();}catch(err){console.warn('Chiusura OCR:',err);}}
   state.ocrBusy=false;render();
@@ -1512,6 +1530,7 @@ root.addEventListener('click',e=>{
   state.modal=null;state.page=0;recognizePhotoText(true);return;
  }
  if(action==='recognize-photo'){recognizePhotoText();return;}
+  if(action==='recognize-apple'){recognizePhotoText(false,'apple');return;}
   if(action==='improve-photo-apple'){improvePhotoWithApple();return;}
   if(action==='discard-apple-suggestions'){state.appleSuggestions=[];render();return;}
   if(action==='apply-apple-suggestions'){
