@@ -36,6 +36,50 @@ if ! grep -q 'customClass="CAPBridgeViewController" customModule="Capacitor"' io
   exit 1
 fi
 
+# The native AI bridge is independent of Capacitor's custom plugin mechanism.
+# It hooks into AppDelegate's already-compiled code, and attaches to the
+# existing WKWebView after it has started. Never change Main.storyboard here.
+python3 - ios/App/App/AppDelegate.swift <<'PY'
+from pathlib import Path
+import sys
+
+delegate = Path(sys.argv[1])
+source = delegate.read_text(encoding='utf-8')
+if 'import Capacitor' not in source or 'func applicationDidBecomeActive(_ application: UIApplication) {' not in source:
+    raise SystemExit('Capacitor AppDelegate template mismatch: refusing unsafe native patch')
+if 'CantoriaAppleMessageHandler' in source:
+    raise SystemExit('AppDelegate was already modified: refusing duplicate bridge')
+source = source.replace(
+    'import Capacitor',
+    'import Capacitor\nimport WebKit\nimport Vision\nimport FoundationModels',
+    1
+)
+source = source.replace(
+    '    var window: UIWindow?',
+    '    var window: UIWindow?\n    private let cantoriaAIHandler = CantoriaAppleMessageHandler()',
+    1
+)
+hook = '    func applicationDidBecomeActive(_ application: UIApplication) {'
+source = source.replace(hook, hook + '''
+        // Safe lifecycle hook: the system Capacitor controller has already
+        // been created. The handler attaches after its WKWebView appears.
+        // No model is ever executed on app launch.
+        for delay in [0.4, 1.2, 3.0] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                self?.cantoriaAIHandler.installIfNeeded(window: self?.window)
+            }
+        }
+''', 1)
+native = Path('native/CantoriaAppleMessageHandler.swift').read_text(encoding='utf-8')
+delegate.write_text(source + '\n' + native, encoding='utf-8')
+PY
+
+# The 0.7.0 failure was caused by a replacement bridge ViewController.
+# Reject any storyboard/controller change even if Swift compiles successfully.
+grep -q 'customClass="CAPBridgeViewController" customModule="Capacitor"' ios/App/App/Base.lproj/Main.storyboard
+grep -q 'CantoriaAppleMessageHandler()' ios/App/App/AppDelegate.swift
+grep -q 'WKScriptMessageHandler' ios/App/App/AppDelegate.swift
+
 # Required prompts for photo-based song capture on iOS.
 plist="ios/App/App/Info.plist"
 for entry in \
