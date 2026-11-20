@@ -713,7 +713,7 @@ function readerHTML(){
   <button class="reader-menu-btn" type="button" data-action="song-options" aria-label="Opzioni brano: tonalità, trasporto, PDF ed esportazione" title="Opzioni brano">☰</button>
  </header>
  <div class="reader-stage" id="readerStage"><article class="reader-paper" id="readerPaper" tabindex="0">
-  ${song.photoData&&song.photoParserVersion!==5?'<div class="reader-warning" role="status">Questa partitura usa il vecchio riconoscimento. Apri ☰ e scegli Riconosci di nuovo dalla fotografia per applicare le correzioni.</div>':''}
+  ${song.photoData&&song.photoParserVersion!==6?'<div class="reader-warning" role="status">Questa partitura usa il vecchio riconoscimento. Apri ☰ e scegli Riconosci di nuovo dalla fotografia per applicare le correzioni.</div>':''}
   ${song.photoData?(()=>{const anchors=song.sections.flatMap(sec=>(sec.lines||[]).flatMap(line=>line.anchors||[]));const pending=anchors.filter(a=>a.needsReview&&!a.verified).length;const unresolved=song.sections.reduce((n,sec)=>n+(sec.lines||[]).reduce((m,line)=>m+(line.unresolvedChords?.length||0),0),0);return pending||unresolved?`<div class="reader-warning" role="status">${pending} accordi da controllare con la foto${unresolved?' · '+unresolved+' simboli non letti':''}. Tieni premuto per correggere.</div>`:''})():''}
   <div class="sheet-columns" style="--reader-cols:${cols}">${columns.map(col=>`<div class="sheet-column">${entriesHTML(col)}</div>`).join('')}</div>
  </article></div></div>`;
@@ -840,7 +840,9 @@ async function recognizePhotoText(replaceExisting=false){
      song.sections=structuredClone(state.geometryDraft.sections);
      song.ocrText=state.ocrText;
      song.geometryDiagnostics=structuredClone(diag);
-     song.photoParserVersion=5;
+     if(diag.refrainInferredFromRepeats&&/^Canto fotografato/i.test(song.title||''))
+       song.title=diag.suggestedTitle;
+     song.photoParserVersion=6;
      song.verified=false;
      if(!saveStore(store)){
       Object.assign(song,previous);state.ocrStatus='Memoria insufficiente: partitura non aggiornata.';
@@ -1035,7 +1037,7 @@ function modalHTML(){const m=state.modal;
   const song=currentSong();if(!song?.photoData)return '';
   return `<div class="modal-shade"><div class="modal-card" role="alertdialog" aria-modal="true" aria-label="Conferma ricalcolo accordi"><h2>Ricalcolare gli accordi?</h2><p>La partitura verrà ricalcolata dalla fotografia originale con le coordinate OCR. Le modifiche manuali fatte sulle sillabe e sugli accordi saranno sostituite. La fotografia originale resterà disponibile.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button type="button" class="primary-btn" data-action="reparse-photo">Ricalcola accordi</button></div></div></div>`;
  }
- if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità dell'ultima versione"><h2>Novità dell'ultima versione</h2><p><strong>Versione 0.6.8:</strong> tieni premuto su uno spazio vuoto della pill accordi per scegliere il colore esclusivamente di quella fascia. Tieni premuto direttamente su un accordo per correggerlo. Ogni colore viene salvato nel brano, anche su introduzioni e finali, e può tornare al colore della sezione.</p><p><strong>Versione 0.6.7:</strong> la frase più lunga determina la dimensione unica del testo per tutto il brano: nessun verso esce dal display e non è necessario scorrere orizzontalmente. Le pill colorate si modificano tenendo premuto in qualsiasi punto della fascia degli accordi; puoi correggere o aggiungere accordi senza impilarli. Restano attivi la modifica delle parole con un tocco, i colori per sezione e il comando Salva brano nel menu ☰.</p><p><strong>Versione 0.6.6:</strong> testo del canto con carattere uniforme senza riduzioni per riga; rimozione dei simboli grafici letti dall'OCR; modifica delle parole toccando una riga o un'intera sezione dal menu ☰; scelta e salvataggio dei colori delle pill separatamente per Intro, Strofa, Ritornello e Finale. Gli accordi non letti non mostrano simboli inventati. Per ripulire brani già acquisiti usa ☰ → Riconosci di nuovo dalla fotografia (prima salva un backup se hai fatto correzioni manuali).</p><p><strong>Nuovo riconoscimento 0.6.5:</strong> le righe di accordi in maiuscolo/minuscolo misto (Sol Do Sol Re, Mi- Si- Do Re) vengono riconosciute sopra il testo, gli accordi dubbi restano modificabili e le intestazioni numerate non vengono cantate. Per i brani già acquisiti, dal menu ☰ usa Riconosci di nuovo dalla fotografia; il ricalcolo sostituisce eventuali modifiche manuali.</p><p><strong>Acquisizione da fotografia:</strong> le sigle difficili come SIm M7 o SIm MI/7 restano nella fascia degli accordi, anche quando l'OCR ne riconosce soltanto una parte. I simboli incerti sono segnalati con ?, senza spostarli nel testo.</p><p><strong>Pulizia e leggibilità:</strong> eliminati i simboli estranei come @ e le scritte dei comandi del dispositivo; le righe senza accordi non generano fasce vuote. Riconosciuta l'indicazione RIT all'inizio del ritornello.</p><p><strong>Verifica musicale:</strong> ogni accordo mantiene la propria posizione OCR; quelli incerti richiedono correzione sulla fotografia originale. Restano disponibili la modifica manuale, Elimina partitura e la dichiarazione automatica della crittografia esente.</p><p><strong>Versione 0.6.3:</strong> MI/7 riconosciuto; accordi affiancati senza impilamento; accordi di introduzione e finale modificabili; Salva brano nel menu ☰; Apple Intelligence sarà riattivata dopo la verifica del componente nativo: per sicurezza resta momentaneamente disabilitata.</p><p>Il riconoscimento delle note sul pentagramma non è ancora disponibile e gli accordi restano da verificare rispetto all'originale.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
+ if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità dell'ultima versione"><h2>Novità dell'ultima versione</h2><p><strong>Versione 0.6.9:</strong> PDF ridisegnato secondo il riferimento approvato: intestazioni, separatori dorati, primo ritornello azzurro, strofe verdi, ritornello ripetuto arancione, font unico e accordi affiancati senza impilamento verticale. La ricostruzione delle sezioni considera i versi ripetuti e il parser filtra i frammenti OCR evidentemente danneggiati. Per i brani precedenti usa Riconosci di nuovo dalla fotografia o importa una partitura verificata.</p><p><strong>Versione 0.6.8:</strong> tieni premuto su uno spazio vuoto della pill accordi per scegliere il colore esclusivamente di quella fascia. Tieni premuto direttamente su un accordo per correggerlo. Ogni colore viene salvato nel brano, anche su introduzioni e finali, e può tornare al colore della sezione.</p><p><strong>Versione 0.6.7:</strong> la frase più lunga determina la dimensione unica del testo per tutto il brano: nessun verso esce dal display e non è necessario scorrere orizzontalmente. Le pill colorate si modificano tenendo premuto in qualsiasi punto della fascia degli accordi; puoi correggere o aggiungere accordi senza impilarli. Restano attivi la modifica delle parole con un tocco, i colori per sezione e il comando Salva brano nel menu ☰.</p><p><strong>Versione 0.6.6:</strong> testo del canto con carattere uniforme senza riduzioni per riga; rimozione dei simboli grafici letti dall'OCR; modifica delle parole toccando una riga o un'intera sezione dal menu ☰; scelta e salvataggio dei colori delle pill separatamente per Intro, Strofa, Ritornello e Finale. Gli accordi non letti non mostrano simboli inventati. Per ripulire brani già acquisiti usa ☰ → Riconosci di nuovo dalla fotografia (prima salva un backup se hai fatto correzioni manuali).</p><p><strong>Nuovo riconoscimento 0.6.5:</strong> le righe di accordi in maiuscolo/minuscolo misto (Sol Do Sol Re, Mi- Si- Do Re) vengono riconosciute sopra il testo, gli accordi dubbi restano modificabili e le intestazioni numerate non vengono cantate. Per i brani già acquisiti, dal menu ☰ usa Riconosci di nuovo dalla fotografia; il ricalcolo sostituisce eventuali modifiche manuali.</p><p><strong>Acquisizione da fotografia:</strong> le sigle difficili come SIm M7 o SIm MI/7 restano nella fascia degli accordi, anche quando l'OCR ne riconosce soltanto una parte. I simboli incerti sono segnalati con ?, senza spostarli nel testo.</p><p><strong>Pulizia e leggibilità:</strong> eliminati i simboli estranei come @ e le scritte dei comandi del dispositivo; le righe senza accordi non generano fasce vuote. Riconosciuta l'indicazione RIT all'inizio del ritornello.</p><p><strong>Verifica musicale:</strong> ogni accordo mantiene la propria posizione OCR; quelli incerti richiedono correzione sulla fotografia originale. Restano disponibili la modifica manuale, Elimina partitura e la dichiarazione automatica della crittografia esente.</p><p><strong>Versione 0.6.3:</strong> MI/7 riconosciuto; accordi affiancati senza impilamento; accordi di introduzione e finale modificabili; Salva brano nel menu ☰; Apple Intelligence sarà riattivata dopo la verifica del componente nativo: per sicurezza resta momentaneamente disabilitata.</p><p>Il riconoscimento delle note sul pentagramma non è ancora disponibile e gli accordi restano da verificare rispetto all'originale.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
 
  if(m.type==='song-options'){
   const song=currentSong();if(!song)return '';
@@ -1375,7 +1377,10 @@ function makeCantoriaPdf(song,shift=0){
           const nextWidth=index!==null?timesWidth(text.charAt(index)||'M',lyricFont):0;
           const advance=index!==null&&Number.isFinite(a.offsetX)&&a.sourceCharWidth>0?
             nextWidth*a.offsetX/a.sourceCharWidth:0;
-          return {x:LEFT+9+base+advance,s:transposeChord(a.chord,shift)};
+          const reference=Number(a.referenceXRatio);
+         const x=Number.isFinite(reference)&&a.referenceXRatio!==undefined&&reference>=0&&reference<=1?
+           LEFT+9+reference*(MAXW-22):LEFT+9+base+advance;
+         return {x,s:transposeChord(a.chord,shift)};
         }).sort((a,b)=>a.x-b.x);
         let chordFont=10.9,gap=6;
         const total=placed.reduce((sum,c)=>sum+timesWidth(c.s,chordFont),0)+gap*(placed.length-1);
@@ -1504,7 +1509,7 @@ root.addEventListener('click',e=>{
   const previous={sections:song.sections,ocrText:song.ocrText,subtitle:song.subtitle,verified:song.verified,geometryDiagnostics:song.geometryDiagnostics};
   song.sections=sections;song.ocrText=state.ocrText.trim().slice(0,20000);
   song.geometryDiagnostics=structuredClone(state.geometryDraft.diagnostics);
-  song.photoParserVersion=5;
+  song.photoParserVersion=6;
   song.subtitle='Trascrizione fotografica · da verificare';song.verified=false;
   if(!saveStore(store)){Object.assign(song,previous);notify('Spazio insufficiente per salvare la partitura.');return;}
   state.ocrStatus='';state.page=0;render();notify('Partitura creata. Controlla gli accordi sulle sillabe.');return;
@@ -1636,11 +1641,13 @@ root.addEventListener('submit',e=>{e.preventDefault();const form=e.target;const 
   const scanned=state.ocrText.trim().slice(0,20000);
   let sections=[];
   if(mode==='score'){try{sections=photoSectionsFromText(scanned);}catch(err){notify(err.message);return;}}
-  const title=String(f.get('photoSongTitle')||state.photoTitle||'').trim()||('Canto fotografato · '+new Date().toLocaleDateString('it-IT'));
+  const suggested=mode==='score'?String(state.geometryDraft?.diagnostics?.suggestedTitle||'').trim():'';
+  const title=String(f.get('photoSongTitle')||state.photoTitle||'').trim()||suggested||
+    ('Canto fotografato · '+new Date().toLocaleDateString('it-IT'));
   const song={id:makeId(),title,subtitle:mode==='score'?'Trascrizione fotografica · da verificare':'Bozza fotografica',
     key:'',source:'Foto originale',photoData:state.photoURL,ocrText:scanned,verified:false,sections,
     geometryDiagnostics:mode==='score'?structuredClone(state.geometryDraft.diagnostics):null,
-    photoParserVersion:mode==='score'?5:0};
+    photoParserVersion:mode==='score'?6:0};
   store.songs.unshift(song);
   if(!saveStore(store)){store.songs.shift();notify('Spazio insufficiente per salvare il brano. Fai un backup o libera spazio.');return;}
   state.photoURL=null;state.photoTitle='';state.ocrText='';state.ocrStatus='';state.geometryDraft=null;state.geometryRawText='';state.view='library';openSong(song.id);
