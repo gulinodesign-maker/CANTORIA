@@ -71,7 +71,7 @@
     const text=row.text.trim();
     // Stray final pieces, such as "ma «", come from non-lyric marks on
     // photographed score borders and must not create a new sung line.
-    return UI_LABEL.test(text)||/^[a-zà-ÿ]{1,3}\\s*[«»]+$/i.test(text);
+    return UI_LABEL.test(text)||/^[a-zà-ÿ]{1,3}\s*[«»]+$/i.test(text);
   }
   function isChordLikeToken(raw,symbol) {
     if(symbol)return true;
@@ -143,13 +143,13 @@
   // in-word hyphen), but discard scanner scratches, slashes, brackets, etc.
   function cleanLyricToken(raw) {
     const source=String(raw||'').normalize('NFC');
-    if(!/[A-Za-zÀ-ÿ0-9]/.test(source))return '';
+    if(!/[\p{L}\p{N}]/u.test(source))return '';
     let cleaned=source.replace(JUNK_SYMBOLS,'')
-      .replace(/[\\\\/~=+°«»()[\\]{}<>^*_]/g,'')
+      .replace(/[^\p{L}\p{N}'’.,!?;:\-]/gu,'')
       .replace(/^[—–-]+|[—–-]+$/g,'');
     // A single 'T' read from 'T°' is still a scan artefact, not a word.
-    if(/^[A-Z]$/.test(cleaned)&&/[°\\\\/~=+]/.test(source))return '';
-    if(!/[A-Za-zÀ-ÿ0-9]/.test(cleaned))return '';
+    if(/^[A-Z]$/.test(cleaned)&&/[°\\/~=+]/.test(source))return '';
+    if(!/[\p{L}\p{N}]/u.test(cleaned))return '';
     return cleaned;
   }
   function cleanLyricRow(row,diagnostics) {
