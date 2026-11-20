@@ -448,6 +448,11 @@
  .chord-label.unresolved .unresolved-spot{display:block;width:20px;height:1px;border-bottom:1px dotted #a77c55;opacity:.65}
  .band-color-field{display:flex;align-items:center;gap:10px}
  .band-color-field select{flex:1;min-width:0}
+ .pill-color-picker{display:grid;gap:8px;margin:14px 0}
+ .pill-color-choice{display:flex;align-items:center;gap:11px;min-height:45px;width:100%;padding:7px 11px;border:1px solid #d7cdbc;border-radius:13px;background:#faf6ee;color:#213c32;font-weight:600;text-align:left}
+ .pill-color-choice[aria-pressed="true"]{border-color:#ad812c;box-shadow:0 0 0 1px #ad812c}
+ .pill-color-choice span:last-child:not(.pill-color-swatch){margin-left:auto}
+ .pill-color-swatch{height:23px;width:68px;border:1px solid #c6c2bb;border-radius:999px;flex-shrink:0}
  .band-color-preview{display:inline-block;width:44px;height:25px;border:1px solid #bfb7a9;border-radius:20px;flex-shrink:0}
  .lyric-text-editor{width:100%;font:normal 17px/1.5 Georgia,"Times New Roman",serif!important;min-height:115px!important}
  .section-lyric-editor{min-height:220px!important}
@@ -615,8 +620,10 @@ function describeTonality(song,shift=0){
   return `${note} ${mode}`;
 }
 function chordLabel(c){return escape(transposeChord(c,state.shift)).replace(/(\d*[24])$/, s=>`<sup>${s}</sup>`);}
-function musicBandStyle(kind){
- const color=window.CantoriaEditor?.bandColor(currentSong(),kind);
+function musicBandStyle(kind,si,li,rowIndex){
+ const color=Number.isInteger(si)?
+  window.CantoriaEditor?.rowBandColor(currentSong(),si,li,rowIndex):
+  window.CantoriaEditor?.bandColor(currentSong(),kind);
  return color?`style="--band-color:${color}"`:'';
 }
 function chordOnlyBand(chords,kind,geometry,si=-1,rowIndex=-1,isPrint=false){
@@ -629,7 +636,7 @@ function chordOnlyBand(chords,kind,geometry,si=-1,rowIndex=-1,isPrint=false){
   const tag=editable?'button':'span';
   return `<${tag} class="chord-label ${editable?'editable':''} ${chord==='?'?'unresolved':''}" data-source-ratio="${positioned?(x/100).toFixed(5):''}" ${positioned?`style="left:${x.toFixed(4)}%;position:absolute"`:''} ${editable?`type="button" data-action="edit-chord-only" data-section="${si}" data-row-index="${rowIndex}" data-chord="${i}" title="Tieni premuto per correggere"`:''}>${chord==='?'?'<span class="unresolved-spot" aria-hidden="true"></span>':chordLabel(chord)}</${tag}>`;
  }).join('');
- return `<div class="music-row ${escapeAttr(kind)} chords-only" ${musicBandStyle(kind)}><div class="chord-band" ${editable?`data-action="edit-band" data-section="${si}" data-row-index="${rowIndex}" role="button" tabindex="0" title="Tieni premuto per modificare gli accordi"`:''}>${labels}</div></div>`;
+ return `<div class="music-row ${escapeAttr(kind)} chords-only" ${musicBandStyle(kind,si,null,rowIndex)}><div class="chord-band" ${editable?`data-action="edit-band" data-section="${si}" data-row-index="${rowIndex}" role="button" tabindex="0" title="Tieni premuto sullo spazio vuoto per cambiare colore; sull’accordo per correggerlo"`:''}>${labels}</div></div>`;
 }
 function introChords(section,si=-1,isPrint=false){return chordOnlyBand(section.chordsOnly,section.kind,section.chordsOnlyGeometry,si,-1,isPrint);}
 function outroChords(section,si=-1,isPrint=false){return (section.chordRows||[]).map((row,i)=>chordOnlyBand(row,section.kind,section.chordRowsGeometry?.[i],si,i,isPrint)).join('');}
@@ -645,8 +652,8 @@ function lineHTML(section,line,si,li,isPrint=false){
     return `<${tag} class="chord-label ${isPrint?'':'editable'} ${uncertain?'uncertain':''} ${a.unresolved?'unresolved':''}" data-slot="${a.slot}" data-char-index="${cIndex}" data-offset-x="${offset}" data-source-char-width="${sourceWidth}" ${isPrint?'':`data-action="edit-chord" data-section="${si}" data-line="${li}" data-chord="${ai}"`} title="${escapeAttr(a.unresolved?'Simbolo musicale non riconosciuto (letto: '+(a.sourceSymbol||'?')+'). Tieni premuto e correggi.':uncertain?'Posizione da verificare sulla foto':'Accordo')}" aria-label="${a.unresolved?'Simbolo da verificare: ': 'Accordo '}${escapeAttr(a.chord)}${uncertain?' da verificare':''}">${a.unresolved?'<span class="unresolved-spot" aria-hidden="true"></span>':chordLabel(a.chord)}</${tag}>`;
   }).join('');
   // A photographed lyric without recognised chords needs no blank chord bar.
-  const chordBand=chords||!line.sourceRowId?`<div class="chord-band" ${isPrint?'':`data-action="edit-band" data-section="${si}" data-line="${li}" role="button" tabindex="0" title="Tieni premuto per modificare gli accordi"`}>${chords}</div>`:'';
-  return `<div class="music-row ${escapeAttr(section.kind)}" ${musicBandStyle(section.kind)} data-row="s${si}-l${li}">${chordBand}<div class="lyric-line ${chordBand?'':'without-chords'}" ${isPrint?'':`data-section="${si}" data-line="${li}" role="button" tabindex="0" aria-label="Modifica testo della riga"`}>${lyrics}</div></div>`;
+  const chordBand=chords||!line.sourceRowId?`<div class="chord-band" ${isPrint?'':`data-action="edit-band" data-section="${si}" data-line="${li}" role="button" tabindex="0" title="Tieni premuto sullo spazio vuoto per cambiare colore; sull’accordo per correggerlo"`}>${chords}</div>`:'';
+  return `<div class="music-row ${escapeAttr(section.kind)}" ${musicBandStyle(section.kind,si,li)} data-row="s${si}-l${li}">${chordBand}<div class="lyric-line ${chordBand?'':'without-chords'}" ${isPrint?'':`data-section="${si}" data-line="${li}" role="button" tabindex="0" aria-label="Modifica testo della riga"`}>${lyrics}</div></div>`;
 }
 function groupHeading(label,continued=false){return `<div class="section-title ${continued?'continued':''}">${escape(label)}${continued?' · segue':''}</div>`;}
 function sectionsAllHTML(song,isPrint=false){return (song.sections||[]).map((sec,si)=>`<section class="music-group ${isPrint?'print-section':''}">${groupHeading(sec.name)}${sec.chordsOnly?introChords(sec,si,isPrint):''}${(sec.lines||[]).map((ln,li)=>lineHTML(sec,ln,si,li,isPrint)).join('')}${sec.chordRows?outroChords(sec,si,isPrint):''}</section>`).join('');}
@@ -913,7 +920,7 @@ function captureHTML(){
      </form>`:`<p class="photo-capture-hint">Fotografa lo spartito per iniziare.</p>`}
   </section>`;
 }
-function settingsHTML(){return `<div class="page-heading"><div><div class="eyebrow">Versione 0.6.7</div><h1>Impostazioni</h1></div></div><div class="form-wrap"><div class="panel"><h3>Dati e salvataggi</h3><p>I canti e le scalette sono attualmente memorizzati <strong>solo nel browser di questo dispositivo</strong>. Non sono ancora sincronizzati su iCloud o GitHub.</p><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px"><button class="outline-btn" data-action="backup">Scarica backup JSON</button><label class="outline-btn" style="cursor:pointer">Ripristina backup<input type="file" id="backupInput" accept="application/json" style="display:none"></label></div></div><div class="panel"><h3>Ultimo aggiornamento</h3><p>Scopri le modifiche e le migliorie introdotte con la versione più recente.</p><button type="button" class="outline-btn" data-action="show-release-notes">Novità dell'ultima versione</button></div><div class="panel"><h3>Modello musicale</h3><p>Gli accordi delle fotografie conservano anche coordinate OCR, indice del carattere e livello di affidabilità. La disposizione grafica non cambia il loro ancoraggio musicale.</p><div class="alert" style="margin-top:15px">OCR geometrico sperimentale: dove sono disponibili soltanto i riquadri delle parole gli ancoraggi ai caratteri sono stimati e sempre da verificare. Se mancano le coordinate, l'app non inventa una posizione. Le note sul pentagramma non sono ancora riconosciute.</div></div></div>`;}
+function settingsHTML(){return `<div class="page-heading"><div><div class="eyebrow">Versione 0.6.8</div><h1>Impostazioni</h1></div></div><div class="form-wrap"><div class="panel"><h3>Dati e salvataggi</h3><p>I canti e le scalette sono attualmente memorizzati <strong>solo nel browser di questo dispositivo</strong>. Non sono ancora sincronizzati su iCloud o GitHub.</p><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px"><button class="outline-btn" data-action="backup">Scarica backup JSON</button><label class="outline-btn" style="cursor:pointer">Ripristina backup<input type="file" id="backupInput" accept="application/json" style="display:none"></label></div></div><div class="panel"><h3>Ultimo aggiornamento</h3><p>Scopri le modifiche e le migliorie introdotte con la versione più recente.</p><button type="button" class="outline-btn" data-action="show-release-notes">Novità dell'ultima versione</button></div><div class="panel"><h3>Modello musicale</h3><p>Gli accordi delle fotografie conservano anche coordinate OCR, indice del carattere e livello di affidabilità. La disposizione grafica non cambia il loro ancoraggio musicale.</p><div class="alert" style="margin-top:15px">OCR geometrico sperimentale: dove sono disponibili soltanto i riquadri delle parole gli ancoraggi ai caratteri sono stimati e sempre da verificare. Se mancano le coordinate, l'app non inventa una posizione. Le note sul pentagramma non sono ancora riconosciute.</div></div></div>`;}
 function appHTML(){
  const views={home:homeHTML,library:libraryHTML,masses:massesHTML,capture:captureHTML,settings:settingsHTML};
  const builder=views[state.view]||homeHTML;
@@ -940,6 +947,25 @@ function syllableModalHTML(m){
 }
 function songInfoEditor(song){return `<details class="compact-details"><summary>Modifica titolo e autore</summary><form id="songInfoForm" class="song-info-form"><div class="field"><label for="editSongTitle">Titolo</label><input id="editSongTitle" name="title" maxlength="160" required value="${escapeAttr(song.title)}"></div><div class="field"><label for="editSongAuthor">Autore</label><input id="editSongAuthor" name="author" maxlength="160" placeholder="Nome dell'autore" value="${escapeAttr(song.author||'')}"></div><button type="submit" class="primary-btn">Salva</button></form></details>`;}
 
+function rowBandColorModal(m){
+ const song=currentSong(),sec=song?.sections?.[m.si];
+ if(!sec)return '';
+ const editor=window.CantoriaEditor;
+ const current=editor.rowBandColor(song,m.si,m.li,m.rowIndex);
+ const custom=editor.rowBandOverride(song,m.si,m.li,m.rowIndex);
+ const choices=editor.PALETTE.map(p=>`<button type="button" class="pill-color-choice" data-action="apply-row-band-color" data-color="${p.value}" aria-pressed="${p.value===current}">
+  <span class="pill-color-swatch" style="background:${p.value}" aria-hidden="true"></span>
+  <span>${escape(p.label)}</span>${p.value===current?'<span aria-hidden="true">✓</span>':''}
+ </button>`).join('');
+ return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Cambia colore della pill">
+  <h2>Colore della pill</h2>
+  <p>Cambia soltanto il colore di questa fascia accordi. Le altre pill e i loro accordi rimangono invariati.</p>
+  <div class="pill-color-picker">${choices}</div>
+  ${custom?'<button type="button" class="outline-btn song-edit-action" data-action="reset-row-band-color">Ripristina colore della sezione</button>':''}
+  <button type="button" class="outline-btn song-edit-action" data-action="open-band-chords">Modifica o aggiungi accordi</button>
+  <div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Chiudi</button></div>
+ </div></div>`;
+}
 function chordBandEditModal(m){
  const sec=currentSong()?.sections?.[m.si];
  if(!sec)return '';
@@ -1009,7 +1035,7 @@ function modalHTML(){const m=state.modal;
   const song=currentSong();if(!song?.photoData)return '';
   return `<div class="modal-shade"><div class="modal-card" role="alertdialog" aria-modal="true" aria-label="Conferma ricalcolo accordi"><h2>Ricalcolare gli accordi?</h2><p>La partitura verrà ricalcolata dalla fotografia originale con le coordinate OCR. Le modifiche manuali fatte sulle sillabe e sugli accordi saranno sostituite. La fotografia originale resterà disponibile.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button type="button" class="primary-btn" data-action="reparse-photo">Ricalcola accordi</button></div></div></div>`;
  }
- if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità dell'ultima versione"><h2>Novità dell'ultima versione</h2><p><strong>Versione 0.6.7:</strong> la frase più lunga determina la dimensione unica del testo per tutto il brano: nessun verso esce dal display e non è necessario scorrere orizzontalmente. Le pill colorate si modificano tenendo premuto in qualsiasi punto della fascia degli accordi; puoi correggere o aggiungere accordi senza impilarli. Restano attivi la modifica delle parole con un tocco, i colori per sezione e il comando Salva brano nel menu ☰.</p><p><strong>Versione 0.6.6:</strong> testo del canto con carattere uniforme senza riduzioni per riga; rimozione dei simboli grafici letti dall'OCR; modifica delle parole toccando una riga o un'intera sezione dal menu ☰; scelta e salvataggio dei colori delle pill separatamente per Intro, Strofa, Ritornello e Finale. Gli accordi non letti non mostrano simboli inventati. Per ripulire brani già acquisiti usa ☰ → Riconosci di nuovo dalla fotografia (prima salva un backup se hai fatto correzioni manuali).</p><p><strong>Nuovo riconoscimento 0.6.5:</strong> le righe di accordi in maiuscolo/minuscolo misto (Sol Do Sol Re, Mi- Si- Do Re) vengono riconosciute sopra il testo, gli accordi dubbi restano modificabili e le intestazioni numerate non vengono cantate. Per i brani già acquisiti, dal menu ☰ usa Riconosci di nuovo dalla fotografia; il ricalcolo sostituisce eventuali modifiche manuali.</p><p><strong>Acquisizione da fotografia:</strong> le sigle difficili come SIm M7 o SIm MI/7 restano nella fascia degli accordi, anche quando l'OCR ne riconosce soltanto una parte. I simboli incerti sono segnalati con ?, senza spostarli nel testo.</p><p><strong>Pulizia e leggibilità:</strong> eliminati i simboli estranei come @ e le scritte dei comandi del dispositivo; le righe senza accordi non generano fasce vuote. Riconosciuta l'indicazione RIT all'inizio del ritornello.</p><p><strong>Verifica musicale:</strong> ogni accordo mantiene la propria posizione OCR; quelli incerti richiedono correzione sulla fotografia originale. Restano disponibili la modifica manuale, Elimina partitura e la dichiarazione automatica della crittografia esente.</p><p><strong>Versione 0.6.3:</strong> MI/7 riconosciuto; accordi affiancati senza impilamento; accordi di introduzione e finale modificabili; Salva brano nel menu ☰; Apple Intelligence sarà riattivata dopo la verifica del componente nativo: per sicurezza resta momentaneamente disabilitata.</p><p>Il riconoscimento delle note sul pentagramma non è ancora disponibile e gli accordi restano da verificare rispetto all'originale.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
+ if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità dell'ultima versione"><h2>Novità dell'ultima versione</h2><p><strong>Versione 0.6.8:</strong> tieni premuto su uno spazio vuoto della pill accordi per scegliere il colore esclusivamente di quella fascia. Tieni premuto direttamente su un accordo per correggerlo. Ogni colore viene salvato nel brano, anche su introduzioni e finali, e può tornare al colore della sezione.</p><p><strong>Versione 0.6.7:</strong> la frase più lunga determina la dimensione unica del testo per tutto il brano: nessun verso esce dal display e non è necessario scorrere orizzontalmente. Le pill colorate si modificano tenendo premuto in qualsiasi punto della fascia degli accordi; puoi correggere o aggiungere accordi senza impilarli. Restano attivi la modifica delle parole con un tocco, i colori per sezione e il comando Salva brano nel menu ☰.</p><p><strong>Versione 0.6.6:</strong> testo del canto con carattere uniforme senza riduzioni per riga; rimozione dei simboli grafici letti dall'OCR; modifica delle parole toccando una riga o un'intera sezione dal menu ☰; scelta e salvataggio dei colori delle pill separatamente per Intro, Strofa, Ritornello e Finale. Gli accordi non letti non mostrano simboli inventati. Per ripulire brani già acquisiti usa ☰ → Riconosci di nuovo dalla fotografia (prima salva un backup se hai fatto correzioni manuali).</p><p><strong>Nuovo riconoscimento 0.6.5:</strong> le righe di accordi in maiuscolo/minuscolo misto (Sol Do Sol Re, Mi- Si- Do Re) vengono riconosciute sopra il testo, gli accordi dubbi restano modificabili e le intestazioni numerate non vengono cantate. Per i brani già acquisiti, dal menu ☰ usa Riconosci di nuovo dalla fotografia; il ricalcolo sostituisce eventuali modifiche manuali.</p><p><strong>Acquisizione da fotografia:</strong> le sigle difficili come SIm M7 o SIm MI/7 restano nella fascia degli accordi, anche quando l'OCR ne riconosce soltanto una parte. I simboli incerti sono segnalati con ?, senza spostarli nel testo.</p><p><strong>Pulizia e leggibilità:</strong> eliminati i simboli estranei come @ e le scritte dei comandi del dispositivo; le righe senza accordi non generano fasce vuote. Riconosciuta l'indicazione RIT all'inizio del ritornello.</p><p><strong>Verifica musicale:</strong> ogni accordo mantiene la propria posizione OCR; quelli incerti richiedono correzione sulla fotografia originale. Restano disponibili la modifica manuale, Elimina partitura e la dichiarazione automatica della crittografia esente.</p><p><strong>Versione 0.6.3:</strong> MI/7 riconosciuto; accordi affiancati senza impilamento; accordi di introduzione e finale modificabili; Salva brano nel menu ☰; Apple Intelligence sarà riattivata dopo la verifica del componente nativo: per sicurezza resta momentaneamente disabilitata.</p><p>Il riconoscimento delle note sul pentagramma non è ancora disponibile e gli accordi restano da verificare rispetto all'originale.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
 
  if(m.type==='song-options'){
   const song=currentSong();if(!song)return '';
@@ -1051,6 +1077,7 @@ function modalHTML(){const m=state.modal;
 if(m.type==='new-mass')return `<div class="modal-shade"><form class="modal-card" id="newMassForm"><h2>Nuova Messa</h2><div class="field"><label for="massName">Nome</label><input id="massName" name="massName" placeholder="Messa domenicale" required autofocus maxlength="160"></div><div class="field"><label for="massDate">Data</label><input type="date" id="massDate" name="massDate"></div><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button class="primary-btn">Crea</button></div></form></div>`;
  if(m.type==='reuse-mass')return reuseMassFormHTML(m);
  if(m.type==='add-to-mass')return `<div class="modal-shade"><form class="modal-card" id="addToMassForm"><h2>Aggiungi alla Messa</h2><p>Il canto verrà inserito in fondo alla scaletta. Potrai spostarlo successivamente.</p>${m.massId?`<input type="hidden" name="massId" value="${escapeAttr(m.massId)}">`:`<div class="field"><label>Messa</label><select name="massId">${store.masses.map(x=>`<option value="${escapeAttr(x.id)}">${escape(x.name)}</option>`).join('')}</select></div>`}<div class="field"><label>Canto</label><select name="songId">${store.songs.map(s=>`<option value="${escapeAttr(s.id)}" ${s.id===m.songId?'selected':''}>${escape(s.title)}</option>`).join('')}</select></div><div class="field"><label>Momento</label><select name="label"><option>Ingresso</option><option>Atto penitenziale</option><option>Gloria</option><option>Salmo</option><option>Alleluia</option><option>Offertorio</option><option>Santo</option><option>Comunione</option><option>Ringraziamento</option><option>Canto finale</option></select></div><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button class="primary-btn">Aggiungi</button></div></form></div>`;
+ if(m.type==='row-band-color')return rowBandColorModal(m);
  if(m.type==='band-chords')return chordBandEditModal(m);
  if(m.type==='lyric-edit')return lyricTextEditModal(m);
  if(m.type==='section-text-edit')return sectionTextEditModal(m);
@@ -1461,6 +1488,25 @@ root.addEventListener('click',e=>{
   return;
  }
  if(action==='band-colors'){state.modal={type:'band-colors'};render();return;}
+ if(action==='open-band-chords'){
+  const m=state.modal;
+  if(m?.type!=='row-band-color')return;
+  state.modal={...m,type:'band-chords'};render();return;
+ }
+ if(action==='apply-row-band-color'||action==='reset-row-band-color'){
+  const m=state.modal,song=currentSong();
+  if(m?.type!=='row-band-color'||!song)return;
+  const editor=window.CantoriaEditor;
+  const old=editor.rowBandOverride(song,m.si,m.li,m.rowIndex);
+  const color=action==='reset-row-band-color'?'':String(el.dataset.color||'');
+  try{editor.setRowBandColor(song,m.si,m.li,m.rowIndex,color);}
+  catch(err){notify(err.message);return;}
+  if(!saveStore(store)){
+   editor.setRowBandColor(song,m.si,m.li,m.rowIndex,old||'');
+   notify('Non è stato possibile salvare il colore.');return;
+  }
+  state.modal=null;render();notify('Colore della pill salvato.');return;
+ }
  if(action==='select-band-chord'||action==='add-band-chord'){
   const m=state.modal;if(m?.type!=='band-chords')return;
   const ai=action==='add-band-chord'?-1:Number(el.dataset.chord);
@@ -1587,12 +1633,26 @@ function setupLongPress(){
  const activate=(target)=>{
   const si=Number(target.dataset.section),li=Number(target.dataset.line);
   if(!Number.isInteger(si)||!currentSong()?.sections?.[si])return;
+  // A chord symbol has priority over its parent pill, even when the
+  // chord text or its superscript is the initial pointer target.
+  if(target.classList.contains('chord-label')){
+   const ai=Number(target.dataset.chord);
+   if(!Number.isInteger(ai)||ai<0)return;
+   if(target.dataset.action==='edit-chord-only'){
+    state.modal={type:'chord-only-edit',si,rowIndex:Number(target.dataset.rowIndex),ai};
+    render();return;
+   }
+   if(target.dataset.action==='edit-chord'&&Number.isInteger(li)){
+    openChordModal(si,li,ai);return;
+   }
+  }
+  // Only untouched background of the colored chord bar changes its color.
   if(target.dataset.action==='edit-band'){
    const isChordOnly=target.hasAttribute('data-row-index');
    if(!isChordOnly&&!Number.isInteger(li))return;
    state.modal=isChordOnly?
-    {type:'band-chords',si,rowIndex:Number(target.dataset.rowIndex)}:
-    {type:'band-chords',si,li};
+    {type:'row-band-color',si,rowIndex:Number(target.dataset.rowIndex)}:
+    {type:'row-band-color',si,li};
    render();return;
   }
   if(!Number.isInteger(li))return;
@@ -1601,7 +1661,7 @@ function setupLongPress(){
  };
  root.addEventListener('pointerdown',e=>{
   if(e.button!==0||state.modal)return;
-  const target=e.target.closest('#readerPaper .chord-band[data-action="edit-band"], #readerPaper .syllable.clickable');
+  const target=e.target.closest('#readerPaper .chord-label.editable, #readerPaper .chord-band[data-action="edit-band"], #readerPaper .syllable.clickable');
   if(!target)return;
   cancel();x=e.clientX;y=e.clientY;pending=target;
   timer=setTimeout(()=>{timer=null;const t=pending;pending=null;if(t)activate(t);},530);
@@ -1609,7 +1669,7 @@ function setupLongPress(){
  root.addEventListener('pointermove',e=>{if(pending&&(Math.abs(e.clientX-x)>11||Math.abs(e.clientY-y)>11))cancel();});
  for(const type of ['pointerup','pointercancel','pointerleave'])root.addEventListener(type,cancel);
  root.addEventListener('contextmenu',e=>{
-  const target=e.target.closest('#readerPaper .chord-band[data-action="edit-band"], #readerPaper .syllable.clickable');
+  const target=e.target.closest('#readerPaper .chord-label.editable, #readerPaper .chord-band[data-action="edit-band"], #readerPaper .syllable.clickable');
   if(!target)return;
   e.preventDefault();
   if(!state.modal){cancel();activate(target);}
@@ -1628,6 +1688,8 @@ function setupLongPress(){
  },true);
  root.addEventListener('keydown',e=>{
   if(!['Enter',' '].includes(e.key)||state.modal)return;
+  const chord=e.target.closest('#readerPaper .chord-label.editable');
+  if(chord){e.preventDefault();activate(chord);return;}
   const band=e.target.closest('#readerPaper .chord-band[data-action="edit-band"]');
   if(band){e.preventDefault();activate(band);return;}
   const lyric=e.target.closest('#readerPaper .lyric-line[data-section][data-line]');

@@ -12,6 +12,38 @@ assert.equal(editor.bandColor(song,'intro'),'#dfe4dc');
 assert.equal(editor.bandColor(JSON.parse(JSON.stringify(song)),'chorus'),'#e8e2da');
 assert.throws(()=>editor.setBandColor(song,'verse','url(https://invalid.example)'),/Colore/);
 assert.throws(()=>editor.setBandColor(song,'bridge','#e5e5df'),/Colore/);
+
+const colorSong={
+ bandColors:{verse:'#e8e2da',intro:'#dee4e8',outro:'#dfe4dc'},
+ sections:[
+  {kind:'intro',chordsOnly:['SOL','DO'],lines:[]},
+  {kind:'verse',lines:[
+   {marked:'Primo verso',anchors:[]},{marked:'Secondo verso',anchors:[]}
+  ]},
+  {kind:'outro',lines:[],chordRows:[['RE','SOL'],['DO']]}
+ ]
+};
+assert.equal(editor.rowBandColor(colorSong,1,0),'#e8e2da');
+editor.setRowBandColor(colorSong,1,0,undefined,'#e5e5df');
+assert.equal(editor.rowBandColor(colorSong,1,0),'#e5e5df');
+assert.equal(editor.rowBandColor(colorSong,1,1),'#e8e2da','Only ONE pill changes');
+editor.setRowBandColor(colorSong,0,undefined,-1,'#d8dad6');
+assert.equal(editor.rowBandColor(colorSong,0,undefined,-1),'#d8dad6');
+editor.setRowBandColor(colorSong,2,undefined,0,'#e8e2da');
+assert.equal(editor.rowBandColor(colorSong,2,undefined,0),'#e8e2da');
+assert.equal(editor.rowBandColor(colorSong,2,undefined,1),'#dfe4dc');
+const persistedColor=JSON.parse(JSON.stringify(colorSong));
+assert.equal(editor.rowBandColor(persistedColor,1,0),'#e5e5df',
+ 'Per-pill color must survive export/import/reopen');
+assert.equal(editor.rowBandColor(persistedColor,0,undefined,-1),'#d8dad6');
+editor.setRowBandColor(colorSong,1,0,undefined,'');
+assert.equal(editor.rowBandColor(colorSong,1,0),'#e8e2da',
+ 'Reset restores section theme without affecting other rows');
+assert.equal(editor.rowBandOverride(colorSong,1,0),null);
+assert.throws(()=>editor.setRowBandColor(colorSong,1,0,undefined,'red'),/Colore/);
+assert.throws(()=>editor.setRowBandColor(colorSong,1,99,undefined,'#e5e5df'),/Riga/);
+assert.throws(()=>editor.setRowBandColor(colorSong,2,undefined,9,'#e5e5df'),/Riga/);
+
 assert.equal(editor.visibleLyric('Be|ne|det|to sei Si|gno|re'),'Benedetto sei Signore');
 
 const line={marked:'Be|ne|det|to sei Si|gno|re',anchors:[
@@ -63,4 +95,9 @@ assert.ok(html.includes('a.unresolved?\'<span class="unresolved-spot"'),
  'OCR question marks should not appear as chord text');
 assert.ok(fs.readFileSync('sw.js','utf8').includes("'./score-editor.js'"));
 assert.ok(fs.readFileSync('scripts/prepare-ios.sh','utf8').includes('score-editor.js'));
+assert.ok(html.includes('function rowBandColorModal(m)'), 'Row-specific color picker is wired');
+assert.ok(html.includes("m.type==='row-band-color'"));
+assert.ok(html.includes("editor.setRowBandColor(song,m.si,m.li,m.rowIndex,color)"));
+assert.ok(html.includes("action==='reset-row-band-color'"));
+assert.ok(html.includes('data-action="apply-row-band-color"'));
 console.log('OK: lyric editing, musical anchors, sections, palette, uniform text and iOS assets');

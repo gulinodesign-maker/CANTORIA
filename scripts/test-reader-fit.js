@@ -92,4 +92,39 @@ for(const requirement of [
  "action==='select-band-chord'","action==='add-band-chord'",
  "if(m.ai===-1)row.push(chord)"
 ])assert.ok(html.includes(requirement),'Chord-pill interaction missing: '+requirement);
+// Distinguish a press directly on a note from a press on blank pill surface.
+const gestureStart=js.indexOf(' const activate=(target)=>{',js.indexOf('function setupLongPress(){'));
+const gestureEnd=js.indexOf(" root.addEventListener('pointerdown',e=>{",gestureStart);
+assert.ok(gestureStart>=0&&gestureEnd>gestureStart);
+const gestureState={modal:null};
+const openChordCalls=[],renders=[];
+const gestureContext={
+ state:gestureState,currentSong(){return {sections:[{lines:[{anchors:[{}]}],chordsOnly:['DO']}]}},
+ openChordModal(...args){openChordCalls.push(args)},
+ render(){renders.push(true)},
+ Number
+};
+vm.createContext(gestureContext);
+vm.runInContext(js.slice(gestureStart,gestureEnd)+'this.simActivate=activate;',gestureContext);
+const target=(kind,dataset,hasRow=false)=>({
+ dataset,
+ classList:{contains(name){return name==='chord-label'&&kind==='chord'}},
+ hasAttribute(name){return name==='data-row-index'&&hasRow}
+});
+gestureContext.simActivate(target('chord',{section:'0',line:'0',chord:'0',action:'edit-chord'}));
+assert.deepEqual(openChordCalls.pop(),[0,0,0],'Long-press on accord itself edits the accord');
+assert.equal(gestureState.modal,null,'Chord long-press must NOT open the color picker');
+gestureContext.simActivate(target('band',{section:'0',line:'0',action:'edit-band'}));
+assert.equal(gestureState.modal.type,'row-band-color','Empty pill opens ONLY color picker');
+assert.equal(gestureState.modal.li,0);
+gestureState.modal=null;
+gestureContext.simActivate(target('chord',{section:'0',rowIndex:'-1',chord:'0',action:'edit-chord-only'},true));
+assert.equal(gestureState.modal.type,'chord-only-edit','Intro note remains directly editable');
+gestureState.modal=null;
+gestureContext.simActivate(target('band',{section:'0',rowIndex:'-1',action:'edit-band'},true));
+assert.equal(gestureState.modal.type,'row-band-color','Empty intro pill opens its own color');
+assert.equal(gestureState.modal.rowIndex,-1);
+assert.ok(html.includes('#readerPaper .chord-label.editable, #readerPaper .chord-band[data-action="edit-band"]'),
+ 'Chord labels must precede band target in pointer handling');
+
 console.log('OK: global longest-phrase font, viewport fitting, chord collision, pill long-press editor');
