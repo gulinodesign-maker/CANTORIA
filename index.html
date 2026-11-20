@@ -1319,66 +1319,85 @@ function makeCantoriaPdf(song,shift=0){
   const ensure=height=>{if(y-height<47)startPage();};
   startPage();
   for(const section of song.sections||[]){
-    const heading=String(section.name||'SEZIONE');
-    ensure(67);ptext(heading.toUpperCase(),(W-heading.length*7.1)/2,y,12,'F2','0.65 0.46 0.17');y-=9;rule(y);y-=20;
-    const chordOnly=(chords,geometry=null)=>{
-      const content=chords.map(c=>transposeChord(c,shift)).join('     ');
-      const font=Math.min(12,MAXW/Math.max(1,content.length)/.6);
-      ensure(40);pill(LEFT,y-23,MAXW,25,bandColor(section.kind));
-      if(Array.isArray(geometry)&&geometry.length===chords.length&&
-        geometry.every(a=>Number.isFinite(a.sourceX)&&a.sourceLineBBox?.x1>a.sourceLineBBox?.x0)){
-        geometry.forEach((item,i)=>{
-          const source=item.sourceLineBBox;
-          const x=LEFT+9+(item.sourceX-source.x0)*MAXW/(source.x1-source.x0);
-          ptext(transposeChord(chords[i],shift),x,y-15,Math.max(8,font),'F2','0.13 0.31 0.25');
-        });
-      }else ptext(content,LEFT+9,y-15,Math.max(8,font),'F2','0.13 0.31 0.25');
-      y-=40;
+    const heading=String(section.name||'SEZIONE').toUpperCase();
+    ensure(45);
+    const width=Math.max(130,timesWidth(heading,12.5)+40);
+    const center=W/2,half=width/2;
+    commands.push(`0.72 0.55 0.24 RG 0.85 w ${fmt(LEFT)} ${fmt(y-4)} m ${fmt(center-half-11)} ${fmt(y-4)} l S`);
+    commands.push(`0.72 0.55 0.24 RG 0.85 w ${fmt(center+half+11)} ${fmt(y-4)} m ${fmt(W-RIGHT)} ${fmt(y-4)} l S`);
+    if(!section.firstRefrain){
+      pill(center-half,y-17,width,23,'0.73 0.55 0.20');
+      ptext(heading,center-timesWidth(heading,13)/2,y-10,13,'F2','1 1 1',.25);
+    }else{
+      ptext(heading,center-timesWidth(heading,13)/2,y-10,13,'F4','0.68 0.48 0.15',.38);
+    }
+    y-=31;
+    const chordOnly=(chords,geometry=null,rowIndex=null)=>{
+      const items=chords.map((c,i)=>({s:transposeChord(c,shift),i})).filter(c=>c.s&&c.s!=='?');
+      if(!items.length)return;
+      ensure(31);
+      const height=18.5;
+      pill(LEFT+3,y-height+2,MAXW-6,height,pdfBandColor(section,null,rowIndex));
+      const placements=items.map(item=>{
+        const source=Array.isArray(geometry)&&geometry.length===chords.length?geometry[item.i]:null;
+        const bbox=source?.sourceLineBBox;
+        const x=bbox?.x1>bbox?.x0&&Number.isFinite(source?.sourceX)?
+          LEFT+8+(source.sourceX-bbox.x0)*(MAXW-20)/(bbox.x1-bbox.x0):
+          LEFT+12+(item.i+.15)*(MAXW-26)/chords.length;
+        return {s:item.s,x,width:timesWidth(item.s,10.4)};
+      }).sort((a,b)=>a.x-b.x);
+      let prev=LEFT+8;
+      for(const c of placements){c.x=Math.max(c.x,prev);prev=c.x+c.width+6;}
+      const spill=placements.length?Math.max(0,prev-6-(W-RIGHT-8)):0;
+      if(spill)for(const c of placements)c.x-=spill;
+      for(const c of placements)ptext(c.s,Math.max(LEFT+8,c.x),y-12,10.4,'F2','0.07 0.16 0.12');
+      y-=29;
     };
-    if(section.chordsOnly?.length)chordOnly(section.chordsOnly,section.chordsOnlyGeometry);
+    if(section.chordsOnly?.length)chordOnly(section.chordsOnly,section.chordsOnlyGeometry,-1);
     for(const line of section.lines||[]){
       const tokens=parseSyllables(line.marked||''),text=tokens.map(t=>t.text).join('');
-      const font=Math.max(9,Math.min(16.4,(MAXW-14)/Math.max(1,timesWidth(text,1))));
+      if(!text.trim())continue;
+      const printable=(line.anchors||[]).filter(a=>a?.chord&&a.chord!=='?');
+      const hasBand=printable.length>0;
+      const rowHeight=hasBand?34.8:23.6;
+      ensure(rowHeight+3);
       let prefix='',slot=0;const offsets=[];
-      for(const t of tokens){if(!t.space){offsets[slot]=timesWidth(prefix,font);slot++;}prefix+=t.text;}
-      if(line.sourceRowId&&!(line.anchors||[]).length){
-        // A photographed lyric with no recognised changes is a plain lyric
-        // in both the reader AND the PDF: no empty decorative chord band.
-        ensure(32);
-        ptext(text,LEFT+7,y-17,font,'F3','0.12 0.18 0.16');
-        y-=33;
-        continue;
+      for(const t of tokens){
+        if(!t.space){offsets[slot]=measureLyric(prefix);slot++;}
+        prefix+=t.text;
       }
-      const chords=(line.anchors||[]).map(a=>{
-        const charIndex=Number.isInteger(a.anchorCharacterIndex)?a.anchorCharacterIndex:null;
-        const base=charIndex!==null?timesWidth(text.slice(0,charIndex),font):(offsets[a.slot]??0);
-        const charWidth=charIndex!==null?timesWidth(text.charAt(charIndex)||'M',font):0;
-        const advance=charIndex!==null&&Number.isFinite(a.offsetX)&&a.sourceCharWidth>0?
-          charWidth*a.offsetX/a.sourceCharWidth:0;
-        // Exact semantic anchor, no horizontal reflow or clamping.
-        const x=LEFT+7+base+advance;
-        const symbol=transposeChord(a.chord,shift);
-        return {x,s:symbol,width:timesWidth(symbol,10)};
-      }).sort((a,b)=>a.x-b.x);
-      const laneEnds=[];
-      const placements=chords.map(chord=>{
-        let lane=laneEnds.findIndex(end=>chord.x>=end+5);
-        if(lane<0)lane=laneEnds.length;
-        laneEnds[lane]=chord.x+chord.width;
-        return {...chord,lane};
-      });
-      const bandH=Math.max(25,laneEnds.length*15+10),rowH=bandH+32;
-      ensure(rowH);
-      pill(LEFT,y-bandH+2,MAXW,bandH,bandColor(section.kind));
-      for(const chord of placements) {
-        ptext(chord.s,chord.x,y-10-chord.lane*15,9.6,'F2','0.11 0.29 0.23');
+      if(hasBand){
+        const bandHeight=18.5;
+        pill(LEFT+3,y-bandHeight+2,MAXW-6,bandHeight,pdfBandColor(section,line));
+        const placed=printable.map(a=>{
+          const index=Number.isInteger(a.anchorCharacterIndex)?a.anchorCharacterIndex:null;
+          const base=index!==null?measureLyric(text.slice(0,index)):(offsets[a.slot]||0);
+          const nextWidth=index!==null?timesWidth(text.charAt(index)||'M',lyricFont):0;
+          const advance=index!==null&&Number.isFinite(a.offsetX)&&a.sourceCharWidth>0?
+            nextWidth*a.offsetX/a.sourceCharWidth:0;
+          return {x:LEFT+9+base+advance,s:transposeChord(a.chord,shift)};
+        }).sort((a,b)=>a.x-b.x);
+        let chordFont=10.9,gap=6;
+        const total=placed.reduce((sum,c)=>sum+timesWidth(c.s,chordFont),0)+gap*(placed.length-1);
+        if(total>MAXW-24)chordFont=Math.max(6,10.9*(MAXW-24)/total);
+        let prev=LEFT+9;
+        for(const c of placed){c.width=timesWidth(c.s,chordFont);c.x=Math.max(prev,c.x);prev=c.x+c.width+gap;}
+        const spill=placed.length?Math.max(0,prev-gap-(W-RIGHT-9)):0;
+        if(spill)for(const c of placed)c.x-=spill;
+        if(placed.length&&placed[0].x<LEFT+7){
+          const correction=LEFT+7-placed[0].x;
+          for(const c of placed)c.x+=correction;
+        }
+        for(const c of placed)ptext(c.s,c.x,y-12,chordFont,'F2','0.06 0.14 0.11');
+        ptext(text,LEFT+10,y-bandHeight-13,lyricFont,'F3','0.05 0.09 0.08',lyricTracking);
+      }else{
+        ptext(text,LEFT+10,y-15,lyricFont,'F3','0.05 0.09 0.08',lyricTracking);
       }
-      ptext(text,LEFT+7,y-bandH-12,font,'F3','0.12 0.18 0.16');
-      y-=rowH;
+      y-=rowHeight;
     }
     for(let i=0;i<(section.chordRows||[]).length;i++)
-      chordOnly(section.chordRows[i],section.chordRowsGeometry?.[i]);
-    y-=7;
+      chordOnly(section.chordRows[i],section.chordRowsGeometry?.[i],i);
+    y-=3;
   }
   if(!song.verified){ensure(33);ptext('Trascrizione da verificare con lo spartito originale.',LEFT,y,9,'F1','0.51 0.33 0.26');}
   if(commands.length)pages.push(commands.join('\n'));
