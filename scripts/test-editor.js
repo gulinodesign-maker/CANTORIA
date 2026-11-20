@@ -3,7 +3,9 @@ const fs=require('node:fs');
 const vm=require('node:vm');
 const editor=require('../score-editor.js');
 
-assert.equal(editor.PALETTE.length,6);
+assert.equal(editor.PALETTE.length,9);
+assert.ok(editor.PALETTE.some(p=>p.value==='#bfd7e7'));
+assert.ok(editor.PALETTE.some(p=>p.value==='#ffc9a5'));
 assert.equal(editor.bandColor({},'verse'),'#e5e5df');
 const song={sections:[],bandColors:{}};
 editor.setBandColor(song,'intro','#dfe4dc');

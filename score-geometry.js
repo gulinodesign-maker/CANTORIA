@@ -105,7 +105,10 @@
     const words=row.words.filter(w=>!JUNK_TOKEN.test(w.text)&&
       !OCR_MARK.test(w.text)&&!CHORD_ANNOTATION.test(w.text));
     if(!words.length||words.length>12)return null;
-    const tokens=words.map(w=>({word:w,symbol:note(w.text)}));
+    // A standalone seventh is printed as "7" in some chord sheets.
+    // Preserve it only inside a geometrically confirmed chord row.
+    const tokens=words.map(w=>({word:w,symbol:note(w.text)||
+      (w.text.trim()==='7'?'7':'')}));
     const valid=tokens.filter(t=>t.symbol);
     const uppercase=tokens.filter(t=>t.word.text===t.word.text.toUpperCase()&&
       /[A-Z]/.test(t.word.text)).length;
@@ -152,8 +155,18 @@
     if(!/[\p{L}\p{N}]/u.test(cleaned))return '';
     return cleaned;
   }
+  // Discard short machine noise, never a musical line with clear Italian words.
+  function isBrokenOcrRow(row) {
+    const tokens=row.words.map(w=>w.text.trim());
+    if(tokens.length<3||tokens.length>7)return false;
+    const digits=tokens.filter(x=>/^[0-9]{1,2}$/.test(x)).length;
+    const consonantBlocks=tokens.filter(x=>/^[A-Z]{2,4}$/.test(x)&&!/[AEIOU]/.test(x)).length;
+    const mixed=tokens.filter(x=>/^[a-z][A-Z]$/.test(x)).length;
+    return digits>=1 && consonantBlocks>=1 && mixed>=1 &&
+      !tokens.some(x=>/[À-ÿ,.!?;:'’]/.test(x));
+  }
   function cleanLyricRow(row,diagnostics) {
-    if(isEditorialRow(row)) {
+    if(isEditorialRow(row)||isBrokenOcrRow(row)) {
       diagnostics.ignoredArtifacts++;
       return null;
     }
@@ -313,6 +326,37 @@
       pending=null;
     }
     leftover();
+    // Repeat-aware section discovery. Only infer a refrain if multiple original
+    // lyric phrases repeat (at least three independent matches) and both
+    // intervening verse groups contain multiple lines. Never invent chords.
+    if(sections.length===1 && sections[0].kind==='verse'){
+      const all=sections[0].lines||[];
+      const norm=t=>String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+        .toLowerCase().replace(/[^a-z0-9 ]/g,'').replace(/\s+/g,' ').trim();
+      let found=null;
+      for(let size=Math.min(6,Math.floor(all.length/3));size>=3&&!found;size--){
+        for(let j=size+3;j+size<=all.length-3;j++){
+          const score=Array.from({length:size},(_,k)=>
+            norm(all[k].marked)===norm(all[j+k].marked)).filter(Boolean).length;
+          if(score>=3&&score===size){found={size,j,score};break;}
+        }
+      }
+      if(found){
+        const groups=[
+          {name:'RITORNELLO',kind:'chorus',firstRefrain:true,lines:all.slice(0,found.size)},
+          {name:'STROFA 1',kind:'verse',lines:all.slice(found.size,found.j)},
+          {name:'RITORNELLO',kind:'chorus',lines:all.slice(found.j,found.j+found.size)},
+          {name:'STROFA 2',kind:'verse',lines:all.slice(found.j+found.size)}
+        ];
+        if(groups.every(g=>g.lines.length>=3)){
+          sections.splice(0,1,...groups.map((g,i)=>({
+            ...section(g.name,i),...g,id:'photo-section-'+i
+          })));
+          diagnostics.refrainInferredFromRepeats=true;
+          diagnostics.suggestedTitle=all[0].marked;
+        }
+      }
+    }
     // An OCR response without word boxes MUST NOT produce fabricated anchors.
     const valid=rows.length>0&&sections.some(s=>s.lines?.length);
     if(diagnostics.totalAnchored>diagnostics.totalRecognized)

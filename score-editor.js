@@ -8,7 +8,10 @@
   Object.freeze({label:'Grigio caldo',value:'#e8e2da'}),
   Object.freeze({label:'Grigio azzurro',value:'#dee4e8'}),
   Object.freeze({label:'Grigio pietra',value:'#d8dad6'}),
-  Object.freeze({label:'Grigio lino',value:'#ede8e0'})
+  Object.freeze({label:'Grigio lino',value:'#ede8e0'}),
+  Object.freeze({label:'Azzurro ritornello',value:'#bfd7e7'}),
+  Object.freeze({label:'Verde salvia',value:'#c7d5b9'}),
+  Object.freeze({label:'Arancio pesca',value:'#ffc9a5'})
  ]);
  const DEFAULTS=Object.freeze({
   intro:'#dee4e8',verse:'#e5e5df',chorus:'#e8e2da',outro:'#dfe4dc'
@@ -42,7 +45,9 @@
  function rowBandColor(song,si,li,rowIndex){
   const section=song?.sections?.[si];
   if(!section)return bandColor(song,'verse');
-  return rowBandOverride(song,si,li,rowIndex)||bandColor(song,section.kind);
+  return rowBandOverride(song,si,li,rowIndex)||
+    safeBandColor(section.bandColor)||
+    (section.firstRefrain?'#bfd7e7':bandColor(song,section.kind));
  }
  function setRowBandColor(song,si,li,rowIndex,color){
   const section=song?.sections?.[si];

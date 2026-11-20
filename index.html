@@ -713,7 +713,7 @@ function readerHTML(){
   <button class="reader-menu-btn" type="button" data-action="song-options" aria-label="Opzioni brano: tonalità, trasporto, PDF ed esportazione" title="Opzioni brano">☰</button>
  </header>
  <div class="reader-stage" id="readerStage"><article class="reader-paper" id="readerPaper" tabindex="0">
-  ${song.photoData&&song.photoParserVersion!==5?'<div class="reader-warning" role="status">Questa partitura usa il vecchio riconoscimento. Apri ☰ e scegli Riconosci di nuovo dalla fotografia per applicare le correzioni.</div>':''}
+  ${song.photoData&&song.photoParserVersion!==6?'<div class="reader-warning" role="status">Questa partitura usa il vecchio riconoscimento. Apri ☰ e scegli Riconosci di nuovo dalla fotografia per applicare le correzioni.</div>':''}
   ${song.photoData?(()=>{const anchors=song.sections.flatMap(sec=>(sec.lines||[]).flatMap(line=>line.anchors||[]));const pending=anchors.filter(a=>a.needsReview&&!a.verified).length;const unresolved=song.sections.reduce((n,sec)=>n+(sec.lines||[]).reduce((m,line)=>m+(line.unresolvedChords?.length||0),0),0);return pending||unresolved?`<div class="reader-warning" role="status">${pending} accordi da controllare con la foto${unresolved?' · '+unresolved+' simboli non letti':''}. Tieni premuto per correggere.</div>`:''})():''}
   <div class="sheet-columns" style="--reader-cols:${cols}">${columns.map(col=>`<div class="sheet-column">${entriesHTML(col)}</div>`).join('')}</div>
  </article></div></div>`;
@@ -836,11 +836,13 @@ async function recognizePhotoText(replaceExisting=false){
    if(replaceExisting){
     const song=currentSong();
     if(song?.photoData){
-     const previous={sections:song.sections,ocrText:song.ocrText,geometryDiagnostics:song.geometryDiagnostics};
+     const previous={sections:song.sections,ocrText:song.ocrText,geometryDiagnostics:song.geometryDiagnostics,title:song.title,photoParserVersion:song.photoParserVersion,verified:song.verified};
      song.sections=structuredClone(state.geometryDraft.sections);
      song.ocrText=state.ocrText;
      song.geometryDiagnostics=structuredClone(diag);
-     song.photoParserVersion=5;
+     if(diag.refrainInferredFromRepeats&&/^Canto fotografato/i.test(song.title||''))
+       song.title=diag.suggestedTitle;
+     song.photoParserVersion=6;
      song.verified=false;
      if(!saveStore(store)){
       Object.assign(song,previous);state.ocrStatus='Memoria insufficiente: partitura non aggiornata.';
@@ -920,7 +922,7 @@ function captureHTML(){
      </form>`:`<p class="photo-capture-hint">Fotografa lo spartito per iniziare.</p>`}
   </section>`;
 }
-function settingsHTML(){return `<div class="page-heading"><div><div class="eyebrow">Versione 0.6.8</div><h1>Impostazioni</h1></div></div><div class="form-wrap"><div class="panel"><h3>Dati e salvataggi</h3><p>I canti e le scalette sono attualmente memorizzati <strong>solo nel browser di questo dispositivo</strong>. Non sono ancora sincronizzati su iCloud o GitHub.</p><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px"><button class="outline-btn" data-action="backup">Scarica backup JSON</button><label class="outline-btn" style="cursor:pointer">Ripristina backup<input type="file" id="backupInput" accept="application/json" style="display:none"></label></div></div><div class="panel"><h3>Ultimo aggiornamento</h3><p>Scopri le modifiche e le migliorie introdotte con la versione più recente.</p><button type="button" class="outline-btn" data-action="show-release-notes">Novità dell'ultima versione</button></div><div class="panel"><h3>Modello musicale</h3><p>Gli accordi delle fotografie conservano anche coordinate OCR, indice del carattere e livello di affidabilità. La disposizione grafica non cambia il loro ancoraggio musicale.</p><div class="alert" style="margin-top:15px">OCR geometrico sperimentale: dove sono disponibili soltanto i riquadri delle parole gli ancoraggi ai caratteri sono stimati e sempre da verificare. Se mancano le coordinate, l'app non inventa una posizione. Le note sul pentagramma non sono ancora riconosciute.</div></div></div>`;}
+function settingsHTML(){return `<div class="page-heading"><div><div class="eyebrow">Versione 0.6.9</div><h1>Impostazioni</h1></div></div><div class="form-wrap"><div class="panel"><h3>Dati e salvataggi</h3><p>I canti e le scalette sono attualmente memorizzati <strong>solo nel browser di questo dispositivo</strong>. Non sono ancora sincronizzati su iCloud o GitHub.</p><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px"><button class="outline-btn" data-action="backup">Scarica backup JSON</button><label class="outline-btn" style="cursor:pointer">Ripristina backup<input type="file" id="backupInput" accept="application/json" style="display:none"></label></div></div><div class="panel"><h3>Ultimo aggiornamento</h3><p>Scopri le modifiche e le migliorie introdotte con la versione più recente.</p><button type="button" class="outline-btn" data-action="show-release-notes">Novità dell'ultima versione</button></div><div class="panel"><h3>Modello musicale</h3><p>Gli accordi delle fotografie conservano anche coordinate OCR, indice del carattere e livello di affidabilità. La disposizione grafica non cambia il loro ancoraggio musicale.</p><div class="alert" style="margin-top:15px">OCR geometrico sperimentale: dove sono disponibili soltanto i riquadri delle parole gli ancoraggi ai caratteri sono stimati e sempre da verificare. Se mancano le coordinate, l'app non inventa una posizione. Le note sul pentagramma non sono ancora riconosciute.</div></div></div>`;}
 function appHTML(){
  const views={home:homeHTML,library:libraryHTML,masses:massesHTML,capture:captureHTML,settings:settingsHTML};
  const builder=views[state.view]||homeHTML;
@@ -1035,7 +1037,7 @@ function modalHTML(){const m=state.modal;
   const song=currentSong();if(!song?.photoData)return '';
   return `<div class="modal-shade"><div class="modal-card" role="alertdialog" aria-modal="true" aria-label="Conferma ricalcolo accordi"><h2>Ricalcolare gli accordi?</h2><p>La partitura verrà ricalcolata dalla fotografia originale con le coordinate OCR. Le modifiche manuali fatte sulle sillabe e sugli accordi saranno sostituite. La fotografia originale resterà disponibile.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button type="button" class="primary-btn" data-action="reparse-photo">Ricalcola accordi</button></div></div></div>`;
  }
- if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità dell'ultima versione"><h2>Novità dell'ultima versione</h2><p><strong>Versione 0.6.8:</strong> tieni premuto su uno spazio vuoto della pill accordi per scegliere il colore esclusivamente di quella fascia. Tieni premuto direttamente su un accordo per correggerlo. Ogni colore viene salvato nel brano, anche su introduzioni e finali, e può tornare al colore della sezione.</p><p><strong>Versione 0.6.7:</strong> la frase più lunga determina la dimensione unica del testo per tutto il brano: nessun verso esce dal display e non è necessario scorrere orizzontalmente. Le pill colorate si modificano tenendo premuto in qualsiasi punto della fascia degli accordi; puoi correggere o aggiungere accordi senza impilarli. Restano attivi la modifica delle parole con un tocco, i colori per sezione e il comando Salva brano nel menu ☰.</p><p><strong>Versione 0.6.6:</strong> testo del canto con carattere uniforme senza riduzioni per riga; rimozione dei simboli grafici letti dall'OCR; modifica delle parole toccando una riga o un'intera sezione dal menu ☰; scelta e salvataggio dei colori delle pill separatamente per Intro, Strofa, Ritornello e Finale. Gli accordi non letti non mostrano simboli inventati. Per ripulire brani già acquisiti usa ☰ → Riconosci di nuovo dalla fotografia (prima salva un backup se hai fatto correzioni manuali).</p><p><strong>Nuovo riconoscimento 0.6.5:</strong> le righe di accordi in maiuscolo/minuscolo misto (Sol Do Sol Re, Mi- Si- Do Re) vengono riconosciute sopra il testo, gli accordi dubbi restano modificabili e le intestazioni numerate non vengono cantate. Per i brani già acquisiti, dal menu ☰ usa Riconosci di nuovo dalla fotografia; il ricalcolo sostituisce eventuali modifiche manuali.</p><p><strong>Acquisizione da fotografia:</strong> le sigle difficili come SIm M7 o SIm MI/7 restano nella fascia degli accordi, anche quando l'OCR ne riconosce soltanto una parte. I simboli incerti sono segnalati con ?, senza spostarli nel testo.</p><p><strong>Pulizia e leggibilità:</strong> eliminati i simboli estranei come @ e le scritte dei comandi del dispositivo; le righe senza accordi non generano fasce vuote. Riconosciuta l'indicazione RIT all'inizio del ritornello.</p><p><strong>Verifica musicale:</strong> ogni accordo mantiene la propria posizione OCR; quelli incerti richiedono correzione sulla fotografia originale. Restano disponibili la modifica manuale, Elimina partitura e la dichiarazione automatica della crittografia esente.</p><p><strong>Versione 0.6.3:</strong> MI/7 riconosciuto; accordi affiancati senza impilamento; accordi di introduzione e finale modificabili; Salva brano nel menu ☰; Apple Intelligence sarà riattivata dopo la verifica del componente nativo: per sicurezza resta momentaneamente disabilitata.</p><p>Il riconoscimento delle note sul pentagramma non è ancora disponibile e gli accordi restano da verificare rispetto all'originale.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
+ if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità dell'ultima versione"><h2>Novità dell'ultima versione</h2><p><strong>Versione 0.6.9:</strong> PDF ridisegnato secondo il riferimento approvato: intestazioni, separatori dorati, primo ritornello azzurro, strofe verdi, ritornello ripetuto arancione, font unico e accordi affiancati senza impilamento verticale. La ricostruzione delle sezioni considera i versi ripetuti e il parser filtra i frammenti OCR evidentemente danneggiati. Per i brani precedenti usa Riconosci di nuovo dalla fotografia o importa una partitura verificata.</p><p><strong>Versione 0.6.8:</strong> tieni premuto su uno spazio vuoto della pill accordi per scegliere il colore esclusivamente di quella fascia. Tieni premuto direttamente su un accordo per correggerlo. Ogni colore viene salvato nel brano, anche su introduzioni e finali, e può tornare al colore della sezione.</p><p><strong>Versione 0.6.7:</strong> la frase più lunga determina la dimensione unica del testo per tutto il brano: nessun verso esce dal display e non è necessario scorrere orizzontalmente. Le pill colorate si modificano tenendo premuto in qualsiasi punto della fascia degli accordi; puoi correggere o aggiungere accordi senza impilarli. Restano attivi la modifica delle parole con un tocco, i colori per sezione e il comando Salva brano nel menu ☰.</p><p><strong>Versione 0.6.6:</strong> testo del canto con carattere uniforme senza riduzioni per riga; rimozione dei simboli grafici letti dall'OCR; modifica delle parole toccando una riga o un'intera sezione dal menu ☰; scelta e salvataggio dei colori delle pill separatamente per Intro, Strofa, Ritornello e Finale. Gli accordi non letti non mostrano simboli inventati. Per ripulire brani già acquisiti usa ☰ → Riconosci di nuovo dalla fotografia (prima salva un backup se hai fatto correzioni manuali).</p><p><strong>Nuovo riconoscimento 0.6.5:</strong> le righe di accordi in maiuscolo/minuscolo misto (Sol Do Sol Re, Mi- Si- Do Re) vengono riconosciute sopra il testo, gli accordi dubbi restano modificabili e le intestazioni numerate non vengono cantate. Per i brani già acquisiti, dal menu ☰ usa Riconosci di nuovo dalla fotografia; il ricalcolo sostituisce eventuali modifiche manuali.</p><p><strong>Acquisizione da fotografia:</strong> le sigle difficili come SIm M7 o SIm MI/7 restano nella fascia degli accordi, anche quando l'OCR ne riconosce soltanto una parte. I simboli incerti sono segnalati con ?, senza spostarli nel testo.</p><p><strong>Pulizia e leggibilità:</strong> eliminati i simboli estranei come @ e le scritte dei comandi del dispositivo; le righe senza accordi non generano fasce vuote. Riconosciuta l'indicazione RIT all'inizio del ritornello.</p><p><strong>Verifica musicale:</strong> ogni accordo mantiene la propria posizione OCR; quelli incerti richiedono correzione sulla fotografia originale. Restano disponibili la modifica manuale, Elimina partitura e la dichiarazione automatica della crittografia esente.</p><p><strong>Versione 0.6.3:</strong> MI/7 riconosciuto; accordi affiancati senza impilamento; accordi di introduzione e finale modificabili; Salva brano nel menu ☰; Apple Intelligence sarà riattivata dopo la verifica del componente nativo: per sicurezza resta momentaneamente disabilitata.</p><p>Il riconoscimento delle note sul pentagramma non è ancora disponibile e gli accordi restano da verificare rispetto all'originale.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
 
  if(m.type==='song-options'){
   const song=currentSong();if(!song)return '';
@@ -1255,8 +1257,8 @@ function makeCantoriaPdf(song,shift=0){
   const hex=s=>Array.from(String(s??'')).map(c=>encoded(c).toString(16).padStart(2,'0')).join('');
   const fmt=n=>Number(n).toFixed(2);
   let commands=[],pages=[],y=0,pageNumber=0;
-  const ptext=(s,x,yy,size=12,font='F1',color='0.14 0.22 0.19')=>{
-    commands.push(`BT /${font} ${fmt(size)} Tf ${color} rg 1 0 0 1 ${fmt(x)} ${fmt(yy)} Tm <${hex(s)}> Tj ET`);
+  const ptext=(s,x,yy,size=12,font='F1',color='0.14 0.22 0.19',tracking=0)=>{
+    commands.push(`BT /${font} ${fmt(size)} Tf ${fmt(tracking)} Tc ${color} rg 1 0 0 1 ${fmt(x)} ${fmt(yy)} Tm <${hex(s)}> Tj ET`);
   };
   const rule=yy=>commands.push(`0.75 0.65 0.44 RG 0.6 w ${fmt(LEFT)} ${fmt(yy)} m ${fmt(W-RIGHT)} ${fmt(yy)} l S`);
   // Times-Roman metrics: accurate positions for chord anchors over PDF syllables.
@@ -1280,90 +1282,131 @@ function makeCantoriaPdf(song,shift=0){
     p(x,bottom+r)+' l',
     c(x,bottom+r-r*k,x+r-r*k,bottom,x+r,bottom),'h f Q');
   };
-  const bandColor=kind=>kind==='intro'?'0.86 0.91 0.94':kind==='chorus'?'0.94 0.87 0.83':kind==='verse'?'0.88 0.92 0.87':'0.91 0.91 0.87';
-
+  const toRGB=hex=>{
+    if(!/^#[0-9a-fA-F]{6}$/.test(hex||''))return null;
+    return [1,3,5].map(i=>(parseInt(hex.slice(i,i+2),16)/255).toFixed(3)).join(' ');
+  };
+  const pdfBandColor=(section,line=null,rowIndex=null)=>{
+    const rowHex=line?.bandColor||
+      (rowIndex===-1?section.chordsOnlyBandColor:
+       Number.isInteger(rowIndex)?section.chordRowsBandColors?.[rowIndex]:null);
+    const manual=toRGB(rowHex||section.bandColor||song.bandColors?.[section.kind]);
+    if(manual)return manual;
+    if(section.kind==='chorus')return section.firstRefrain?'0.74 0.84 0.92':'0.99 0.77 0.60';
+    if(section.kind==='intro')return '0.74 0.84 0.92';
+    if(section.kind==='verse')return '0.78 0.84 0.72';
+    return '0.86 0.87 0.82';
+  };
+  const sourceLines=(song.sections||[]).flatMap(sec=>sec.lines||[]);
+  const lyricTracking=0.70;
+  const widest=Math.max(1,...sourceLines.map(line=>{
+    const t=parseSyllables(line.marked||'').map(x=>x.text).join('');
+    return timesWidth(t,17.8)+lyricTracking*Math.max(0,t.length-1);
+  }));
+  const lyricFont=Math.max(7.5,Math.min(17.8,17.8*(MAXW-16)/widest));
+  const measureLyric=s=>timesWidth(s,lyricFont)+lyricTracking*Math.max(0,s.length-1);
   const startPage=()=>{
     if(commands.length)pages.push(commands.join('\n'));
-    commands=[];pageNumber++;y=H-48;
-    // Soft ivory sheet, forest corner flourish and golden cross (original style).
-    commands.push('q 0.982 0.968 0.939 rg 0 0 595.28 841.89 re f Q');
+    commands=[];pageNumber++;y=H-52;
+    commands.push('q 0.991 0.977 0.953 rg 0 0 595.28 841.89 re f Q');
     commands.push('q 0.08 0.25 0.20 rg 0 841.89 m 118 841.89 l 62 810 15 757 0 744 c h f Q');
     commands.push('q 0.76 0.55 0.24 RG 3.4 w 118 841.89 m 62 810 15 757 0 744 c S Q');
     commands.push('q 0.91 0.73 0.39 RG 4.5 w 26 823 m 26 789 l 11 806 m 41 806 l S Q');
-    ptext('CANTORIA',LEFT,y,10,'F2','0.62 0.44 0.14');
-    ptext(`Pagina ${pageNumber}`,W-RIGHT-59,y,9,'F1','0.42 0.44 0.40');
-    y-=23;
     const title=String(song.title||'Senza titolo');
-    const titleSize=Math.min(25,Math.max(13,MAXW/Math.max(1,timesWidth(title,1))));
-    ptext(title,(W-timesWidth(title,titleSize))/2,y,titleSize,'F4','0.08 0.25 0.20');
-    y-=24;
-    const tone=`Tonalità: ${describeTonality(song,shift)}`;
-    ptext(tone,(W-timesWidth(tone,10))/2,y,10,'F3','0.45 0.38 0.22');
-    y-=13;rule(y);y-=19;
+    const size=Math.min(31,Math.max(13,(MAXW-55)/Math.max(.001,timesWidth(title,1))));
+    ptext(title,(W-timesWidth(title,size))/2,y,size,'F4','0.08 0.24 0.18');
+    if(pageNumber>1)ptext('Pagina '+pageNumber,W-RIGHT-44,H-31,9,'F1','0.46 0.43 0.38');
+    y-=42;
   };
   const ensure=height=>{if(y-height<47)startPage();};
   startPage();
+  let printedRefrains=0;
   for(const section of song.sections||[]){
-    const heading=String(section.name||'SEZIONE');
-    ensure(67);ptext(heading.toUpperCase(),(W-heading.length*7.1)/2,y,12,'F2','0.65 0.46 0.17');y-=9;rule(y);y-=20;
-    const chordOnly=(chords,geometry=null)=>{
-      const content=chords.map(c=>transposeChord(c,shift)).join('     ');
-      const font=Math.min(12,MAXW/Math.max(1,content.length)/.6);
-      ensure(40);pill(LEFT,y-23,MAXW,25,bandColor(section.kind));
-      if(Array.isArray(geometry)&&geometry.length===chords.length&&
-        geometry.every(a=>Number.isFinite(a.sourceX)&&a.sourceLineBBox?.x1>a.sourceLineBBox?.x0)){
-        geometry.forEach((item,i)=>{
-          const source=item.sourceLineBBox;
-          const x=LEFT+9+(item.sourceX-source.x0)*MAXW/(source.x1-source.x0);
-          ptext(transposeChord(chords[i],shift),x,y-15,Math.max(8,font),'F2','0.13 0.31 0.25');
-        });
-      }else ptext(content,LEFT+9,y-15,Math.max(8,font),'F2','0.13 0.31 0.25');
-      y-=40;
+    const initialRefrain=section.kind==='chorus'&&printedRefrains===0;
+    const printedSection=initialRefrain?{...section,firstRefrain:true}:section;
+    if(section.kind==='chorus')printedRefrains++;
+    const heading=String(section.name||'SEZIONE').toUpperCase();
+    ensure(45);
+    const width=Math.max(130,timesWidth(heading,12.5)+40);
+    const center=W/2,half=width/2;
+    commands.push(`0.72 0.55 0.24 RG 0.85 w ${fmt(LEFT)} ${fmt(y-4)} m ${fmt(center-half-11)} ${fmt(y-4)} l S`);
+    commands.push(`0.72 0.55 0.24 RG 0.85 w ${fmt(center+half+11)} ${fmt(y-4)} m ${fmt(W-RIGHT)} ${fmt(y-4)} l S`);
+    if(!printedSection.firstRefrain){
+      pill(center-half,y-17,width,23,'0.73 0.55 0.20');
+      ptext(heading,center-timesWidth(heading,13)/2,y-10,13,'F2','1 1 1',.25);
+    }else{
+      ptext(heading,center-timesWidth(heading,13)/2,y-10,13,'F4','0.68 0.48 0.15',.38);
+    }
+    y-=31;
+    const chordOnly=(chords,geometry=null,rowIndex=null)=>{
+      const items=chords.map((c,i)=>({s:transposeChord(c,shift),i})).filter(c=>c.s&&c.s!=='?');
+      if(!items.length)return;
+      ensure(31);
+      const height=18.5;
+      pill(LEFT+3,y-height+2,MAXW-6,height,pdfBandColor(printedSection,null,rowIndex));
+      const placements=items.map(item=>{
+        const source=Array.isArray(geometry)&&geometry.length===chords.length?geometry[item.i]:null;
+        const bbox=source?.sourceLineBBox;
+        const x=bbox?.x1>bbox?.x0&&Number.isFinite(source?.sourceX)?
+          LEFT+8+(source.sourceX-bbox.x0)*(MAXW-20)/(bbox.x1-bbox.x0):
+          LEFT+12+(item.i+.15)*(MAXW-26)/chords.length;
+        return {s:item.s,x,width:timesWidth(item.s,10.4)};
+      }).sort((a,b)=>a.x-b.x);
+      let prev=LEFT+8;
+      for(const c of placements){c.x=Math.max(c.x,prev);prev=c.x+c.width+6;}
+      const spill=placements.length?Math.max(0,prev-6-(W-RIGHT-8)):0;
+      if(spill)for(const c of placements)c.x-=spill;
+      for(const c of placements)ptext(c.s,Math.max(LEFT+8,c.x),y-12,10.4,'F2','0.07 0.16 0.12');
+      y-=29;
     };
-    if(section.chordsOnly?.length)chordOnly(section.chordsOnly,section.chordsOnlyGeometry);
+    if(section.chordsOnly?.length)chordOnly(section.chordsOnly,section.chordsOnlyGeometry,-1);
     for(const line of section.lines||[]){
       const tokens=parseSyllables(line.marked||''),text=tokens.map(t=>t.text).join('');
-      const font=Math.max(9,Math.min(16.4,(MAXW-14)/Math.max(1,timesWidth(text,1))));
+      if(!text.trim())continue;
+      const printable=(line.anchors||[]).filter(a=>a?.chord&&a.chord!=='?');
+      const hasBand=printable.length>0;
+      const rowHeight=hasBand?34.8:23.6;
+      ensure(rowHeight+3);
       let prefix='',slot=0;const offsets=[];
-      for(const t of tokens){if(!t.space){offsets[slot]=timesWidth(prefix,font);slot++;}prefix+=t.text;}
-      if(line.sourceRowId&&!(line.anchors||[]).length){
-        // A photographed lyric with no recognised changes is a plain lyric
-        // in both the reader AND the PDF: no empty decorative chord band.
-        ensure(32);
-        ptext(text,LEFT+7,y-17,font,'F3','0.12 0.18 0.16');
-        y-=33;
-        continue;
+      for(const t of tokens){
+        if(!t.space){offsets[slot]=measureLyric(prefix);slot++;}
+        prefix+=t.text;
       }
-      const chords=(line.anchors||[]).map(a=>{
-        const charIndex=Number.isInteger(a.anchorCharacterIndex)?a.anchorCharacterIndex:null;
-        const base=charIndex!==null?timesWidth(text.slice(0,charIndex),font):(offsets[a.slot]??0);
-        const charWidth=charIndex!==null?timesWidth(text.charAt(charIndex)||'M',font):0;
-        const advance=charIndex!==null&&Number.isFinite(a.offsetX)&&a.sourceCharWidth>0?
-          charWidth*a.offsetX/a.sourceCharWidth:0;
-        // Exact semantic anchor, no horizontal reflow or clamping.
-        const x=LEFT+7+base+advance;
-        const symbol=transposeChord(a.chord,shift);
-        return {x,s:symbol,width:timesWidth(symbol,10)};
-      }).sort((a,b)=>a.x-b.x);
-      const laneEnds=[];
-      const placements=chords.map(chord=>{
-        let lane=laneEnds.findIndex(end=>chord.x>=end+5);
-        if(lane<0)lane=laneEnds.length;
-        laneEnds[lane]=chord.x+chord.width;
-        return {...chord,lane};
-      });
-      const bandH=Math.max(25,laneEnds.length*15+10),rowH=bandH+32;
-      ensure(rowH);
-      pill(LEFT,y-bandH+2,MAXW,bandH,bandColor(section.kind));
-      for(const chord of placements) {
-        ptext(chord.s,chord.x,y-10-chord.lane*15,9.6,'F2','0.11 0.29 0.23');
+      if(hasBand){
+        const bandHeight=18.5;
+        pill(LEFT+3,y-bandHeight+2,MAXW-6,bandHeight,pdfBandColor(printedSection,line));
+        const placed=printable.map(a=>{
+          const index=Number.isInteger(a.anchorCharacterIndex)?a.anchorCharacterIndex:null;
+          const base=index!==null?measureLyric(text.slice(0,index)):(offsets[a.slot]||0);
+          const nextWidth=index!==null?timesWidth(text.charAt(index)||'M',lyricFont):0;
+          const advance=index!==null&&Number.isFinite(a.offsetX)&&a.sourceCharWidth>0?
+            nextWidth*a.offsetX/a.sourceCharWidth:0;
+          const reference=Number(a.referenceXRatio);
+         const x=Number.isFinite(reference)&&a.referenceXRatio!==undefined&&reference>=0&&reference<=1?
+           LEFT+9+reference*(MAXW-22):LEFT+9+base+advance;
+         return {x,s:transposeChord(a.chord,shift)};
+        }).sort((a,b)=>a.x-b.x);
+        let chordFont=10.9,gap=6;
+        const total=placed.reduce((sum,c)=>sum+timesWidth(c.s,chordFont),0)+gap*(placed.length-1);
+        if(total>MAXW-24)chordFont=Math.max(6,10.9*(MAXW-24)/total);
+        let prev=LEFT+9;
+        for(const c of placed){c.width=timesWidth(c.s,chordFont);c.x=Math.max(prev,c.x);prev=c.x+c.width+gap;}
+        const spill=placed.length?Math.max(0,prev-gap-(W-RIGHT-9)):0;
+        if(spill)for(const c of placed)c.x-=spill;
+        if(placed.length&&placed[0].x<LEFT+7){
+          const correction=LEFT+7-placed[0].x;
+          for(const c of placed)c.x+=correction;
+        }
+        for(const c of placed)ptext(c.s,c.x,y-12,chordFont,'F2','0.06 0.14 0.11');
+        ptext(text,LEFT+10,y-bandHeight-13,lyricFont,'F3','0.05 0.09 0.08',lyricTracking);
+      }else{
+        ptext(text,LEFT+10,y-15,lyricFont,'F3','0.05 0.09 0.08',lyricTracking);
       }
-      ptext(text,LEFT+7,y-bandH-12,font,'F3','0.12 0.18 0.16');
-      y-=rowH;
+      y-=rowHeight;
     }
     for(let i=0;i<(section.chordRows||[]).length;i++)
-      chordOnly(section.chordRows[i],section.chordRowsGeometry?.[i]);
-    y-=7;
+      chordOnly(section.chordRows[i],section.chordRowsGeometry?.[i],i);
+    y-=3;
   }
   if(!song.verified){ensure(33);ptext('Trascrizione da verificare con lo spartito originale.',LEFT,y,9,'F1','0.51 0.33 0.26');}
   if(commands.length)pages.push(commands.join('\n'));
@@ -1470,7 +1513,7 @@ root.addEventListener('click',e=>{
   const previous={sections:song.sections,ocrText:song.ocrText,subtitle:song.subtitle,verified:song.verified,geometryDiagnostics:song.geometryDiagnostics};
   song.sections=sections;song.ocrText=state.ocrText.trim().slice(0,20000);
   song.geometryDiagnostics=structuredClone(state.geometryDraft.diagnostics);
-  song.photoParserVersion=5;
+  song.photoParserVersion=6;
   song.subtitle='Trascrizione fotografica · da verificare';song.verified=false;
   if(!saveStore(store)){Object.assign(song,previous);notify('Spazio insufficiente per salvare la partitura.');return;}
   state.ocrStatus='';state.page=0;render();notify('Partitura creata. Controlla gli accordi sulle sillabe.');return;
@@ -1602,11 +1645,13 @@ root.addEventListener('submit',e=>{e.preventDefault();const form=e.target;const 
   const scanned=state.ocrText.trim().slice(0,20000);
   let sections=[];
   if(mode==='score'){try{sections=photoSectionsFromText(scanned);}catch(err){notify(err.message);return;}}
-  const title=String(f.get('photoSongTitle')||state.photoTitle||'').trim()||('Canto fotografato · '+new Date().toLocaleDateString('it-IT'));
+  const suggested=mode==='score'?String(state.geometryDraft?.diagnostics?.suggestedTitle||'').trim():'';
+  const title=String(f.get('photoSongTitle')||state.photoTitle||'').trim()||suggested||
+    ('Canto fotografato · '+new Date().toLocaleDateString('it-IT'));
   const song={id:makeId(),title,subtitle:mode==='score'?'Trascrizione fotografica · da verificare':'Bozza fotografica',
     key:'',source:'Foto originale',photoData:state.photoURL,ocrText:scanned,verified:false,sections,
     geometryDiagnostics:mode==='score'?structuredClone(state.geometryDraft.diagnostics):null,
-    photoParserVersion:mode==='score'?5:0};
+    photoParserVersion:mode==='score'?6:0};
   store.songs.unshift(song);
   if(!saveStore(store)){store.songs.shift();notify('Spazio insufficiente per salvare il brano. Fai un backup o libera spazio.');return;}
   state.photoURL=null;state.photoTitle='';state.ocrText='';state.ocrStatus='';state.geometryDraft=null;state.geometryRawText='';state.view='library';openSong(song.id);
