@@ -36,7 +36,7 @@ src = path.read_text(encoding='utf-8')
 if 'import Capacitor' not in src:
     raise SystemExit('Capacitor AppDelegate template is not available')
 if 'import FoundationModels' not in src:
-    src = src.replace('import Capacitor', 'import Capacitor\nimport FoundationModels', 1)
+    src = src.replace('import Capacitor', 'import Capacitor\nimport FoundationModels\nimport Vision', 1)
 
 hook = 'func applicationDidBecomeActive(_ application: UIApplication) {'
 if hook not in src:
