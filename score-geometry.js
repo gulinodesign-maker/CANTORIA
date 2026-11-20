@@ -90,35 +90,50 @@
     return words.length>=2 && regular>=Math.ceil(words.length*0.6) &&
       words.some(w=>/[a-zà-öø-ÿ]{2,}/.test(w.text));
   }
+  // Spurious OCR marks are NOT chords, lyrics or useful unknown notes.
+  const OCR_MARK = /^[^A-Za-zÀ-ÿ0-9]+$/;
+  const CHORD_ANNOTATION = /^(?:intro|rit(?:ornello)?|strofa|finale|outro|fine)[:,;.]?$/i;
+  function isNumberedTitle(row) {
+    // e.g. "63 FRUTTO DELLA NOSTRA TERRA Francesco Buttazzo".
+    // Source titles belong to metadata, not the sung lyrics.
+    return /^[0-9]{1,3}[ ]+/.test(row.text.trim()) && row.words.slice(1).filter(w=>/^[A-ZÀ-Ý]{3,}$/.test(w.text)).length>=3;
+  }
   function classifyChordRow(row,nextRow) {
-    const words=row.words.filter(w=>!JUNK_TOKEN.test(w.text));
-    if(!words.length||words.length>9)return null;
+    const words=row.words.filter(w=>!JUNK_TOKEN.test(w.text)&&
+      !OCR_MARK.test(w.text)&&!CHORD_ANNOTATION.test(w.text));
+    if(!words.length||words.length>12)return null;
     const tokens=words.map(w=>({word:w,symbol:note(w.text)}));
     const valid=tokens.filter(t=>t.symbol);
     const uppercase=tokens.filter(t=>t.word.text===t.word.text.toUpperCase()&&
       /[A-Z]/.test(t.word.text)).length;
+    // Printed chord sheets often show Title Case: "Sol Do Sol Re", or "Mi- Si- Do Re".
+    // The old parser required two ALL-UPPERCASE chords, leaking such rows into lyrics.
+    const capitalized=tokens.filter(t=>/^[A-ZÀ-Ý]/.test(t.word.text)).length;
     const belowIsLyric=isLikelyLyricBelow(row,nextRow);
     const allLookLikeChords=tokens.every(t=>isChordLikeToken(t.word.text,t.symbol));
     const hasStrongShape=tokens.some(t=>/[0-9⁰¹²³⁴⁵⁶⁷⁸⁹#♯♭+°/()-]/.test(t.word.text));
-    // Two or more clearly printed notes need no nearby lyric: they may be
-    // an intro/finale. But mixed-case or OCR-damaged notes require geometry.
-    const obvious=valid.length>=2 &&
-      valid.length/tokens.length>=0.6 && uppercase>=2;
-    const contextual=belowIsLyric && allLookLikeChords && (
-      // "SIm M7", "SIm MI/7": do not leak the incomplete chord into the verse.
-      (valid.length>=1 && (uppercase>=1||hasStrongShape)) ||
-      // Rare case: every note is damaged, but all tokens look like chords.
-      (valid.length===0 && hasStrongShape && uppercase>=1)
-    );
+    const ratio=valid.length/tokens.length;
+    const obvious=valid.length>=2&&ratio>=0.6&&uppercase>=2;
+    // Geometry is essential when using title-case note names. Two or more
+    // initial-cap note names above a real lyric row is strong evidence; ordinary
+    // lowercase song text "Mi la fa sol" must stay lyrics.
+    const titled=belowIsLyric&&valid.length>=2&&ratio>=0.55&&capitalized>=2;
+    const contextual=belowIsLyric&&allLookLikeChords&&(
+      (valid.length>=1&&(uppercase>=1||hasStrongShape))||
+      (valid.length===0&&hasStrongShape&&uppercase>=1));
     const single=tokens.length===1&&valid.length===1&&uppercase===1;
-    if(!(single||obvious||contextual))return null;
-    return {row,chords:tokens.filter(t=>t.symbol).map(t=>({
-      symbol:t.symbol,originalSymbol:t.word.text,bbox:t.word.bbox,
-      confidence:t.word.confidence
-    })),unresolved:tokens.filter(t=>!t.symbol).map(t=>({
+    if(!(single||obvious||titled||contextual))return null;
+    // Once the row has been positively classified as a chord row, every
+    // unrecognized short plausible symbol stays in the chord band as '?'.
+    // Do not invent its root, and never send it to the sung lyric line.
+    const unresolved=tokens.filter(t=>!t.symbol).map(t=>({
       symbol:'?',unresolved:true,originalSymbol:t.word.text,
       bbox:t.word.bbox,confidence:0
-    }))};
+    }));
+    return {row,chords:valid.map(t=>({
+      symbol:t.symbol,originalSymbol:t.word.text,bbox:t.word.bbox,
+      confidence:t.word.confidence
+    })),unresolved};
   }
   function cleanLyricRow(row,diagnostics) {
     if(isEditorialRow(row)) {
@@ -218,6 +233,21 @@
     for(let rowIndex=0;rowIndex<rows.length;rowIndex++){
       const row=rows[rowIndex],nextRow=rows[rowIndex+1];
       if(isEditorialRow(row)){diagnostics.ignoredArtifacts++;continue;}
+      if(rowIndex===0&&isNumberedTitle(row)){
+        diagnostics.titleCandidate=row.text.trim();
+        diagnostics.ignoredArtifacts++;
+        continue;
+      }
+      if(row.words.length===1&&OCR_MARK.test(row.text.trim())){
+        diagnostics.ignoredArtifacts++;
+        continue;
+      }
+      if(diagnostics.titleCandidate&&rowIndex<4&&row.words.length===1&&
+        /^[A-Z]{2,3}$/.test(row.text.trim())&&!note(row.text.trim())){
+        // OCR noise close to a numbered title, e.g. isolated "TNS".
+        diagnostics.ignoredArtifacts++;
+        continue;
+      }
       if(HEAD.test(row.text.trim())){
         leftover();current=section(row.text.trim().replace(/:\s*$/,''),sections.length);
         sections.push(current);continue;
