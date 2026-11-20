@@ -8,6 +8,7 @@ public final class CantoriaIntelligencePlugin: CAPPlugin, CAPBridgedPlugin {
     public let jsName = "CantoriaIntelligence"
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "availability", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "recognize", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "improve", returnType: CAPPluginReturnPromise)
     ]
 
@@ -19,6 +20,99 @@ public final class CantoriaIntelligencePlugin: CAPPlugin, CAPBridgedPlugin {
             }
         }
         call.resolve(["available": false])
+    }
+
+    /// Offline Apple Vision OCR with per-word and per-character image geometry.
+    /// Requires no Apple account, API key, or external image upload.
+    @objc public func recognize(_ call: CAPPluginCall) {
+        guard let dataURI = call.getString("image"),
+              dataURI.utf8.count <= 9_000_000,
+              let comma = dataURI.firstIndex(of: ","),
+              dataURI.hasPrefix("data:image/"),
+              let data = Data(base64Encoded: String(dataURI[dataURI.index(after: comma)...])),
+              let image = UIImage(data: data),
+              let cgImage = image.cgImage else {
+            call.reject("La fotografia non è valida per Apple Vision.")
+            return
+        }
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            do {
+                let request = VNRecognizeTextRequest()
+                request.recognitionLevel = .accurate
+                request.recognitionLanguages = ["it-IT", "en-US"]
+                request.usesLanguageCorrection = false
+                request.customWords = [
+                    "DO", "RE", "MI", "FA", "SOL", "LA", "SI",
+                    "DO7", "RE7", "MI7", "FA7", "SOL7", "LA7", "SI7",
+                    "MI/7", "FA6", "LA-", "SI-", "SOL2", "DO/SOL"
+                ]
+                let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
+                try handler.perform([request])
+                let results = (request.results ?? []).sorted {
+                    $0.boundingBox.midY > $1.boundingBox.midY
+                }
+                let width = CGFloat(cgImage.width)
+                let height = CGFloat(cgImage.height)
+                var lines = [[String: Any]]()
+                var allText = [String]()
+
+                for observation in results {
+                    guard let text = observation.topCandidates(1).first else { continue }
+                    let content = text.string.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if content.isEmpty { continue }
+                    allText.append(content)
+                    var words = [[String: Any]]()
+                    var cursor = text.string.startIndex
+                    for piece in text.string.split(whereSeparator: { $0.isWhitespace }) {
+                        let token = String(piece)
+                        guard let range = text.string.range(
+                            of: token, range: cursor..<text.string.endIndex
+                        ) else { continue }
+                        cursor = range.upperBound
+                        let box = (try? text.boundingBox(for: range))?.boundingBox
+                            ?? observation.boundingBox
+                        var chars = [[String: Any]]()
+                        var position = range.lowerBound
+                        while position < range.upperBound {
+                            let next = text.string.index(after: position)
+                            let charRange = position..<next
+                            if let cb = (try? text.boundingBox(for: charRange))?.boundingBox {
+                                chars.append([
+                                    "text": String(text.string[charRange]),
+                                    "bbox": self.pixelBox(cb, width: width, height: height)
+                                ])
+                            }
+                            position = next
+                        }
+                        words.append([
+                            "text": token,
+                            "bbox": self.pixelBox(box, width: width, height: height),
+                            "confidence": Int((text.confidence * 100).rounded()),
+                            "symbols": chars
+                        ])
+                    }
+                    if !words.isEmpty { lines.append(["words": words]) }
+                }
+                DispatchQueue.main.async {
+                    call.resolve(["text": allText.joined(separator: "\n"), "lines": lines])
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    call.reject("Apple Vision non è riuscito a leggere la foto: \(error.localizedDescription)")
+                }
+            }
+        }
+    }
+
+    private func pixelBox(_ rect: CGRect, width: CGFloat, height: CGFloat) -> [String: Double] {
+        // Vision coordinates start at bottom-left; CANTORIA expects top-left.
+        return [
+            "x0": Double(rect.minX * width),
+            "y0": Double((1 - rect.maxY) * height),
+            "x1": Double(rect.maxX * width),
+            "y1": Double((1 - rect.minY) * height)
+        ]
     }
 
     @objc public func improve(_ call: CAPPluginCall) {
