@@ -80,6 +80,62 @@ jobs:
             -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID" \
             archive
 
+      - name: Verify archived export compliance declaration
+        shell: bash
+        run: |
+          set -euo pipefail
+          info="$RUNNER_TEMP/Cantoria.xcarchive/Products/Applications/App.app/Info.plist"
+          test -f "$info"
+          declared=$(/usr/libexec/PlistBuddy -c 'Print :ITSAppUsesNonExemptEncryption' "$info")
+          if ! echo "$declared" | grep -Eiq '^(false|no|0)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>teamID</key><string>$APPLE_TEAM_ID</string>
+          </dict></plist>
+          EOF
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/Cantoria.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -exportPath "$RUNNER_TEMP/export" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_AUTH_KEY_PATH" \
+            -authenticationKeyID "$APP_STORE_CONNECT_KEY_ID" \
+            -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID"
+
+      - name: Retain signed IPA as a short-lived artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Cantoria-TestFlight-IPA-${{ github.run_number }}
+          path: ${{ runner.temp }}/export/*.ipa
+          if-no-files-found: error
+          retention-days: 3
+
+      - name: Upload signed IPA to TestFlight
+        shell: bash
+        run: |
+          set -euo pipefail
+          ipa=$(find "$RUNNER_TEMP/export" -maxdepth 1 -name '*.ipa' -print -quit)
+          test -n "$ipa"
+          xcrun altool --upload-app --type ios --file "$ipa" \
+            --apiKey "$APP_STORE_CONNECT_KEY_ID" --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID"
+
+      - name: Remove temporary Apple API key
+        if: always()
+        shell: bash
+        run: |
+          if [[ -n "${ASC_AUTH_KEY_PATH:-}" ]]; then rm -f "$ASC_AUTH_KEY_PATH"; fi
+; then
+            echo "::error::Missing or invalid ITSAppUsesNonExemptEncryption declaration"
+            exit 1
+          fi
+          echo "Exempt encryption declaration found in archived iOS app."
+
       - name: Export IPA using Apple cloud signing
         shell: bash
         run: |
