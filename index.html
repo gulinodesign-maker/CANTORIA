@@ -460,6 +460,15 @@
  .band-chord-list{display:grid;gap:7px;margin:14px 0}
  .band-chord-list button{justify-content:flex-start;width:100%;text-align:left}
 }
+
+ .photo-analysis-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-bottom:8px}
+ .photo-analysis-actions button{width:100%;min-width:0;min-height:51px;padding:8px 6px;margin:0!important;
+  font-size:clamp(11.5px,3.05vw,14px);line-height:1.3;white-space:normal;text-wrap:balance}
+ .photo-analysis-actions .apple-ai-button{background:#284d41;color:#fff;border-color:#284d41}
+ .photo-analysis-actions .apple-ai-button:disabled{background:#e6e7e4;color:#7a847d;border-color:#c4ccc5;opacity:1}
+ .apple-ai-availability{font-size:11px;color:#717970;line-height:1.4;margin:1px 0 9px}
+ .apple-ai-availability.available{color:#426c4e}
+
 </style>
   <title>Cantoria — Canti per la liturgia cattolica</title>
 </head>
@@ -773,9 +782,18 @@ function photoOcrFormHTML(inReader=false) {
  const ready=draft.trim().length>0&&!!state.geometryDraft?.hasGeometry&&
   state.geometryDraft.sections?.some(s=>s.lines?.length)&&draft.trim()===state.geometryRawText;
  return '<section class="photo-ocr-panel" aria-label="Riconoscimento foto">' +
-  '<button type="button" class="outline-btn photo-ocr-start" data-action="recognize-photo"' + (state.ocrBusy?' disabled':'') + '>' +
-  (state.ocrBusy?'Riconoscimento in corso…':'Riconosci testo e accordi') + '</button>' +
-  (ready&&state.appleAIAvailable?'<button type="button" class="outline-btn apple-ai-button" data-action="improve-photo-apple"'+(state.appleAIBusy?' disabled':'')+'>✦ '+(state.appleAIBusy?'Apple Intelligence in corso…':'Migliora con Apple Intelligence')+'</button>':'') +
+  '<div class="photo-analysis-actions" role="group" aria-label="Scegli il tipo di analisi">' +
+  '<button type="button" class="outline-btn photo-ocr-start" data-action="recognize-photo"' +
+  ((state.ocrBusy||state.appleAIBusy)?' disabled':'') + '>◉ ' +
+  (state.ocrBusy&&!state.appleAIBusy?'Analisi…':'Classica') + '</button>' +
+  '<button type="button" class="primary-btn apple-ai-button" data-action="recognize-apple"' +
+  ((!state.appleAIAvailable||state.ocrBusy||state.appleAIBusy)?' disabled':'') +
+  ' title="Apple Vision e Apple Intelligence, solo su dispositivi compatibili">✦ ' +
+  (state.appleAIBusy?'AI in corso…':'Apple Intelligence') + '</button>' +
+  '</div>' +
+  (!state.appleAIAvailable?
+    '<p class="apple-ai-availability" id="appleAIAvailability">Apple Intelligence si attiva solo sui dispositivi compatibili, con il modello disponibile e abilitato. L’analisi classica funziona comunque.</p>':
+    '<p class="apple-ai-availability available">Apple Vision e Apple Intelligence sul dispositivo · nessun costo per analisi.</p>') +
    (state.appleSuggestions.length?'<div class="apple-ai-suggestions" role="status"><p>'+state.appleSuggestions.length+' suggerimenti da verificare:</p><ul>'+state.appleSuggestions.map(x=>'<li>'+escape(x.before)+' → <strong>'+escape(x.after)+'</strong> · '+escape(x.reason)+'</li>').join('')+'</ul><button type="button" class="primary-btn" data-action="apply-apple-suggestions">Applica suggerimenti</button><button type="button" class="outline-btn" data-action="discard-apple-suggestions">Scarta</button></div>':'') +
    '<p class="photo-ocr-status" id="ocrStatus" aria-live="polite">' +
   escape(state.ocrStatus||'Dopo la lettura, correggi le parole e gli accordi.') + '</p>' +
