@@ -148,6 +148,67 @@ assert.equal(withRefrain.sections[0].lines[0].originalOcrText,'RIT Ate cantiamo 
 // Font-independent rendering needs no empty bar for a lyric without chords.
 assert.ok(fs.readFileSync('index.html','utf8').includes("chords||!line.sourceRowId"));
 
+// Regression from 20 Nov screenshot, "FRUTTO DELLA NOSTRA TERRA":
+// mixed-case chord rows and noisy trailing OCR tokens must not become lyrics.
+const fruit=parseGeometry({lines:[
+ {words:[word('63',14,7,24),word('FRUTTO',40,7,70),word('DELLA',115,7,64),
+   word('NOSTRA',186,7,73),word('TERRA',267,7,60),
+   word('Francesco',340,7,95),word('Buttazzo',443,7,86)]},
+ {words:[word('\\',20,37,11)]},
+ {words:[word('TNS',20,57,36)]},
+ {words:[word('Sol',23,87,36),word('Do',116,87,28),word('Sol',206,87,36),
+   word('Re',309,87,29),word('dL',382,87,24)]},
+ {words:[word('Frutto',23,118,76),word('della',111,118,58),
+   word('nostra',180,118,72),word('terra,',258,118,70),
+   word('del',340,118,35),word('lavoro',388,118,70),
+   word('di',470,118,18),word('ogni',499,118,40),word('uomo',550,118,57)]},
+ {words:[word('Mi-',23,156,40),word('Si-',115,156,35),word('Do',209,156,28),
+   word('Re,',310,156,36),word('intro',403,156,47)]},
+ {words:[word('Pane',23,185,54),word('della',88,185,58),
+   word('nostra',150,185,68),word('vita,',225,185,57),
+   word('cibo',291,185,48),word('della',346,185,57),word('quotidianità.',409,185,150)]},
+ {words:[word('sol',23,230,35),word('Do',113,230,30),
+   word('Sol',208,230,38),word('Re',309,230,31),word('~~',379,230,30)]},
+ {words:[word('Tu',23,261,27),word('che',60,261,37),word('lo',108,261,19),
+   word('prendevi',135,261,91),word('un',236,261,24),word('giorno,',272,261,84),
+   word('lo',366,261,19),word('spezzavi',394,261,91),word('per',492,261,34),
+   word('i',535,261,9),word('tuoi',555,261,45)]},
+ {words:[word('Mi-',23,300,40),word('Si-',115,300,35),word('Do',209,300,28),
+   word('Red',310,300,42),word('È',391,300,15)]},
+ {words:[word('Oggi',23,334,54),word('vieni',87,334,50),word('in',149,334,19),
+   word('questo',178,334,69),word('pane,',258,334,60),
+   word('cibo',330,334,45),word('vero',383,334,50),word('dell’umanità.',445,334,151)]},
+ {words:[word('RE',23,371,28),word('SOL',132,371,38),word('RE',301,371,29),
+   word('MI-',430,371,41),word('SI-',545,371,35)]},
+ {words:[word('E',23,400,16),word('sarò',48,400,48),word('pane',110,400,48),
+   word('e',171,400,9),word('sarò',189,400,45),word('vino',241,400,44),
+   word('nella',303,400,54),word('mia',365,400,32),word('vita,',406,400,49),
+   word('nelle',465,400,50),word('tue',520,400,32),word('mani',560,400,46)]}
+]});
+const fruitLines=fruit.sections.flatMap(sec=>sec.lines);
+assert.equal(fruitLines.length,5,'Every chord row must stay above its corresponding lyric row');
+assert.ok(fruitLines.every(ln=>!/(?:Sol Do Sol Re|Mi- Si- Do|TNS|FRUTTO DELLA NOSTRA)/.test(ln.marked)));
+assert.deepEqual(Array.from(fruitLines[0].anchors,a=>a.chord),['SOL','DO','SOL','RE','?']);
+assert.deepEqual(Array.from(fruitLines[1].anchors,a=>a.chord),['MI-','SI-','DO','RE']);
+assert.deepEqual(Array.from(fruitLines[2].anchors,a=>a.chord),['SOL','DO','SOL','RE']);
+assert.deepEqual(Array.from(fruitLines[3].anchors,a=>a.chord),['MI-','SI-','DO','?','?']);
+assert.deepEqual(Array.from(fruitLines[4].anchors,a=>a.chord),['RE','SOL','RE','MI-','SI-']);
+assert.equal(fruit.diagnostics.titleCandidate,'63 FRUTTO DELLA NOSTRA TERRA Francesco Buttazzo');
+assert.ok(fruit.diagnostics.ignoredArtifacts>=3);
+assert.equal(fruitLines[0].anchors[0].sourceX,23,'Keep measured source coordinates');
+assert.equal(fruitLines[0].anchors[4].sourceSymbol,'dL');
+assert.equal(fruitLines[0].anchors[4].unresolved,true);
+assert.ok(fruitLines[0].anchors.every(a=>Number.isInteger(a.anchorCharacterIndex)));
+assert.ok(fruitLines[0].anchors.every(a=>a.needsReview),'Estimates require photo review');
+
+// The same notes written as ordinary lowercase lyrics must not be stolen.
+const sungNotes=parseGeometry({lines:[
+ {words:[word('Mi',20,15),word('la',53,15),word('fa',87,15),word('sol',120,15)]},
+ {words:[word('e',20,45),word('tu',43,45),word('sei',77,45),word('qui',118,45)]}
+]});
+assert.equal(sungNotes.sections[0].lines.length,2);
+assert.equal(sungNotes.sections[0].lines[0].marked,'Mi la fa sol');
+
 // Character index survives renderer font and scale changes; never distribute evenly.
 const html=fs.readFileSync('index.html','utf8');
 const script=html.slice(html.indexOf('<script>')+8,html.indexOf('</script>',html.indexOf('<script>')));
