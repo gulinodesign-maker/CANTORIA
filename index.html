@@ -1320,14 +1320,18 @@ function makeCantoriaPdf(song,shift=0){
   };
   const ensure=height=>{if(y-height<47)startPage();};
   startPage();
+  let printedRefrains=0;
   for(const section of song.sections||[]){
+    const initialRefrain=section.kind==='chorus'&&printedRefrains===0;
+    const printedSection=initialRefrain?{...section,firstRefrain:true}:section;
+    if(section.kind==='chorus')printedRefrains++;
     const heading=String(section.name||'SEZIONE').toUpperCase();
     ensure(45);
     const width=Math.max(130,timesWidth(heading,12.5)+40);
     const center=W/2,half=width/2;
     commands.push(`0.72 0.55 0.24 RG 0.85 w ${fmt(LEFT)} ${fmt(y-4)} m ${fmt(center-half-11)} ${fmt(y-4)} l S`);
     commands.push(`0.72 0.55 0.24 RG 0.85 w ${fmt(center+half+11)} ${fmt(y-4)} m ${fmt(W-RIGHT)} ${fmt(y-4)} l S`);
-    if(!section.firstRefrain){
+    if(!printedSection.firstRefrain){
       pill(center-half,y-17,width,23,'0.73 0.55 0.20');
       ptext(heading,center-timesWidth(heading,13)/2,y-10,13,'F2','1 1 1',.25);
     }else{
@@ -1339,7 +1343,7 @@ function makeCantoriaPdf(song,shift=0){
       if(!items.length)return;
       ensure(31);
       const height=18.5;
-      pill(LEFT+3,y-height+2,MAXW-6,height,pdfBandColor(section,null,rowIndex));
+      pill(LEFT+3,y-height+2,MAXW-6,height,pdfBandColor(printedSection,null,rowIndex));
       const placements=items.map(item=>{
         const source=Array.isArray(geometry)&&geometry.length===chords.length?geometry[item.i]:null;
         const bbox=source?.sourceLineBBox;
@@ -1370,7 +1374,7 @@ function makeCantoriaPdf(song,shift=0){
       }
       if(hasBand){
         const bandHeight=18.5;
-        pill(LEFT+3,y-bandHeight+2,MAXW-6,bandHeight,pdfBandColor(section,line));
+        pill(LEFT+3,y-bandHeight+2,MAXW-6,bandHeight,pdfBandColor(printedSection,line));
         const placed=printable.map(a=>{
           const index=Number.isInteger(a.anchorCharacterIndex)?a.anchorCharacterIndex:null;
           const base=index!==null?measureLyric(text.slice(0,index)):(offsets[a.slot]||0);
