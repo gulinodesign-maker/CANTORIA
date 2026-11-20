@@ -31,6 +31,9 @@ assert.equal(ocr.chordName('SOL7'),'SOL7');
 assert.equal(ocr.chordName('LA-'),'LA-');
 assert.equal(ocr.chordName('FA#m7'),'FA#m7');
 assert.equal(ocr.chordName('MIb7'),'MIb7');
+assert.equal(ocr.chordName('MI/7'),'MI/7');
+assert.equal(ocr.chordFromOcr('M1/7'),'MI/7');
+assert.equal(ocr.parse(['STROFA','MI/7 LA','Dio è amore @'].join(String.fromCharCode(10)))[0].lines[0].marked,'Dio è amore');
 assert.equal(ocr.chordName('CANTO'),'');
 
 // Real-world OCR regression: noisy chord rows must stay in coloured chord

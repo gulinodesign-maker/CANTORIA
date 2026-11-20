@@ -94,6 +94,8 @@ assert.equal(root.CantoriaOCR.chordFromOcr('m1⁴'),'MI4');
 assert.equal(root.CantoriaOCR.chordFromOcr('DO/S1'),'DO/SI');
 assert.equal(root.CantoriaOCR.chordName('DO/si'),'DO/SI');
 assert.equal(root.CantoriaOCR.chordName('Mi4'),'MI4');
+assert.equal(root.CantoriaOCR.chordName('MI/7'),'MI/7');
+assert.equal(root.CantoriaOCR.chordFromOcr('M1/7'),'MI/7');
 // Do not hallucinate which Italian note an isolated OCR "1" represents.
 const oneRead=parseGeometry({lines:[
  {words:[word('FA',20,5,30),word('1',75,5,12),word('DO',140,5,32)]},
@@ -126,7 +128,7 @@ assert.equal(observed.length,3);
 assert.equal(observed[0].marked,'questo popolo ti eleva la sua lode.');
 assert.equal(observed[1].marked,'questo popolo ti eleva la sua lode.');
 assert.deepEqual(Array.from(observed[0].anchors,a=>a.chord),['SIm','?']);
-assert.deepEqual(Array.from(observed[1].anchors,a=>a.chord),['SIm','?']);
+assert.deepEqual(Array.from(observed[1].anchors,a=>a.chord),['SIm','MI/7']);
 assert.equal(observed[0].anchors[1].sourceSymbol,'M7');
 assert.equal(observed[1].anchors[1].sourceSymbol,'MI/7');
 assert.equal(observed[0].anchors[1].unresolved,true);
@@ -154,8 +156,13 @@ assert.ok(html.includes('readerCharRect'));
 assert.ok(html.includes('data-char-index'));
 assert.ok(html.includes('chord.sourceX-source.x0')===false); // No hard-coded x distribution
 assert.ok(html.includes("data-offset-x"));
-assert.ok(html.includes('style.left=x'));
+assert.ok(html.includes("item.label.style.left=item.x"));
 assert.ok(html.includes('song.geometryDiagnostics'));
+assert.ok(html.includes("band.style.height='27px'"));
+assert.ok(!html.includes('lanes*laneHeight'));
+assert.ok(html.includes('data-action="save-song"'));
+assert.ok(html.includes('data-action="edit-chord-only"'));
+assert.ok(html.includes('data-action="improve-photo-apple"'));
 assert.ok(html.includes("worker.recognize(image, {}, {text:true,blocks:true})"));
 assert.ok(html.includes('photoParserVersion'));
 assert.ok(html.includes('Simbolo musicale non riconosciuto'));

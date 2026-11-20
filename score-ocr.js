@@ -3,7 +3,7 @@
    No data is sent from this module to any server. */
 (function (root) {
   "use strict";
-  const CHORD = /^(SOL|DO|RE|MI|FA|LA|SI)(?:#|b)?(?:(?:maj|min|m|dim|aug|sus|add)?[0-9+\-°()]*)?(?:\/(?:SOL|DO|RE|MI|FA|LA|SI)(?:#|b)?)?$/i;
+  const CHORD = /^(SOL|DO|RE|MI|FA|LA|SI)(?:#|b)?(?:(?:maj|min|m|dim|aug|sus|add)?[0-9+\-°()]*)?(?:\/(?:(?:SOL|DO|RE|MI|FA|LA|SI)(?:#|b)?|[0-9]{1,2}))?$/i;
   const SECTION = /^(INTRO(?:DUZIONE)?|STROFA(?:\s+(?:\d+|[IVX]+))?|RITORNELLO|CORO|REFRAIN|PONTE|BRIDGE|FINALE|OUTRO|CODA)\s*:?\s*$/i;
 
   function chordName(token) {
@@ -23,14 +23,14 @@
   function chordFromOcr(token) {
     const raw = String(token || "").replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹]/g, digit =>
       "⁰¹²³⁴⁵⁶⁷⁸⁹".indexOf(digit).toString());
-    const normalized = raw.replace(/^S[1lI](?=[#b0-9+°()-]|$)/i, "SI")
-      .replace(/^[1lI]A(?=[#b0-9+°()-]|$)/i, "LA")
-      .replace(/^D0(?=[#b0-9+°()-]|$)/i, "DO")
+    const normalized = raw.replace(/^S[1lI](?=[#b0-9+°()/\-]|$)/i, "SI")
+      .replace(/^[1lI]A(?=[#b0-9+°()/\-]|$)/i, "LA")
+      .replace(/^D0(?=[#b0-9+°()/\-]|$)/i, "DO")
       .replace(/^S0L/i, "SOL")
-      .replace(/^M[1lI](?=[#b0-9+°()-]|$)/i, "MI")
-      .replace(/\/S[1lI](?=[#b0-9+°()-]|$)/i, "/SI")
-      .replace(/\/M[1lI](?=[#b0-9+°()-]|$)/i, "/MI")
-      .replace(/\/D0(?=[#b0-9+°()-]|$)/i, "/DO");
+      .replace(/^M[1lI](?=[#b0-9+°()/\-]|$)/i, "MI")
+      .replace(/\/S[1lI](?=[#b0-9+°()/\-]|$)/i, "/SI")
+      .replace(/\/M[1lI](?=[#b0-9+°()/\-]|$)/i, "/MI")
+      .replace(/\/D0(?=[#b0-9+°()/\-]|$)/i, "/DO");
     return chordName(normalized);
   }
   function readChordRow(words, original) {
@@ -127,7 +127,7 @@
         pending = chordRow;
         continue;
       }
-      const cleaned = text.replace(/[\u0000-\u001f]/g, "");
+      const cleaned = text.replace(/[\u0000-\u001f@©®™�¤]/g, "").trim();
       if (!cleaned || !syllableCells(cleaned).length) continue;
       ensure().lines.push({
         marked: cleaned,

@@ -1,0 +1,28 @@
+name: Compile Cantoria iOS beta before TestFlight
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  ios-simulator:
+    runs-on: macos-26
+    timeout-minutes: 50
+    env:
+      IOS_BUNDLE_ID: org.cantoria.preflight
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare Capacitor iOS with Apple Intelligence bridge
+        run: |
+          npm install --no-audit --no-fund
+          bash scripts/prepare-ios.sh
+      - name: Compile without Apple signing
+        run: |
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
+            -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO \
+            MARKETING_VERSION="$(node -p "require('./package.json').version")" \
+            CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER" build

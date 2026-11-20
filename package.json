@@ -1,6 +1,6 @@
 {
   "name": "cantoria",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "private": true,
   "description": "Cantoria - Catholic liturgical music app (web and iOS)",
   "scripts": {
