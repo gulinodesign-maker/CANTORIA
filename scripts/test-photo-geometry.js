@@ -156,7 +156,7 @@ assert.ok(html.includes('readerCharRect'));
 assert.ok(html.includes('data-char-index'));
 assert.ok(html.includes('chord.sourceX-source.x0')===false); // No hard-coded x distribution
 assert.ok(html.includes("data-offset-x"));
-assert.ok(html.includes('style.left=x'));
+assert.ok(html.includes("item.label.style.left=item.x"));
 assert.ok(html.includes('song.geometryDiagnostics'));
 assert.ok(html.includes("band.style.height='27px'"));
 assert.ok(!html.includes('lanes*laneHeight'));
