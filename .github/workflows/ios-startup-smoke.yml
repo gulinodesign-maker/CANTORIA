@@ -1,0 +1,78 @@
+name: iOS startup and black screen smoke test
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  ios-launch:
+    runs-on: macos-26
+    timeout-minutes: 50
+    env:
+      IOS_BUNDLE_ID: org.cantoria.launchsmoke
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build iOS app for simulator
+        run: |
+          npm install --no-audit --no-fund
+          bash scripts/prepare-ios.sh
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
+            -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO \
+            -derivedDataPath "$RUNNER_TEMP/Derived" \
+            MARKETING_VERSION="$(node -p "require('./package.json').version")" \
+            CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER" build
+      - name: Boot, launch, capture and inspect launch screen
+        shell: bash
+        run: |
+          set -euo pipefail
+          device="$(xcrun simctl list devices available -j | python3 -c 'import json,sys; j=json.load(sys.stdin); print(next((d["udid"] for group in j["devices"].values() for d in group if "iPhone" in d["name"] and d.get("isAvailable",True)),""))')"
+          if [ -z "$device" ]; then echo "No iPhone simulator available"; exit 1; fi
+          echo "Simulator: $device"
+          xcrun simctl boot "$device"
+          xcrun simctl bootstatus "$device" -b
+          xcrun simctl install "$device" "$RUNNER_TEMP/Derived/Build/Products/Release-iphonesimulator/App.app"
+          xcrun simctl launch "$device" "$IOS_BUNDLE_ID"
+          sleep 12
+          xcrun simctl io "$device" screenshot "$RUNNER_TEMP/cantoria-launch.png"
+          xcrun simctl spawn "$device" log show --last 90s --style compact \
+            --predicate 'process == "App" OR process == "WebKit.WebContent"' \
+            > "$RUNNER_TEMP/cantoria-launch.log" 2>&1 || true
+          cat > "$RUNNER_TEMP/check-screen.swift" <<'SWIFT'
+          import AppKit
+          import Foundation
+          let imageURL = URL(fileURLWithPath: CommandLine.arguments[1])
+          guard let image = NSBitmapImageRep(contentsOf: imageURL) else {
+            print("Could not decode screenshot"); exit(1)
+          }
+          var lit = 0
+          var sampled = 0
+          for y in stride(from: image.pixelsHigh / 8, to: image.pixelsHigh * 7 / 8, by: 15) {
+            for x in stride(from: image.pixelsWide / 8, to: image.pixelsWide * 7 / 8, by: 15) {
+              guard let c = image.colorAt(x: x, y: y)?.usingColorSpace(.deviceRGB) else { continue }
+              let luminosity = (c.redComponent + c.greenComponent + c.blueComponent) / 3
+              sampled += 1
+              if luminosity > 0.35 { lit += 1 }
+            }
+          }
+          let fraction = Double(lit) / Double(max(sampled, 1))
+          print("Visible light pixels: \(lit)/\(sampled) = \(fraction)")
+          if fraction < 0.15 {
+            print("FAIL: Blank/black iOS launch screen")
+            exit(1)
+          }
+          print("PASS: app screen not uniformly black")
+          SWIFT
+          swift "$RUNNER_TEMP/check-screen.swift" "$RUNNER_TEMP/cantoria-launch.png"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Cantoria-iOS-launch-evidence
+          path: |
+            ${{ runner.temp }}/cantoria-launch.png
+            ${{ runner.temp }}/cantoria-launch.log
+          if-no-files-found: ignore
+          retention-days: 3
