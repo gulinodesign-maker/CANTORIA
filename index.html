@@ -448,6 +448,11 @@
  .chord-label.unresolved .unresolved-spot{display:block;width:20px;height:1px;border-bottom:1px dotted #a77c55;opacity:.65}
  .band-color-field{display:flex;align-items:center;gap:10px}
  .band-color-field select{flex:1;min-width:0}
+ .pill-color-picker{display:grid;gap:8px;margin:14px 0}
+ .pill-color-choice{display:flex;align-items:center;gap:11px;min-height:45px;width:100%;padding:7px 11px;border:1px solid #d7cdbc;border-radius:13px;background:#faf6ee;color:#213c32;font-weight:600;text-align:left}
+ .pill-color-choice[aria-pressed="true"]{border-color:#ad812c;box-shadow:0 0 0 1px #ad812c}
+ .pill-color-choice span:last-child:not(.pill-color-swatch){margin-left:auto}
+ .pill-color-swatch{height:23px;width:68px;border:1px solid #c6c2bb;border-radius:999px;flex-shrink:0}
  .band-color-preview{display:inline-block;width:44px;height:25px;border:1px solid #bfb7a9;border-radius:20px;flex-shrink:0}
  .lyric-text-editor{width:100%;font:normal 17px/1.5 Georgia,"Times New Roman",serif!important;min-height:115px!important}
  .section-lyric-editor{min-height:220px!important}
@@ -942,6 +947,25 @@ function syllableModalHTML(m){
 }
 function songInfoEditor(song){return `<details class="compact-details"><summary>Modifica titolo e autore</summary><form id="songInfoForm" class="song-info-form"><div class="field"><label for="editSongTitle">Titolo</label><input id="editSongTitle" name="title" maxlength="160" required value="${escapeAttr(song.title)}"></div><div class="field"><label for="editSongAuthor">Autore</label><input id="editSongAuthor" name="author" maxlength="160" placeholder="Nome dell'autore" value="${escapeAttr(song.author||'')}"></div><button type="submit" class="primary-btn">Salva</button></form></details>`;}
 
+function rowBandColorModal(m){
+ const song=currentSong(),sec=song?.sections?.[m.si];
+ if(!sec)return '';
+ const editor=window.CantoriaEditor;
+ const current=editor.rowBandColor(song,m.si,m.li,m.rowIndex);
+ const custom=editor.rowBandOverride(song,m.si,m.li,m.rowIndex);
+ const choices=editor.PALETTE.map(p=>`<button type="button" class="pill-color-choice" data-action="apply-row-band-color" data-color="${p.value}" aria-pressed="${p.value===current}">
+  <span class="pill-color-swatch" style="background:${p.value}" aria-hidden="true"></span>
+  <span>${escape(p.label)}</span>${p.value===current?'<span aria-hidden="true">✓</span>':''}
+ </button>`).join('');
+ return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Cambia colore della pill">
+  <h2>Colore della pill</h2>
+  <p>Cambia soltanto il colore di questa fascia accordi. Le altre pill e i loro accordi rimangono invariati.</p>
+  <div class="pill-color-picker">${choices}</div>
+  ${custom?'<button type="button" class="outline-btn song-edit-action" data-action="reset-row-band-color">Ripristina colore della sezione</button>':''}
+  <button type="button" class="outline-btn song-edit-action" data-action="open-band-chords">Modifica o aggiungi accordi</button>
+  <div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Chiudi</button></div>
+ </div></div>`;
+}
 function chordBandEditModal(m){
  const sec=currentSong()?.sections?.[m.si];
  if(!sec)return '';
@@ -1053,6 +1077,7 @@ function modalHTML(){const m=state.modal;
 if(m.type==='new-mass')return `<div class="modal-shade"><form class="modal-card" id="newMassForm"><h2>Nuova Messa</h2><div class="field"><label for="massName">Nome</label><input id="massName" name="massName" placeholder="Messa domenicale" required autofocus maxlength="160"></div><div class="field"><label for="massDate">Data</label><input type="date" id="massDate" name="massDate"></div><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button class="primary-btn">Crea</button></div></form></div>`;
  if(m.type==='reuse-mass')return reuseMassFormHTML(m);
  if(m.type==='add-to-mass')return `<div class="modal-shade"><form class="modal-card" id="addToMassForm"><h2>Aggiungi alla Messa</h2><p>Il canto verrà inserito in fondo alla scaletta. Potrai spostarlo successivamente.</p>${m.massId?`<input type="hidden" name="massId" value="${escapeAttr(m.massId)}">`:`<div class="field"><label>Messa</label><select name="massId">${store.masses.map(x=>`<option value="${escapeAttr(x.id)}">${escape(x.name)}</option>`).join('')}</select></div>`}<div class="field"><label>Canto</label><select name="songId">${store.songs.map(s=>`<option value="${escapeAttr(s.id)}" ${s.id===m.songId?'selected':''}>${escape(s.title)}</option>`).join('')}</select></div><div class="field"><label>Momento</label><select name="label"><option>Ingresso</option><option>Atto penitenziale</option><option>Gloria</option><option>Salmo</option><option>Alleluia</option><option>Offertorio</option><option>Santo</option><option>Comunione</option><option>Ringraziamento</option><option>Canto finale</option></select></div><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button class="primary-btn">Aggiungi</button></div></form></div>`;
+ if(m.type==='row-band-color')return rowBandColorModal(m);
  if(m.type==='band-chords')return chordBandEditModal(m);
  if(m.type==='lyric-edit')return lyricTextEditModal(m);
  if(m.type==='section-text-edit')return sectionTextEditModal(m);
@@ -1463,6 +1488,25 @@ root.addEventListener('click',e=>{
   return;
  }
  if(action==='band-colors'){state.modal={type:'band-colors'};render();return;}
+ if(action==='open-band-chords'){
+  const m=state.modal;
+  if(m?.type!=='row-band-color')return;
+  state.modal={...m,type:'band-chords'};render();return;
+ }
+ if(action==='apply-row-band-color'||action==='reset-row-band-color'){
+  const m=state.modal,song=currentSong();
+  if(m?.type!=='row-band-color'||!song)return;
+  const editor=window.CantoriaEditor;
+  const old=editor.rowBandOverride(song,m.si,m.li,m.rowIndex);
+  const color=action==='reset-row-band-color'?'':String(el.dataset.color||'');
+  try{editor.setRowBandColor(song,m.si,m.li,m.rowIndex,color);}
+  catch(err){notify(err.message);return;}
+  if(!saveStore(store)){
+   editor.setRowBandColor(song,m.si,m.li,m.rowIndex,old||'');
+   notify('Non è stato possibile salvare il colore.');return;
+  }
+  state.modal=null;render();notify('Colore della pill salvato.');return;
+ }
  if(action==='select-band-chord'||action==='add-band-chord'){
   const m=state.modal;if(m?.type!=='band-chords')return;
   const ai=action==='add-band-chord'?-1:Number(el.dataset.chord);
