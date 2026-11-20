@@ -62,15 +62,24 @@
     if(!a)return '';
     return a.chordName(name)||a.chordFromOcr?.(name)||'';
   }
-  function classifyChordRow(row) {
+  function classifyChordRow(row,nextRow) {
     const tokens=row.words.map(w=>({word:w,symbol:note(w.text)}));
     const valid=tokens.filter(t=>t.symbol);
     const uppercase=tokens.filter(t=>t.word.text===t.word.text.toUpperCase()&&
       /[A-Z]/.test(t.word.text)).length;
-    // Never classify an ordinary lowercase lyric as a chord row.
-    const likely=tokens.length===1?
-      valid.length===1&&uppercase===1 :
-      valid.length>=2&&valid.length/tokens.length>=0.6&&uppercase>=2;
+    // An OCR line above a normal lyric line is more likely a chord line.
+    // Require this geometrical context when OCR has damaged letter casing.
+    const nextWords=nextRow?.words||[];
+    const nextIsLyric=nextWords.length>=2 &&
+      nextWords.filter(w=>!note(w.text)).length>=Math.ceil(nextWords.length*0.6) &&
+      nextWords.some(w=>/[a-zà-öø-ÿ]/.test(w.text)) &&
+      row.bbox?.y0 < nextRow.bbox?.y0;
+    // "RE m1⁴ Mi" must remain a chord row; "Mi la fa sol" remains lyrics.
+    const likely=tokens.length===1 ?
+      valid.length===1&&(uppercase===1||
+        (nextIsLyric&&/[0-9#♯♭+\-]/.test(row.text))) :
+      valid.length>=2&&valid.length/tokens.length>=0.6&&
+      (uppercase>=2||(uppercase>=1&&nextIsLyric));
     if(!likely)return null;
     return {row, chords:tokens.filter(t=>t.symbol).map(t=>({
       symbol:t.symbol, originalSymbol:t.word.text, bbox:t.word.bbox,
@@ -162,12 +171,13 @@
       diagnostics.unresolved+=pending.unresolved.length;
       pending=null;
     }
-    for(const row of rows){
+    for(let rowIndex=0;rowIndex<rows.length;rowIndex++){
+      const row=rows[rowIndex],nextRow=rows[rowIndex+1];
       if(HEAD.test(row.text.trim())){
         leftover();current=section(row.text.trim().replace(/:\s*$/,''),sections.length);
         sections.push(current);continue;
       }
-      const chordRow=classifyChordRow(row);
+      const chordRow=classifyChordRow(row,nextRow);
       if(chordRow){leftover();pending=chordRow;diagnostics.totalRecognized+=chordRow.chords.length;continue;}
       if(!pending&&!current&&rows[0]===row&&row.text.length<90&&rows.length>1){
         // Only propose a title; never silently discard it from the source.
