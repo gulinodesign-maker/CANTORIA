@@ -1067,8 +1067,9 @@ if(m.type==='new-mass')return `<div class="modal-shade"><form class="modal-card"
  if(m.type==='chord-only-edit'){
   const sec=currentSong()?.sections[m.si];
   const list=m.rowIndex<0?sec?.chordsOnly:sec?.chordRows?.[m.rowIndex];
-  if(!list||!Number.isInteger(m.ai)||m.ai<0||m.ai>=list.length)return '';
-  return `<div class="modal-shade"><form class="modal-card" id="chordOnlyEditForm"><h2>Correggi accordo</h2><p>Accordo di introduzione o finale.</p><div class="field"><label>Accordo</label><input name="chord" value="${escapeAttr(list[m.ai])}" required autofocus></div><div class="modal-actions"><button type="button" class="outline-btn" data-action="delete-chord-only">Elimina accordo</button><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button class="primary-btn">Conferma</button></div></form></div>`;
+  const adding=m.ai===-1;
+  if(!list||!Number.isInteger(m.ai)||(!adding&&(m.ai<0||m.ai>=list.length)))return '';
+  return `<div class="modal-shade"><form class="modal-card" id="chordOnlyEditForm"><h2>${adding?'Aggiungi accordo':'Correggi accordo'}</h2><p>Accordo di introduzione o finale.</p><div class="field"><label>Accordo</label><input name="chord" value="${escapeAttr(adding?'':list[m.ai])}" placeholder="Es. MI/7" required autofocus></div><div class="modal-actions">${adding?'':'<button type="button" class="outline-btn" data-action="delete-chord-only">Elimina accordo</button>'}<button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button class="primary-btn">Conferma</button></div></form></div>`;
  }
  if(m.type==='chord-edit'){const s=currentSong(),line=s?.sections[m.si]?.lines[m.li];if(!line)return '';const tokens=parseSyllables(line.marked).filter(x=>!x.space);const a=line.anchors[m.ai];return `<div class="modal-shade"><form class="modal-card" id="chordEditForm"><h2>${m.ai===-1?'Aggiungi accordo':'Correggi accordo'}</h2><p>Scegli la sillaba esatta. L'accordo rimarrà agganciato a quella sillaba durante la trasposizione e l'impaginazione.</p><div class="field"><label>Accordo (notazione italiana)</label><input name="chord" value="${escapeAttr(a?.chord||'')}" placeholder="Es. SOL#7" required autofocus></div><div class="field"><label>Sillaba di ancoraggio</label><select name="slot">${tokens.map((t,i)=>`<option value="${i}" ${i===(a?.slot??m.slot)?'selected':''}>${i+1} · ${escape(t.text)}</option>`).join('')}</select></div><div class="modal-actions">${m.ai!==-1?'<button type="button" class="outline-btn" data-action="delete-chord">Elimina accordo</button>':''}<button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button class="primary-btn">Conferma e salva</button></div></form></div>`;}
  return '';
@@ -1537,14 +1538,15 @@ root.addEventListener('submit',e=>{e.preventDefault();const form=e.target;const 
   state.modal=null;notify('Colori delle pill salvati nel brano.');return;
  }
  if(form.id==='addToMassForm'){const m=store.masses.find(x=>x.id===f.get('massId'));if(!m||m.celebratedAt)return;const songId=String(f.get('songId'));if(!store.songs.some(x=>x.id===songId))return;m.items.push({id:makeId(),songId,label:String(f.get('label')||'Canto'),shift:0});state.massId=m.id;state.view='masses';state.modal=null;persist();render();return;}
- if(form.id==='chordEditForm'){const m=state.modal,ln=currentSong()?.sections[m.si]?.lines[m.li];if(!ln)return;const chord=window.CantoriaOCR?.chordName(String(f.get('chord')||'').trim())||'',slot=Number(f.get('slot'));if(!chord||!Number.isInteger(slot)){notify('Accordo non valido, es. MI/7.');return;}if(m.ai===-1)ln.anchors.push({slot,chord,verified:true,needsReview:false,anchorCharacterIndex:null,offsetX:0});else ln.anchors[m.ai]={...ln.anchors[m.ai],slot,chord,symbol:chord,verified:true,needsReview:false,anchorCharacterIndex:null,offsetX:0};ln.anchors.sort((a,b)=>a.slot-b.slot);persist();state.modal=null;render();return;}
+ if(form.id==='chordEditForm'){const m=state.modal,ln=currentSong()?.sections[m.si]?.lines[m.li];if(!ln)return;const chord=window.CantoriaOCR?.chordName(String(f.get('chord')||'').trim())||'',slot=Number(f.get('slot'));if(!chord||!Number.isInteger(slot)){notify('Accordo non valido, es. MI/7.');return;}if(m.ai===-1)ln.anchors.push({slot,chord,verified:true,needsReview:false,anchorCharacterIndex:null,offsetX:0});else ln.anchors[m.ai]={...ln.anchors[m.ai],slot,chord,symbol:chord,verified:true,needsReview:false,unresolved:false,anchorCharacterIndex:null,offsetX:0};ln.anchors.sort((a,b)=>a.slot-b.slot);persist();state.modal=null;render();return;}
  if(form.id==='chordOnlyEditForm'){
    const m=state.modal,sec=currentSong()?.sections[m?.si];
    const row=m?.rowIndex<0?sec?.chordsOnly:sec?.chordRows?.[m.rowIndex];
    const geom=m?.rowIndex<0?sec?.chordsOnlyGeometry:sec?.chordRowsGeometry?.[m.rowIndex];
    const chord=window.CantoriaOCR?.chordName(String(f.get('chord')||'').trim())||'';
-   if(!row||!chord||!Number.isInteger(m.ai)||m.ai<0||m.ai>=row.length){notify('Accordo non valido.');return;}
-   row[m.ai]=chord;if(Array.isArray(geom)&&geom[m.ai])geom[m.ai].symbol=chord;
+   if(!row||!chord||!Number.isInteger(m.ai)||(m.ai!==-1&&(m.ai<0||m.ai>=row.length))){notify('Accordo non valido.');return;}
+   if(m.ai===-1)row.push(chord);
+   else{row[m.ai]=chord;if(Array.isArray(geom)&&geom[m.ai]){geom[m.ai].symbol=chord;geom[m.ai].needsReview=false;}}
    persist();state.modal=null;render();return;
   }
   if(form.id==='tonalityForm'){const song=currentSong();if(song){song.key=String(f.get('songKey')||'');persist();}state.modal=null;render();return;}
