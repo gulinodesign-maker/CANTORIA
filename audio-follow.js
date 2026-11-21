@@ -132,16 +132,15 @@
   }
   if(hasPitch){
    chromaHistory.push(chroma);
-   if(chromaHistory.length>7)chromaHistory.shift();
+   if(chromaHistory.length>4)chromaHistory.shift();
   }
   if(!chromaHistory.length)return chroma;
-  // A seven-frame (~1.1 s) window makes plucked or arpeggiated chords
-  // detectable without requiring every note to peak in the same FFT frame.
+  // Four recent FFT frames (~0.3 s) retain short arpeggios without delaying
+  // the next chord with a long tail from the previous harmony.
   const average=Array(12).fill(0);
   for(const frame of chromaHistory)for(let i=0;i<12;i++)average[i]+=frame[i]/chromaHistory.length;
-  // Give the live spectrum more weight so a new chord is recognized in
-  // ~3 frames, not after the old seven-frame window has fully expired.
-  return average.map((v,i)=>.45*v+.55*chroma[i]);
+  // Prioritize the newest frame while retaining enough context for arpeggios.
+  return average.map((v,i)=>.25*v+.75*chroma[i]);
  }
  function diagNotify(data){
   if(typeof diagCallback==="function")try{diagCallback(data);}catch(err){root.console?.warn?.("Cantoria diagnosi:",err);}
@@ -287,7 +286,10 @@
   const freshAttack=releasedSinceLast||attackCount>lastMarkAttackCount;
   const next=nextChordIndex(scoreItems,activeIndex,chord,freshAttack);
   if(next<0)return;
-  if(activeIndex>=0&&Date.now()-lastAdvance<450)return;
+  // Distinct successive chords must react promptly; repeated identical
+  // chords retain a longer guard and still require a new onset/release.
+  const repeated=activeIndex>=0&&chordIdentity(scoreItems[activeIndex]?.label)===chordIdentity(scoreItems[activeIndex+1]?.label);
+  if(activeIndex>=0&&Date.now()-lastAdvance<(repeated?320:130))return;
   mark(next);
  }
  function updateDynamics(){
@@ -318,15 +320,17 @@
   const name=prediction?prediction.chord:"";
   if(name&&name===stableName)stableCount++;
   else{stableName=name;stableCount=1;}
-  if(name&&stableCount>=3){match(name);seenAt=Date.now();}
+  // Two consecutive FFT readings confirm a chord without the ~500ms
+  // delay previously imposed by three 155ms polling intervals.
+  if(name&&stableCount>=2){match(name);seenAt=Date.now();}
   if(!name&&Date.now()-seenAt>2000&&mode==="mic")
    status(activeIndex<0?"In attesa del primo accordo: "+(scoreItems[0]?.label||"—"):"In ascolto · prossimo: "+(expected||"fine"));
-  timer=root.setTimeout(detect,155);
+  timer=root.setTimeout(detect,80);
  }
  async function ensureContext(){
   const AudioContext=root.AudioContext||root.webkitAudioContext;
   if(!AudioContext)throw new Error("Audio non supportato da questo dispositivo.");
-  if(!ctx){ctx=new AudioContext();analyser=ctx.createAnalyser();analyser.fftSize=8192;analyser.smoothingTimeConstant=.72;bins=new Uint8Array(analyser.frequencyBinCount);wave=new Uint8Array(analyser.fftSize);}
+  if(!ctx){ctx=new AudioContext();analyser=ctx.createAnalyser();analyser.fftSize=8192;analyser.smoothingTimeConstant=.34;bins=new Uint8Array(analyser.frequencyBinCount);wave=new Uint8Array(analyser.fftSize);}
   await ctx.resume();
  }
  function stop(){

@@ -13,6 +13,7 @@ jobs:
       - name: Verify photo-to-editable-score parser and app wiring
         run: |
           node scripts/test-photo-ocr.js
+          node scripts/test-merged-chords.js
           node scripts/test-harmony.js
           node --check harmony-analysis.js
           node scripts/test-photo-geometry.js
@@ -22,6 +23,7 @@ jobs:
           node scripts/test-syllable-delete.js
           node scripts/test-reader-fit.js
           node scripts/test-audio-follow.js
+          node scripts/test-fast-chords.js
           node scripts/test-audio-diagnostic.js
           node scripts/test-library-meta.js
           node scripts/test-library-filters.js

@@ -101,10 +101,46 @@
     // Source titles belong to metadata, not the sung lyrics.
     return /^[0-9]{1,3}[ ]+/.test(row.text.trim()) && row.words.slice(1).filter(w=>/^[A-ZÀ-Ý]{3,}$/.test(w.text)).length>=3;
   }
+  function expandMergedChordWord(word) {
+    const splitter=root.CantoriaOCR?.splitChordCluster;
+    if(typeof splitter!=='function'||!word?.bbox)return [word];
+    const raw=String(word.text||'');
+    // Lyrics in lowercase or Title Case must never be split into chords.
+    if(raw!==raw.toUpperCase()||!/[A-Z]{2}/.test(raw))return [word];
+    const parts=splitter(raw);
+    if(parts.length<2)return [word];
+    const bbox=word.bbox,fullWidth=bbox.x1-bbox.x0;
+    const precise=Array.isArray(word.symbols)&&word.symbols.length&&
+      word.symbols.every(s=>s.bbox)&&word.symbols.map(s=>s.text).join('')===raw;
+    const characterBoxes=[],characterSymbols=[];
+    if(precise)for(const symbol of word.symbols){
+      for(let k=0;k<symbol.text.length;k++){
+        const w=(symbol.bbox.x1-symbol.bbox.x0)/symbol.text.length;
+        const cb={x0:symbol.bbox.x0+w*k,y0:symbol.bbox.y0,
+          x1:symbol.bbox.x0+w*(k+1),y1:symbol.bbox.y1};
+        characterBoxes.push(cb);
+        characterSymbols.push({text:symbol.text[k],bbox:cb});
+      }
+    }
+    return parts.map(part=>{
+      const derived=precise?union(characterBoxes.slice(part.start,part.end)):null;
+      const newBox=derived||{x0:bbox.x0+part.start/raw.length*fullWidth,
+        x1:bbox.x0+part.end/raw.length*fullWidth,y0:bbox.y0,y1:bbox.y1};
+      return {...word,text:part.text,bbox:newBox,splitFromMerged:true,
+        originalMergedSymbol:raw,confidence:Math.min(word.confidence,78),
+        symbols:precise?characterSymbols.slice(part.start,part.end):[]};
+    });
+  }
   function classifyChordRow(row,nextRow) {
-    const words=row.words.filter(w=>!JUNK_TOKEN.test(w.text)&&
+    const rawWords=row.words.filter(w=>!JUNK_TOKEN.test(w.text)&&
       !OCR_MARK.test(w.text)&&!CHORD_ANNOTATION.test(w.text));
-    if(!words.length||words.length>12)return null;
+    if(!rawWords.length||rawWords.length>12)return null;
+    const belowIsLyric=isLikelyLyricBelow(row,nextRow);
+    // Keep the merge-aware expansion in actual chord rows only. A row above
+    // lyrics, or with other explicit chord symbols, provides this context.
+    const chordContext=belowIsLyric||rawWords.some(w=>note(w.text));
+    const words=rawWords.flatMap(w=>chordContext?expandMergedChordWord(w):[w]);
+    if(words.length>12)return null;
     // A standalone seventh is printed as "7" in some chord sheets.
     // Preserve it only inside a geometrically confirmed chord row.
     const tokens=words.map(w=>({word:w,symbol:note(w.text)||
@@ -115,7 +151,6 @@
     // Printed chord sheets often show Title Case: "Sol Do Sol Re", or "Mi- Si- Do Re".
     // The old parser required two ALL-UPPERCASE chords, leaking such rows into lyrics.
     const capitalized=tokens.filter(t=>/^[A-ZÀ-Ý]/.test(t.word.text)).length;
-    const belowIsLyric=isLikelyLyricBelow(row,nextRow);
     const allLookLikeChords=tokens.every(t=>isChordLikeToken(t.word.text,t.symbol));
     const hasStrongShape=tokens.some(t=>/[0-9⁰¹²³⁴⁵⁶⁷⁸⁹#♯♭+°/()-]/.test(t.word.text));
     const ratio=valid.length/tokens.length;
@@ -138,7 +173,8 @@
     }));
     return {row,chords:valid.map(t=>({
       symbol:t.symbol,originalSymbol:t.word.text,bbox:t.word.bbox,
-      confidence:t.word.confidence
+      confidence:t.word.confidence,splitFromMerged:!!t.word.splitFromMerged,
+      originalMergedSymbol:t.word.originalMergedSymbol||null
     })),unresolved};
   }
   // Filter OCR graphic marks from the lyric layer, not from chord symbols.
@@ -245,8 +281,10 @@
       anchorMethod:wordOnly?'word-estimated':'character-box',
       confidence:Number(confidence.toFixed(3)),
       verified:false,unresolved:!!source.unresolved,
-      needsReview:!!source.unresolved||wordOnly||gap>0.8||!!ambiguous||
+      needsReview:!!source.splitFromMerged||!!source.unresolved||wordOnly||gap>0.8||!!ambiguous||
         confidence<0.88||source.originalSymbol!==source.symbol,
+      splitFromMerged:!!source.splitFromMerged,
+      originalMergedSymbol:source.originalMergedSymbol||null,
       sourceLineBBox:lyric.bbox,
       sourceRowId:source.rowId||null
     };
@@ -254,7 +292,7 @@
   function parseGeometry(data,options={}) {
     const rows=extractRows(data),sections=[];let current=null,pending=null;
     const diagnostics={totalRecognized:0,totalAnchored:0,unresolved:0,estimated:0,
-      needsReview:0,ignoredArtifacts:0,sourceRows:rows.length,sourceMethod:'tesseract-bbox'};
+      needsReview:0,mergedChordsSeparated:0,ignoredArtifacts:0,sourceRows:rows.length,sourceMethod:'tesseract-bbox'};
     function ensure(){if(!current){current=section('STROFA',sections.length);sections.push(current);}return current;}
     function leftover() {
       if(!pending)return;
@@ -263,10 +301,12 @@
         .sort((a,b)=>a.bbox.x0-b.bbox.x0);
       if(!sec.lines.length&&!sec.chordsOnly){sec.chordsOnly=items.map(c=>c.symbol);
         sec.chordsOnlyGeometry=items.map(c=>({symbol:c.symbol,sourceX:c.bbox.x0,
-          sourceBBox:c.bbox,sourceLineBBox:row.bbox,needsReview:true}));
+          sourceBBox:c.bbox,sourceLineBBox:row.bbox,needsReview:true,
+          splitFromMerged:!!c.splitFromMerged}));
       }else{(sec.chordRows||=[]).push(items.map(c=>c.symbol));
         (sec.chordRowsGeometry||=[]).push(items.map(c=>({symbol:c.symbol,
-          sourceX:c.bbox.x0,sourceBBox:c.bbox,sourceLineBBox:row.bbox,needsReview:true})));}
+          sourceX:c.bbox.x0,sourceBBox:c.bbox,sourceLineBBox:row.bbox,needsReview:true,
+          splitFromMerged:!!c.splitFromMerged})));}
       diagnostics.unresolved+=pending.unresolved.length;
       pending=null;
     }
@@ -295,7 +335,9 @@
         sections.push(current);continue;
       }
       const chordRow=classifyChordRow(row,nextRow);
-      if(chordRow){leftover();pending=chordRow;diagnostics.totalRecognized+=chordRow.chords.length;continue;}
+      if(chordRow){leftover();pending=chordRow;diagnostics.totalRecognized+=chordRow.chords.length;
+        diagnostics.mergedChordsSeparated+=chordRow.chords.filter(c=>c.splitFromMerged).length;
+        continue;}
       if(!pending&&!current&&rows[0]===row&&row.text.length<90&&rows.length>1){
         // Only propose a title; never silently discard it from the source.
         // Caller can set a title separately, so preserve as diagnostic.

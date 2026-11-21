@@ -1,3 +1,15 @@
+## Cantoria 1.1 (30) — riconoscimento audio più rapido e accordi attaccati separati (21 novembre 2026)
+
+- Il riconoscimento microfono durante il canto verifica i nuovi accordi ogni 80 ms anziché 155 ms, usa due conferme consecutive anziché tre e riduce il ritardo fra accordi diversi da 450 a 130 ms, senza mai saltare in avanti nella partitura. Accordi consecutivi identici richiedono un nuovo attacco udibile o una pausa.
+- Ridotta l'inerzia dell'analisi spettrale e dell'accumulo temporale: i campioni recenti hanno peso maggiore, mentre una breve finestra resta disponibile per accordi arpeggiati. Sono stime teoriche dei tempi; la velocità su iPhone reale dipende dal microfono e dal suono.
+- L'OCR fotografico distingue sigle italiane attaccate come SOLDO, MI-LA-, FA7+DO, RE/LADO, SI7DO e ricostruisce più accordi. Non separa parole del testo in minuscolo o simboli parziali non validi.
+- In presenza di riquadri OCR per singoli caratteri sono usati per ricostruire le posizioni originali; quando l'OCR fornisce solo un riquadro unico viene suddiviso in modo proporzionale e segnalato per verifica. Nessun accordo viene inventato senza una sigla valida.
+- La trascrizione fotograﬁca segnala anche il numero di simboli separati da gruppi attaccati. Le pill e gli ancoraggi musicali vengono conservati separatamente.
+- Aggiunti test su velocità, ordine cronologico, accordi simili/uguali, sigle unite, coordinate indipendenti e protezione delle parole ordinarie.
+- Versione 1.1 build 30; tutte le precedenti funzionalità restano disponibili.
+
+---
+
 ## Cantoria 1.1 (29) — elimina sillaba o parola (21 novembre 2026)
 
 - Nella finestra **Modifica sillaba** sono stati aggiunti due pulsanti: **Elimina sillaba** ed **Elimina parola**. Il secondo rimuove l'intera parola, comprese le sillabe separate da |, anche quando è selezionata una sillaba centrale.

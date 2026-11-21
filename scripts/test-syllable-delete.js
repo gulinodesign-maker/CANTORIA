@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const html=fs.readFileSync('index.html','utf8'),js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(js,'Inline JS must exist');new vm.Script(js);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:29});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:30});
 const start=js.indexOf('function removeLyricSelection('),end=js.indexOf('function syllableModalHTML(',start);
 assert.ok(start>=0&&end>start);
 const env={};vm.runInNewContext(js.slice(start,end)+'\nthis.del=removeLyricSelection;',env);

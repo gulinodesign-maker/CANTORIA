@@ -33,11 +33,43 @@
       .replace(/\/D0(?=[#b0-9+°()/\-]|$)/i, "/DO");
     return chordName(normalized);
   }
+  // Split glued chord symbols only when every piece is a real Italian chord.
+  // The caller must confirm chord-row context before using these candidates
+  // on photographed text: words in ordinary lyrics must not be segmented.
+  function splitChordCluster(token) {
+    const raw=String(token||'').trim().replace(/♯/g,'#').replace(/♭/g,'b');
+    if(!raw||raw.length>36||chordName(raw))return [];
+    // OCR often joins SOLDO, MI-LA-, FA7+DO, RE/LA DO, or SOL4RE.
+    const starts=[...raw.matchAll(/SOL|DO|RE|MI|FA|LA|SI/gi)].map(m=>m.index);
+    if(starts[0]!==0||starts.length<2||starts.length>7)return [];
+    const candidates=[];
+    function visit(offset,parts){
+      if(parts.length>5)return;
+      if(offset===raw.length){if(parts.length>=2)candidates.push(parts);return;}
+      for(const stop of [...starts.filter(i=>i>offset),raw.length]){
+        const text=raw.slice(offset,stop),symbol=chordName(text);
+        if(symbol)visit(stop,[...parts,{chord:symbol,start:offset,end:stop,text}]);
+      }
+    }
+    visit(0,[]);
+    if(!candidates.length)return [];
+    // Prefer valid slash chords over incorrectly splitting their bass note.
+    candidates.sort((a,b)=>a.length-b.length||
+      b.filter(x=>x.chord.includes('/')).length-a.filter(x=>x.chord.includes('/')).length);
+    return candidates[0];
+  }
   function readChordRow(words, original) {
     if (!words.length) return null;
-    const items = words.map(word => ({
-      chord: chordName(word[0]), start: word.index, source: word[0]
-    }));
+    const items = words.flatMap(word => {
+      const raw=word[0],whole=chordName(raw);
+      if(whole)return [{chord:whole,start:word.index,source:raw}];
+      const parts=splitChordCluster(raw);
+      // Only uppercase merged chord rows: normal prose such as "dore" and
+      // lowercase lyrics must never be classified as chord combinations.
+      if(parts.length>=2&&raw===raw.toUpperCase()&&/[A-Z]{2}/.test(raw))
+        return parts.map(p=>({chord:p.chord,start:word.index+p.start,source:p.text,split:true}));
+      return [{chord:"",start:word.index,source:raw}];
+    });
     const matched = items.filter(item => item.chord).length;
     if (matched < 1) return null;
     // A stray OCR token should not turn the whole chord row into lyrics.
@@ -147,7 +179,7 @@
       return a;
     }, { sections: 0, lines: 0, chords: 0 });
   }
-  const api = Object.freeze({ parse, stats, chordName, chordFromOcr, syllableCells });
+  const api = Object.freeze({ parse, stats, chordName, chordFromOcr, splitChordCluster, syllableCells });
   root.CantoriaOCR = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
 })(typeof window !== "undefined" ? window : globalThis);
