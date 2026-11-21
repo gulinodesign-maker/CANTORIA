@@ -109,8 +109,15 @@
  }
  function resetListeningWindow(){chromaHistory=[];stableName="";stableCount=0;}
  function accumulatedChroma(chroma){
-  if(silentFrames>=3){resetListeningWindow();return chroma;}
-  if(chroma.some(value=>value>.0001)){
+  // Silence must agree with the spectrum: some capture devices and AudioContext
+  // configurations report near-zero time-domain samples while their FFT still
+  // contains a valid pitched signal. Never discard that real chord evidence.
+  const hasPitch=chroma.some(value=>value>.0001);
+  if(!hasPitch){
+   if(silentFrames>=3)resetListeningWindow();
+   return chroma;
+  }
+  if(hasPitch){
    chromaHistory.push(chroma);
    if(chromaHistory.length>7)chromaHistory.shift();
   }
