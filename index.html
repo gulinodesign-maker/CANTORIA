@@ -724,7 +724,7 @@ function makeId() { return `${Date.now().toString(36)}-${Math.random().toString(
 
 const root = document.querySelector('#app');
 const store = loadStore();
-const state = { view: 'home', filter: '', massId: null, songId: null, massItemId: null, shift: 0, page: 0, modal: null, photoURL: null, photoTitle: '', ocrText: '', geometryDraft: null, geometryRawText: '', ocrBusy: false, ocrStatus: '', toast: '', fontScale: 1 };
+const state = { view: 'home', filter: '', massId: null, songId: null, massItemId: null, shift: 0, page: 0, modal: null, songMetaDraft: null, photoURL: null, photoTitle: '', ocrText: '', geometryDraft: null, geometryRawText: '', ocrBusy: false, ocrStatus: '', toast: '', fontScale: 1 };
 let toastTimer;
 const escape = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const escapeAttr = escape;
@@ -1173,9 +1173,14 @@ function modalHTML(){const m=state.modal;
   const pending=(song.sections||[]).flatMap(s=>s.lines||[]).flatMap(l=>l.anchors||[]).filter(a=>(a.needsReview||a.unresolved)&&!a.verified).length;
   const missed=(song.sections||[]).flatMap(s=>s.lines||[]).reduce((n,l)=>n+(l.unresolvedChords?.length||0),0);
   const review=(pending||missed)?`<button type="button" class="song-review-notice" data-action="review-chords">⚠ ${pending+missed} accordi da controllare <span>›</span></button>`:'';
+  const draft=state.songMetaDraft?.songId===song.id?state.songMetaDraft:{songId:song.id,title:song.title||'',author:song.author||''};
   return `<div class="modal-shade"><div class="modal-card song-options song-options-compact" role="dialog" aria-modal="true" aria-label="Impostazioni brano">
     <div class="song-options-header"><h2>Impostazioni brano</h2><button type="button" class="song-close" data-action="close-modal" aria-label="Chiudi">×</button></div>
     <div class="song-transport" aria-label="Tonalità e trasporto"><button type="button" class="song-transport-btn" data-action="shift-down" aria-label="Abbassa di un semitono">−</button><button type="button" class="song-transport-key" data-action="reset-shift" aria-label="Tonalità attuale, tocca per azzerare il trasporto"><strong>${escape(describeTonality(song,state.shift))}</strong><small>${song.keySource==='manual'?'Impostata manualmente':song.keySource==='auto-harmony'?'Proposta · da verificare':'Da verificare'} · ${state.shift>0?'+':''}${state.shift}</small></button><button type="button" class="song-transport-btn" data-action="shift-up" aria-label="Alza di un semitono">+</button></div>
+    <div class="song-meta-edit" role="group" aria-label="Titolo e autore del brano">
+      <label class="song-meta-field" for="songTitleEdit"><span>Titolo</span><input id="songTitleEdit" name="title" type="text" maxlength="160" required autocomplete="off" value="${escapeAttr(draft.title)}" placeholder="Titolo del brano"></label>
+      <label class="song-meta-field" for="songAuthorEdit"><span>Autore</span><input id="songAuthorEdit" name="author" type="text" maxlength="160" autocomplete="off" value="${escapeAttr(draft.author)}" placeholder="Autore / compositore"></label>
+    </div>
     <button type="button" class="song-key-analysis-trigger" data-action="show-key-analysis">♫ Analisi tonalità e verifica degli accordi ›</button>
     ${review}<div class="song-options-grid">
       <button type="button" class="song-option-tile" data-action="choose-section-text"${noScore}><span aria-hidden="true">✎</span><span>Modifica testo delle strofe</span></button>
@@ -1638,7 +1643,7 @@ root.addEventListener('click',e=>{
  if(action==='read-song'){openSong(el.dataset.song);return;}
  if(action==='read-mass-song'){const x=currentMass()?.items.find(i=>i.id===el.dataset.item);if(x)openSong(x.songId,x.shift,x.id);return;}
  if(action==='next-page'||action==='prev-page'){state.page+=action==='next-page'?1:-1;render();return;}
- if(action==='song-options'){state.modal={type:'song-options'};render();return;}
+ if(action==='song-options'){const song=currentSong();if(!song)return;state.songMetaDraft={songId:song.id,title:song.title||'',author:song.author||''};state.modal={type:'song-options'};render();return;}
  if(action==='follow-source'){state.modal={type:'follow-source'};render();return;}
  if(action==='follow-use-mic'){
   const task=window.CantoriaAudioFollow?.microphone();
@@ -1692,9 +1697,21 @@ root.addEventListener('click',e=>{
  }
   if(action==='save-song'){
    const song=currentSong();if(!song)return;
-   const previous=song.savedAt;song.savedAt=new Date().toISOString();
-   if(!saveStore(store)){song.savedAt=previous;notify('Salvataggio non riuscito: memoria insufficiente.');return;}
-   state.modal=null;notify('Brano salvato in Biblioteca.');return;
+   const draft=state.songMetaDraft?.songId===song.id?state.songMetaDraft:null;
+   const title=String(root.querySelector('#songTitleEdit')?.value??draft?.title??song.title??'').trim();
+   const author=String(root.querySelector('#songAuthorEdit')?.value??draft?.author??song.author??'').trim();
+   if(!title){notify('Inserisci un titolo prima di salvare.');return;}
+   const previous={title:song.title,author:song.author,savedAt:song.savedAt};
+   song.title=title.slice(0,160);
+   song.author=author.slice(0,160);
+   song.savedAt=new Date().toISOString();
+   if(!saveStore(store)){
+    Object.assign(song,previous);
+    notify('Salvataggio non riuscito: memoria insufficiente.');return;
+   }
+   state.songMetaDraft=null;
+   state.modal=null;
+   notify('Titolo e autore salvati in Biblioteca.');return;
   }
  if(action==='show-key-analysis'){state.modal={type:'key-analysis'};render();return;}
  if(action==='edit-tonality'){state.modal={type:'tonality-edit'};render();return;}
@@ -1705,7 +1722,7 @@ root.addEventListener('click',e=>{
  if(action==='print'){state.modal={type:'pdf-export'};render();return;}
  if(action==='pdf-preview'||action==='pdf-share'||action==='pdf-download'){exportPdf(action.slice(4));return;}
  if(action==='create-mass'){state.modal={type:'new-mass'};render();return;}
- if(action==='close-modal'){state.modal=null;render();return;}
+ if(action==='close-modal'){state.modal=null;state.songMetaDraft=null;render();return;}
  if(action==='open-mass'){state.massId=el.dataset.mass;state.view='masses';render();return;}
  if(action==='reuse-mass'){state.modal={type:'reuse-mass',massId:el.dataset.mass||state.massId};render();return;}
  if(action==='finish-mass'){const m=currentMass();if(m&&!m.celebratedAt){m.celebratedAt=new Date().toISOString();if(!m.date)m.date=new Date().toLocaleDateString('sv-SE');m.items=(m.items||[]).map(item=>{const song=store.songs.find(x=>x.id===item.songId);return {...item,archiveTitle:song?.title||'Canto non disponibile',archiveAuthor:song?.author||''};});persist();render();}return;}
@@ -1793,7 +1810,12 @@ root.addEventListener('submit',e=>{e.preventDefault();const form=e.target;const 
  }
 });
 root.addEventListener('keydown',e=>{const card=e.target.closest('.song-card[data-action="read-song"]');if(card&&e.target===card&&(e.key==='Enter'||e.key===' ')){e.preventDefault();openSong(card.dataset.song);}});
-root.addEventListener('input',e=>{if(e.target.id==='photoSongTitle'){state.photoTitle=e.target.value;return;}if(e.target.id==='photoOcrText'){state.ocrText=e.target.value.slice(0,20000);return;}if(e.target.id==='search'){state.filter=e.target.value;const pos=e.target.selectionStart;render();const s=root.querySelector('#search');s?.focus();if(s?.setSelectionRange)s.setSelectionRange(pos,pos);}});
+root.addEventListener('input',e=>{if(e.target.id==='songTitleEdit'||e.target.id==='songAuthorEdit'){
+ const song=currentSong();if(!song)return;
+ const draft=state.songMetaDraft?.songId===song.id?state.songMetaDraft:{songId:song.id,title:song.title||'',author:song.author||''};
+ draft[e.target.id==='songTitleEdit'?'title':'author']=e.target.value;
+ state.songMetaDraft=draft;return;
+}if(e.target.id==='photoSongTitle'){state.photoTitle=e.target.value;return;}if(e.target.id==='photoOcrText'){state.ocrText=e.target.value.slice(0,20000);return;}if(e.target.id==='search'){state.filter=e.target.value;const pos=e.target.selectionStart;render();const s=root.querySelector('#search');s?.focus();if(s?.setSelectionRange)s.setSelectionRange(pos,pos);}});
 root.addEventListener('change',async e=>{
  if(e.target.id==='audioTrackInput'){const file=e.target.files?.[0];if(!file)return;try{await window.CantoriaAudioFollow.loadTrack(file);state.modal=null;render();notify('Audio caricato. Premi ▶ nella barra superiore.');}catch(err){notify(err.message);}return;}
  if(e.target.matches('#bandColorsForm select')){
