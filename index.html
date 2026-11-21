@@ -1750,6 +1750,7 @@ root.addEventListener('submit',e=>{e.preventDefault();const form=e.target;const 
     key:inferSongKey({sections}),keySource:'auto-harmony',source:'Foto originale',photoData:state.photoURL,ocrText:scanned,verified:false,sections,
     geometryDiagnostics:mode==='score'?structuredClone(state.geometryDraft.diagnostics):null,
     photoParserVersion:mode==='score'?6:0};
+  refreshDetectedKey(song);
   store.songs.unshift(song);
   if(!saveStore(store)){store.songs.shift();notify('Spazio insufficiente per salvare il brano. Fai un backup o libera spazio.');return;}
   state.photoURL=null;state.photoTitle='';state.ocrText='';state.ocrStatus='';state.geometryDraft=null;state.geometryRawText='';state.view='library';openSong(song.id);
