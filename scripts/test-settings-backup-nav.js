@@ -13,7 +13,7 @@ vm.runInNewContext(js.slice(settingsA,settingsB)+'this.settings=settingsHTML;',s
 const settings=sc.settings();
 for(const marker of ['settings-backup-actions','data-action="backup"','for="backupInput"'])assert.ok(settings.includes(marker));
 assert.ok(!settings.includes('Modello musicale'));
-const css=html.slice(html.indexOf('/* CANTORIA 1.1 (23):'));
+const css=html.slice(html.indexOf('/* CANTORIA 1.1 (22):'));
 assert.ok(css.includes('grid-template-columns:repeat(2,minmax(0,1fr))!important'));
 assert.ok(css.includes('width:100%!important'));
 assert.ok(css.includes('.topbar-standard>.app-back-btn'));
