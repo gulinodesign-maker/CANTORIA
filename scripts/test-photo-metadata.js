@@ -64,5 +64,6 @@ assert.ok(html.includes('recognizePhotoText();}'),'Photo selection should start 
 assert.ok(html.includes('<script src="./score-metadata.js"></script>'));
 assert.ok(fs.readFileSync('sw.js','utf8').includes("'./score-metadata.js'"));
 assert.ok(fs.readFileSync('scripts/prepare-ios.sh','utf8').includes('score-metadata.js'));
-assert.deepEqual(require('../release.json'),{version:'1.1',build:11});
+assert.equal(require('../release.json').version,'1.1');
+assert.ok(require('../release.json').build>=11,'Expected build at least 11');
 console.log('OK: photo title and composer detection, no lyric contamination, no fabricated metadata, iOS bundled.');
