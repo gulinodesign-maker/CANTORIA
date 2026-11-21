@@ -907,6 +907,34 @@
  .home-workspace{min-height:calc(100dvh - 54px - env(safe-area-inset-top,0px))!important}
 }
 
+
+/* 1.1 (17): Flat, accessible Mass song removal and separate reset control. */
+.mass-song-card .mass-song-remove{
+ position:absolute;z-index:10;right:10px;top:10px;
+ display:grid;place-items:center;width:38px;height:38px;
+ border:1px solid #bda88e;border-radius:11px;
+ padding:7px;background:#fffaf0;color:#973c37;
+ box-shadow:none;cursor:pointer;touch-action:manipulation;
+}
+.mass-song-card .mass-song-remove svg,.mass-song-card .mass-song-reset svg{
+ display:block;width:100%;height:100%;stroke:currentColor;
+}
+.mass-song-card .mass-song-reset{
+ right:56px!important;padding:8px!important;box-shadow:none!important;
+}
+.mass-song-card .song-cover:has(.mass-song-remove) .cover-label{
+ padding-left:48px!important;padding-right:48px!important;
+ box-sizing:border-box!important;
+}
+.mass-song-card .song-cover:has(.mass-song-remove):has(.mass-song-reset) .cover-label{
+ padding-left:80px!important;padding-right:80px!important;
+}
+@media(max-width:380px){
+ .mass-song-card .mass-song-remove,.mass-song-card .mass-song-reset{width:34px!important;height:34px!important;top:7px!important}
+ .mass-song-card .mass-song-reset{right:50px!important}
+ .mass-song-card .song-cover:has(.mass-song-remove):has(.mass-song-reset) .cover-label{padding-left:72px!important;padding-right:72px!important}
+}
+
 </style>
   <title>Cantoria — Canti per la liturgia cattolica</title>
 </head>
@@ -1303,7 +1331,8 @@ function massDetailHTML(){
   const used=!!item.usedAt;
   return `<article class="song-card mass-song-card ${done?'mass-song-archived':used?'mass-song-used':''}" role="button" tabindex="0" data-action="read-mass-song" data-item="${escapeAttr(item.id)}" aria-label="Apri ${escapeAttr(title)}">
     <div class="song-cover">${CATHOLIC_CORNER}<div class="cover-label">${escape(title)}</div>
-    ${!done&&used?`<button type="button" class="mass-song-reset" data-action="reset-mass-item-used" data-item="${escapeAttr(item.id)}" title="Rendi di nuovo disponibile" aria-label="Rendi di nuovo disponibile ${escapeAttr(title)}">↺</button>`:''}
+    ${!done&&used?`<button type="button" class="mass-song-reset" data-action="reset-mass-item-used" data-item="${escapeAttr(item.id)}" title="Rendi di nuovo disponibile" aria-label="Rendi di nuovo disponibile ${escapeAttr(title)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10a8 8 0 1 1 0 6"/><path d="M4 4v6h6"/></svg></button>`:''}
+    ${!done?`<button type="button" class="mass-song-remove" data-action="ask-remove-mass-item" data-item="${escapeAttr(item.id)}" title="Rimuovi dalla Messa" aria-label="Rimuovi ${escapeAttr(title)} dalla Messa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>`:''}
     </div>
    </article>`;
  }).join('')||'<div class="empty">Nessun canto in questa scaletta.</div>'}</div>

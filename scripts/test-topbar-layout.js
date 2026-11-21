@@ -8,7 +8,7 @@ const sections=[
  ['settingsHTML','appHTML']
 ];
 for(const [begin,end] of sections){
- const a=js.indexOf('function '+begin+'()'),b=js.indexOf('function '+end+'()',a);
+ const a=js.indexOf('function '+begin+'('),b=js.indexOf('function '+end+'(',a);
  assert.ok(a>=0&&b>a,'Missing '+begin);
  const body=js.slice(a,b);
  assert.ok(!body.includes('class="page-heading"'),'Duplicated page heading in '+begin);
