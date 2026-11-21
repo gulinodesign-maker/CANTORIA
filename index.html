@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Cantoria" />
   <meta name="description" content="Cantoria: canti cattolici, accordi e repertorio per la Santa Messa, le celebrazioni liturgiche e la preghiera." />
-  <link rel="manifest" href="./manifest.webmanifest?v=20261119.10" />
+  <link rel="manifest" href="./manifest.webmanifest?v=20261121.5" />
   <link rel="apple-touch-icon" sizes="192x192" href="./assets/cantoria-icona-ufficiale-045.png" />
   <link rel="icon" href="./assets/cantoria-icona-ufficiale-045.png" type="image/png" />
   <style>:root{--forest:#153e32;--forest-2:#2b5547;--gold:#ac8128;--ink:#1d2925;--muted:#697b70;--ivory:#faf6ee;--sand:#f1ebdf;--line:#dfd7c7;--blueband:rgba(98,136,154,.18);--sageband:rgba(121,138,107,.17);--orangeband:rgba(163,116,93,.17);--radius:17px;--lyric-size:24px;--shadow:0 12px 35px rgba(31,55,43,.08)}
@@ -540,12 +540,24 @@
 .follow-source-choice{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:11px;position:relative;min-height:92px;min-width:0;border:1px solid #c9c3af;border-radius:14px;background:#f5f0e7;color:#174638;text-align:center;padding:12px;font-size:13px;cursor:pointer}
 .follow-source-choice span[aria-hidden="true"]{font-size:29px}
 
+
+/* Cantoria 1.1 (5): consistent transport buttons and harmonic analysis. */
+.reader-layer .reader-audio-btn{background:#194638!important;color:#e9c780!important;border:1px solid #af8a46!important;border-radius:11px!important;font-size:initial!important}
+.reader-layer .reader-audio-btn[data-playing="true"]{background:#235844!important;color:#ffe0a2!important}
+.reader-transport-svg{display:block;width:23px;height:23px;flex-shrink:0}
+.song-key-analysis-trigger{display:block;width:100%;text-align:center;border:1px solid #d9c8a7;background:#fbf5e8;color:#274e3d;border-radius:10px;padding:7px 9px;font-size:12px;font-weight:700;margin:3px 0 9px}
+.song-key-analysis-trigger:active{background:#f0e4cf}
+.harmony-detail{font-size:13px;line-height:1.45;color:#345043}
+.harmony-detail p{margin:9px 0}
+.harmony-candidates{padding:8px 10px;background:#f4f0e5;border:1px solid #e2d9c7;border-radius:10px}
+.harmony-candidates div{display:flex;justify-content:space-between;gap:6px;padding:4px 0}
 </style>
   <title>Cantoria — Canti per la liturgia cattolica</title>
 </head>
 <body>
   <div id="app"></div>
   <div id="print-sheet"></div>
+  <script src="./harmony-analysis.js"></script>
   <script>/** Core musical model: immutable anchor references to syllable IDs. */
 const NOTE_NAMES = ['DO', 'DO#', 'RE', 'RE#', 'MI', 'FA', 'FA#', 'SOL', 'SOL#', 'LA', 'LA#', 'SI'];
 const SEMITONE = { DO: 0, RE: 2, MI: 4, FA: 5, SOL: 7, LA: 9, SI: 11 };
@@ -636,7 +648,12 @@ const DEFAULT_MASSES = [
 const KEY = 'cantoria-v1-local';
 function seed() { return { songs: structuredClone(DEMO_SONGS), masses: structuredClone(DEFAULT_MASSES), created: new Date().toISOString() }; }
 function loadStore() {
-  try { const raw = localStorage.getItem(KEY); if (raw) { const parsed = JSON.parse(raw); if (Array.isArray(parsed.songs) && Array.isArray(parsed.masses)) return parsed; } } catch(e) { /* private storage disabled */ }
+  try { const raw = localStorage.getItem(KEY); if (raw) { const parsed = JSON.parse(raw); if (Array.isArray(parsed.songs) && Array.isArray(parsed.masses)) {
+    let changed=false;
+    for(const song of parsed.songs)if(refreshDetectedKey(song))changed=true;
+    if(changed)saveStore(parsed);
+    return parsed;
+   } } } catch(e) { /* private storage disabled */ }
   return seed();
 }
 function saveStore(store) { try { localStorage.setItem(KEY, JSON.stringify(store)); return true; } catch(e) { return false; } }
@@ -668,7 +685,7 @@ function importSongFile(text){
   if(!sec||typeof sec!=='object'||!Array.isArray(sec.lines)||sec.lines.length>500)throw new Error('Sezione non valida');
   for(const line of sec.lines){if(!line||typeof line.marked!=='string'||!Array.isArray(line.anchors))throw new Error('Riga musicale non valida');const count=parseSyllables(line.marked).filter(t=>!t.space).length;if(line.anchors.some(a=>!a||!Number.isInteger(a.slot)||a.slot<0||a.slot>=count||typeof a.chord!=='string'))throw new Error('Accordi o ancoraggi non validi');}
  }
- const imported=normalizedSong({...song,id:makeId(),title:song.title.trim()});
+ const imported=normalizedSong({...song,id:makeId(),title:song.title.trim()});refreshDetectedKey(imported);
  store.songs.unshift(imported);persist();return imported;
 }
 function makeId() { return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}`; }
@@ -682,34 +699,24 @@ const escapeAttr = escape;
 const labels = { library:'Biblioteca', masses:'Le mie Messe', capture:'Acquisisci', settings:'Impostazioni' };
 const icons = { library:'▤', masses:'♬', capture:'⊕', settings:'⚙' };
 function notify(message){state.toast=message;clearTimeout(toastTimer);render();toastTimer=setTimeout(()=>{state.toast='';render();},2400);}
-function persist(){if(!saveStore(store))notify('Memoria del browser non disponibile: esporta un backup dei dati.');}
+function persist(){if(state.songId)refreshDetectedKey(currentSong());if(!saveStore(store))notify('Memoria del browser non disponibile: esporta un backup dei dati.');}
 function currentSong(){return store.songs.find(x=>x.id===state.songId);}
 function currentMass(){return store.masses.find(x=>x.id===state.massId);}
 function go(view){window.CantoriaAudioFollow?.reset();state.view=view;state.songId=null;state.modal=null;render();}
 function inferSongKey(song){
- const symbols=[];
- const collect=x=>{if(Array.isArray(x))for(const c of x)symbols.push(String(typeof c==='string'?c:c?.chord||''));};
- for(const section of song?.sections||[]){
-  collect(section.chordsOnly);
-  for(const row of section.chordRows||[])collect(row);
-  for(const line of section.lines||[])collect(line.anchors);
- }
- if(symbols.length<4)return '';
- const counts=new Map(),ordered=[];
- for(const s of symbols){
-  const m=s.match(/^(SOL|DO|RE|MI|FA|LA|SI)(#|b)?/i);
-  if(!m)continue;
-  const root=m[1].toUpperCase()+(m[2]||'');
-  const minor=/^(?:-|m(?!aj)|min)/i.test(s.slice(m[0].length));
-  const name=root+(minor?'-':'');
-  ordered.push(name);
-  counts.set(name,(counts.get(name)||0)+1);
- }
- if(ordered.length<4)return '';
- const sorted=[...counts].sort((a,b)=>b[1]-a[1]);
- if(!sorted.length||sorted[0][1]<2||sorted[0][1]/ordered.length<.24)return '';
- if(sorted[1]&&sorted[0][1]===sorted[1][1]&&ordered.at(-1)!==sorted[0][0])return '';
- return sorted[0][0];
+ return window.CantoriaHarmony?.analyze(song)?.key||'';
+}
+function refreshDetectedKey(song){
+ // Derived keys remain provisional. A manual choice is never overwritten.
+ if(!song?.photoData||!song.sections?.length||song.keySource==='manual'||song.verified===true)return false;
+ const result=window.CantoriaHarmony?.analyze(song);
+ if(!result)return false;
+ const next=result.status==='probable'?result.key:'';
+ const source=result.status==='probable'?'auto-harmony':'needs-review';
+ const changed=song.key!==next||song.keySource!==source;
+ if(!song.keySource&&song.key&&song.key!==next&&!song.legacyKey)song.legacyKey=song.key;
+ song.key=next;song.keySource=source;
+ return changed;
 }
 function describeTonality(song,shift=0){
   const raw=String(song?.key||inferSongKey(song)||'').trim().toUpperCase().replace(/♯/g,'#').replace(/♭/g,'B');
@@ -792,8 +799,8 @@ function photoReaderHTML(song){
  <header class="reader-toolbar">${CATHOLIC_CORNER}
  <div class="reader-toolbar-left">
  <button class="reader-back" type="button" data-action="close-reader" aria-label="Indietro">‹</button>
- <button class="reader-audio-btn" type="button" data-action="follow-rewind" title="Inizio brano" aria-label="Torna all'inizio del brano">⏮</button>
- <button class="reader-audio-btn reader-play-toggle" type="button" disabled data-action="follow-play" title="Play / Stop" aria-label="Play">▶</button>
+ <button class="reader-audio-btn" type="button" data-action="follow-rewind" title="Torna all’inizio" aria-label="Torna all’inizio del brano"><svg class="reader-transport-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3.5 5v14" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" fill="none"/><path d="M12 6v12L5 12zM21 6v12l-7-6z" fill="currentColor"/></svg></button>
+ <button class="reader-audio-btn reader-play-toggle" type="button" disabled data-action="follow-play" title="Play / Stop" aria-label="Play"><svg class="reader-transport-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 4v16l13-8z" fill="currentColor"/></svg></button>
  </div>
  <div class="reader-title" title="${escapeAttr(song.title)}"><div class="reader-title-line"><strong>${escape(song.title)}</strong></div></div>
  <div class="reader-toolbar-right">
@@ -821,8 +828,8 @@ function readerHTML(){
  <header class="reader-toolbar">${CATHOLIC_CORNER}
  <div class="reader-toolbar-left">
  <button class="reader-back" type="button" data-action="close-reader" aria-label="Indietro">‹</button>
- <button class="reader-audio-btn" type="button" data-action="follow-rewind" title="Inizio brano" aria-label="Torna all'inizio del brano">⏮</button>
- <button class="reader-audio-btn reader-play-toggle" type="button" data-action="follow-play" title="Play / Stop" aria-label="Play">▶</button>
+ <button class="reader-audio-btn" type="button" data-action="follow-rewind" title="Torna all’inizio" aria-label="Torna all’inizio del brano"><svg class="reader-transport-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3.5 5v14" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" fill="none"/><path d="M12 6v12L5 12zM21 6v12l-7-6z" fill="currentColor"/></svg></button>
+ <button class="reader-audio-btn reader-play-toggle" type="button" data-action="follow-play" title="Play / Stop" aria-label="Play"><svg class="reader-transport-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 4v16l13-8z" fill="currentColor"/></svg></button>
  </div>
  <div class="reader-title" title="${escapeAttr(song.title)}"><div class="reader-title-line"><strong>${escape(song.title)}</strong></div><small>${horizontal?(state.page+1)+' / '+pages.length:''}${song.verified?'':' · DA VERIFICARE'}</small></div>
  <div class="reader-toolbar-right">
@@ -946,7 +953,7 @@ async function recognizePhotoText(replaceExisting=false){
     if(song?.photoData){
      const old={sections:song.sections,ocrText:song.ocrText,geometryDiagnostics:song.geometryDiagnostics,title:song.title,photoParserVersion:song.photoParserVersion,verified:song.verified,key:song.key};
      song.sections=structuredClone(state.geometryDraft.sections);
-     if(!song.key)song.key=inferSongKey(song);
+     refreshDetectedKey(song);
      song.ocrText=state.ocrText;
      song.geometryDiagnostics=structuredClone(diag);
      if(diag.refrainInferredFromRepeats&&/^Canto fotografato/i.test(song.title||''))song.title=diag.suggestedTitle;
@@ -981,7 +988,7 @@ function captureHTML(){
      </form>`:`<p class="photo-capture-hint">Fotografa lo spartito per iniziare.</p>`}
   </section>`;
 }
-function settingsHTML(){return `<div class="page-heading"><div><div class="eyebrow">Versione 1.1 (4)</div><h1>Impostazioni</h1></div></div><div class="form-wrap"><div class="panel"><h3>Dati e salvataggi</h3><p>I canti e le scalette sono attualmente memorizzati <strong>solo nel browser di questo dispositivo</strong>. Non sono ancora sincronizzati su iCloud o GitHub.</p><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px"><button class="outline-btn" data-action="backup">Scarica backup JSON</button><label class="outline-btn" style="cursor:pointer">Ripristina backup<input type="file" id="backupInput" accept="application/json" style="display:none"></label></div></div><div class="panel"><h3>Ultimo aggiornamento</h3><p>Scopri le modifiche e le migliorie introdotte con la versione più recente.</p><button type="button" class="outline-btn" data-action="show-release-notes">Novità dell'ultima versione</button></div><div class="panel"><h3>Modello musicale</h3><p>Gli accordi delle fotografie conservano anche coordinate OCR, indice del carattere e livello di affidabilità. La disposizione grafica non cambia il loro ancoraggio musicale.</p><div class="alert" style="margin-top:15px">OCR geometrico sperimentale: dove sono disponibili soltanto i riquadri delle parole gli ancoraggi ai caratteri sono stimati e sempre da verificare. Se mancano le coordinate, l'app non inventa una posizione. Le note sul pentagramma non sono ancora riconosciute.</div></div></div>`;}
+function settingsHTML(){return `<div class="page-heading"><div><div class="eyebrow">Versione 1.1 (5)</div><h1>Impostazioni</h1></div></div><div class="form-wrap"><div class="panel"><h3>Dati e salvataggi</h3><p>I canti e le scalette sono attualmente memorizzati <strong>solo nel browser di questo dispositivo</strong>. Non sono ancora sincronizzati su iCloud o GitHub.</p><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px"><button class="outline-btn" data-action="backup">Scarica backup JSON</button><label class="outline-btn" style="cursor:pointer">Ripristina backup<input type="file" id="backupInput" accept="application/json" style="display:none"></label></div></div><div class="panel"><h3>Ultimo aggiornamento</h3><p>Scopri le modifiche e le migliorie introdotte con la versione più recente.</p><button type="button" class="outline-btn" data-action="show-release-notes">Novità dell'ultima versione</button></div><div class="panel"><h3>Modello musicale</h3><p>Gli accordi delle fotografie conservano anche coordinate OCR, indice del carattere e livello di affidabilità. La disposizione grafica non cambia il loro ancoraggio musicale.</p><div class="alert" style="margin-top:15px">OCR geometrico sperimentale: dove sono disponibili soltanto i riquadri delle parole gli ancoraggi ai caratteri sono stimati e sempre da verificare. Se mancano le coordinate, l'app non inventa una posizione. Le note sul pentagramma non sono ancora riconosciute.</div></div></div>`;}
 function appHTML(){
  const views={home:homeHTML,library:libraryHTML,masses:massesHTML,capture:captureHTML,settings:settingsHTML};
  const builder=views[state.view]||homeHTML;
@@ -1097,7 +1104,34 @@ function modalHTML(){const m=state.modal;
   const song=currentSong();if(!song?.photoData)return '';
   return `<div class="modal-shade"><div class="modal-card" role="alertdialog" aria-modal="true" aria-label="Conferma ricalcolo accordi"><h2>Ricalcolare gli accordi?</h2><p>La partitura verrà ricalcolata dalla fotografia originale con le coordinate OCR. Le modifiche manuali fatte sulle sillabe e sugli accordi saranno sostituite. La fotografia originale resterà disponibile.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button type="button" class="primary-btn" data-action="reparse-photo">Ricalcola accordi</button></div></div></div>`;
  }
- if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1</h2><p>Biblioteca ottimizzata, riconoscimento fotografico classico e modalità Segui accordi con audio e microfono.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
+ if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (5)</h2><p>Analisi armonica della tonalità con verifica delle cadenze e delle alternative; correzione delle tonalità OCR e icone vettoriali.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
+
+
+ if(m.type==='key-analysis'){
+  const song=currentSong(), a=window.CantoriaHarmony?.analyze(song);
+  if(!song)return '';
+  const label=key=>escape(describeTonality({key}));
+  const summary=!a||a.status==='insufficient'?'Accordi insufficienti per determinare la tonalità.':
+   a.status==='uncertain'?'Analisi non conclusiva: le tonalità candidate restano da verificare.':
+   'Centro tonale più probabile: '+describeTonality({key:a.key})+'. Non verificato con la melodia.';
+  const alternatives=(a?.candidates||[]).slice(0,3).map(c=>'<div><span>'+label(c.key)+'</span><span>'+escape(c.score)+' punti · '+c.cadences+' cadenze</span></div>').join('');
+  const symbols=(a?.counts||[]).slice(0,10).map(c=>c.name+' ×'+c.count).join(' · ')||'Nessuno';
+  const sequences=a?.progressions?.length?[...new Set(a.progressions)].join(' · '):'Nessuna cadenza dominante-tonica convincente nei dati letti';
+  return '<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Analisi della tonalità">'+
+   '<div class="song-options-header"><h2>Analisi della tonalità</h2><button type="button" class="song-close" data-action="close-modal" aria-label="Chiudi">×</button></div>'+
+   '<div class="harmony-detail"><p><strong>'+escape(summary)+'</strong></p>'+
+   '<p>'+escape(a?.observations||0)+' accordi riconosciuti; '+escape(a?.reviewed||0)+' segnalati come incerti dall’OCR. '+escape(a?.distinctRoots||0)+' fondamentali diverse.</p>'+
+   '<p><strong>Affidabilità della proposta:</strong> '+escape(a?.confidence||'bassa')+' (giudizio qualitativo, non certezza).</p>'+ 
+   (song.legacyKey?'<p>Tonalità precedentemente attribuita: '+label(song.legacyKey)+'. La vecchia stima è stata rivalutata.</p>':'')+
+   '<p><strong>Accordi letti:</strong> '+escape(symbols)+'</p>'+
+   '<p><strong>Cadenze rilevate:</strong> '+escape(sequences)+'</p>'+
+   '<div class="harmony-candidates">'+alternatives+'</div>'+
+   '<p>Il punteggio è comparativo, non una probabilità. Si considerano qualità degli accordi, compatibilità con la scala, inizi delle sezioni e risoluzioni dominante-tonica; la frequenza di un solo accordo non determina la tonalità.</p>'+
+   '<p>'+escape(a?.warning||'La tonalità richiede conferma.')+'</p>'+
+   (song.keySource==='manual'?'<p>La tonalità attuale è stata impostata manualmente e non viene sovrascritta.</p>':'')+
+   '</div><div class="modal-actions"><button type="button" class="outline-btn" data-action="edit-tonality">Imposta tonalità</button><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div>'+
+  '</div></div>';
+ }
 
  if(m.type==='song-options'){
   const song=currentSong();if(!song)return '';
@@ -1109,7 +1143,8 @@ function modalHTML(){const m=state.modal;
   const review=(pending||missed)?`<button type="button" class="song-review-notice" data-action="review-chords">⚠ ${pending+missed} accordi da controllare <span>›</span></button>`:'';
   return `<div class="modal-shade"><div class="modal-card song-options song-options-compact" role="dialog" aria-modal="true" aria-label="Impostazioni brano">
     <div class="song-options-header"><h2>Impostazioni brano</h2><button type="button" class="song-close" data-action="close-modal" aria-label="Chiudi">×</button></div>
-    <div class="song-transport" aria-label="Tonalità e trasporto"><button type="button" class="song-transport-btn" data-action="shift-down" aria-label="Abbassa di un semitono">−</button><button type="button" class="song-transport-key" data-action="reset-shift" aria-label="Tonalità attuale, tocca per azzerare il trasporto"><strong>${escape(describeTonality(song,state.shift))}</strong><small>${song.key?'Originale':'Rilevata'} · ${state.shift>0?'+':''}${state.shift}</small></button><button type="button" class="song-transport-btn" data-action="shift-up" aria-label="Alza di un semitono">+</button></div>
+    <div class="song-transport" aria-label="Tonalità e trasporto"><button type="button" class="song-transport-btn" data-action="shift-down" aria-label="Abbassa di un semitono">−</button><button type="button" class="song-transport-key" data-action="reset-shift" aria-label="Tonalità attuale, tocca per azzerare il trasporto"><strong>${escape(describeTonality(song,state.shift))}</strong><small>${song.keySource==='manual'?'Impostata manualmente':song.keySource==='auto-harmony'?'Proposta · da verificare':'Da verificare'} · ${state.shift>0?'+':''}${state.shift}</small></button><button type="button" class="song-transport-btn" data-action="shift-up" aria-label="Alza di un semitono">+</button></div>
+    <button type="button" class="song-key-analysis-trigger" data-action="show-key-analysis">♫ Analisi tonalità e verifica degli accordi ›</button>
     ${review}<div class="song-options-grid">
       <button type="button" class="song-option-tile" data-action="choose-section-text"${noScore}><span aria-hidden="true">✎</span><span>Modifica testo delle strofe</span></button>
       <button type="button" class="song-option-tile" data-action="band-colors"${noScore}><span aria-hidden="true">◒</span><span>Colori pill e accordi</span></button>
@@ -1559,7 +1594,7 @@ root.addEventListener('click',e=>{
   try{sections=photoSectionsFromText(state.ocrText);}
   catch(err){notify(err.message);return;}
   const previous={sections:song.sections,ocrText:song.ocrText,subtitle:song.subtitle,verified:song.verified,geometryDiagnostics:song.geometryDiagnostics,key:song.key};
-  song.sections=sections;if(!song.key)song.key=inferSongKey(song);song.ocrText=state.ocrText.trim().slice(0,20000);
+  song.sections=sections;refreshDetectedKey(song);song.ocrText=state.ocrText.trim().slice(0,20000);
   song.geometryDiagnostics=structuredClone(state.geometryDraft.diagnostics);
   song.photoParserVersion=6;
   song.subtitle='Trascrizione fotografica · da verificare';song.verified=false;
@@ -1629,6 +1664,7 @@ root.addEventListener('click',e=>{
    if(!saveStore(store)){song.savedAt=previous;notify('Salvataggio non riuscito: memoria insufficiente.');return;}
    state.modal=null;notify('Brano salvato in Biblioteca.');return;
   }
+ if(action==='show-key-analysis'){state.modal={type:'key-analysis'};render();return;}
  if(action==='edit-tonality'){state.modal={type:'tonality-edit'};render();return;}
  if(action==='export-song'){exportSongFile(store.songs.find(s=>s.id===el.dataset.song),'share');return;}
  if(action==='card-pdf'){const song=store.songs.find(s=>s.id===el.dataset.song);if(song?.sections?.length)exportPdf('share',song,0);return;}
@@ -1703,7 +1739,7 @@ root.addEventListener('submit',e=>{e.preventDefault();const form=e.target;const 
    else{row[m.ai]=chord;if(Array.isArray(geom)&&geom[m.ai]){geom[m.ai].symbol=chord;geom[m.ai].needsReview=false;}}
    persist();state.modal=null;render();return;
   }
-  if(form.id==='tonalityForm'){const song=currentSong();if(song){song.key=String(f.get('songKey')||'');persist();}state.modal=null;render();return;}
+  if(form.id==='tonalityForm'){const song=currentSong();if(song){song.key=String(f.get('songKey')||'');song.keySource='manual';persist();}state.modal=null;render();return;}
   if(form.id==='photoSongForm'){
   if(!state.photoURL){notify('Prima scegli una fotografia.');return;}
   const mode=e.submitter?.value==='score'?'score':'photo';
@@ -1714,9 +1750,10 @@ root.addEventListener('submit',e=>{e.preventDefault();const form=e.target;const 
   const title=String(f.get('photoSongTitle')||state.photoTitle||'').trim()||suggested||
     ('Canto fotografato · '+new Date().toLocaleDateString('it-IT'));
   const song={id:makeId(),title,subtitle:mode==='score'?'Trascrizione fotografica · da verificare':'Bozza fotografica',
-    key:inferSongKey({sections}),source:'Foto originale',photoData:state.photoURL,ocrText:scanned,verified:false,sections,
+    key:inferSongKey({sections}),keySource:'auto-harmony',source:'Foto originale',photoData:state.photoURL,ocrText:scanned,verified:false,sections,
     geometryDiagnostics:mode==='score'?structuredClone(state.geometryDraft.diagnostics):null,
     photoParserVersion:mode==='score'?6:0};
+  refreshDetectedKey(song);
   store.songs.unshift(song);
   if(!saveStore(store)){store.songs.shift();notify('Spazio insufficiente per salvare il brano. Fai un backup o libera spazio.');return;}
   state.photoURL=null;state.photoTitle='';state.ocrText='';state.ocrStatus='';state.geometryDraft=null;state.geometryRawText='';state.view='library';openSong(song.id);
@@ -1733,12 +1770,12 @@ root.addEventListener('change',async e=>{
    preview.style.background=e.target.value;
   return;
  }
- if(e.target.id==='songKeyInline'){const song=currentSong();if(song){song.key=e.target.value;persist();render();}return;}if(e.target.id==='songImportInput'){const file=e.target.files?.[0];if(!file)return;try{if(file.size>3000000)throw new Error('File troppo grande');const song=importSongFile(await file.text());notify('Brano importato: '+song.title);}catch(err){notify('Importazione non riuscita: '+err.message);}return;}if(e.target.id==='photoCameraInput'||e.target.id==='photoLibraryInput'){
+ if(e.target.id==='songKeyInline'){const song=currentSong();if(song){song.key=e.target.value;song.keySource='manual';persist();render();}return;}if(e.target.id==='songImportInput'){const file=e.target.files?.[0];if(!file)return;try{if(file.size>3000000)throw new Error('File troppo grande');const song=importSongFile(await file.text());notify('Brano importato: '+song.title);}catch(err){notify('Importazione non riuscita: '+err.message);}return;}if(e.target.id==='photoCameraInput'||e.target.id==='photoLibraryInput'){
  const file=e.target.files?.[0];if(!file)return;
  try{state.photoURL=await compressScorePhoto(file);state.photoTitle='';state.ocrText='';state.geometryDraft=null;state.geometryRawText='';state.ocrStatus='';render();}
  catch(err){console.error(err);notify('Impossibile aprire la foto. Prova un file JPEG o PNG.');}
  return;
-}if(e.target.id==='backupInput'){const file=e.target.files?.[0];if(!file)return;try{const data=importJSON(await file.text());store.songs=data.songs.map(normalizedSong);store.masses=data.masses;persist();state.view='library';notify('Backup ripristinato.');}catch(err){notify('Impossibile leggere il backup.');}}});
+}if(e.target.id==='backupInput'){const file=e.target.files?.[0];if(!file)return;try{const data=importJSON(await file.text());store.songs=data.songs.map(s=>{const song=normalizedSong(s);refreshDetectedKey(song);return song;});store.masses=data.masses;persist();state.view='library';notify('Backup ripristinato.');}catch(err){notify('Impossibile leggere il backup.');}}});
 function setupLongPress(){
  let timer=null,x=0,y=0,pending=null;
  const cancel=()=>{if(timer){clearTimeout(timer);timer=null;}pending=null;};

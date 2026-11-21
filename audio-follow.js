@@ -68,7 +68,10 @@
   const play=$("#readerLayer .reader-play-toggle");
   if(play&&!play.disabled){
    const running=mode!=="idle";
-   play.textContent=running?"■":"▶";
+   // Preserve the toolbar SVG instead of replacing it with emoji/text glyphs.
+   const icon=play.querySelector(".reader-transport-svg path");
+   if(icon)icon.setAttribute("d",running?"M6 6h12v12H6z":"M7 4v16l13-8z");
+   else play.textContent=running?"■":"▶";
    play.setAttribute("aria-label",running?"Stop":"Play");
    play.setAttribute("title",running?"Stop":"Play");
    play.dataset.playing=String(running);
