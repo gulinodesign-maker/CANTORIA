@@ -9,9 +9,24 @@ const release=fs.readFileSync('.github/workflows/ios-testflight-auto.yml','utf8'
 const script=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(script);
 new vm.Script(script);
-assert.equal(require('../package.json').version,'0.7.2');
-assert.ok(fs.readFileSync('sw.js','utf8').includes('cantoria-shell-v0.7.2'));
-assert.ok(html.includes('Versione 0.7.2'));
+
+for(const fragment of [
+ 'class="song-card" role="button"','data-action="card-pdf"',
+ 'function exportPdf(mode,songOverride=null,shiftOverride=state.shift)',
+ 'song-options-grid','song-option-tile','song-options-open-pdf',
+ "function inferSongKey(song)",
+ "recognizePhotoText(true,state.appleAIAvailable?'apple':'classic')"
+])assert.ok(html.includes(fragment),'Missing 0.7.3 behavior: '+fragment);
+assert.ok(!html.includes('Apri spartito →'));
+assert.ok(!html.includes('Cambia tonalità originale'));
+assert.ok(!html.includes('Altre opzioni di esportazione'));
+assert.ok(native.includes('request.customWords = chordRoots +'));
+assert.ok(native.includes('SI non è S1'));
+assert.ok(html.includes('grid-template-columns:repeat(3,minmax(0,1fr))'));
+
+assert.equal(require('../package.json').version,'0.7.3');
+assert.ok(fs.readFileSync('sw.js','utf8').includes('cantoria-shell-v0.7.3'));
+assert.ok(html.includes('Versione 0.7.3'));
 
 // Both independent modes remain available in the same photo capture UI.
 for(const fragment of [
