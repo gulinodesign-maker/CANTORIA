@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const html=fs.readFileSync('index.html','utf8'),js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(js);new vm.Script(js);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:24});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:25});
 const escape=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const actual={id:'s1',title:'Signore pietà',author:'Francesco Buttazzo',sections:[{kind:'verse',lines:[]}]};
 const noAuthor={id:'s2',title:'Gloria',author:'',sections:[]};

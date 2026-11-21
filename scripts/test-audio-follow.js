@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const html=fs.readFileSync('index.html','utf8'),inline=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(inline);new vm.Script(inline);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:24});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:25});
 assert.equal(require('../package.json').version,'1.1.0');
 for(const text of ['releaseInfo.build','data-action="follow-source"','data-action="choose-section-text"','data-action="recognize-photo"','data-action="follow-play"','data-action="follow-rewind"','data-follow-chord=','audio-follow.js','library-action-icon','song-options-grid'])assert.ok(html.includes(text),text);
 for(const text of ['Apple Intelligence','recognize-apple','cantoriaAI'])assert.ok(!html.includes(text),text);
@@ -131,3 +131,58 @@ const follower=fakeWindow.CantoriaAudioFollow;
  follower.rewind();assert.equal(follower.activeIndex,-1);
  console.log('PASS: manual back/forward across score pages without stopping a live microphone');
 })().catch(err=>{console.error(err);process.exitCode=1});
+
+/* Build 25: recover actual microphone recognition when global matching is ambiguous. */
+const actualDo=Array(12).fill(.001);for(const [note,level] of [[0,.27],[4,.25],[7,.16],[9,.28]])actualDo[note]=level;
+const oldWinner=audio.recognizeChord(actualDo,['SOL','DO','LA-','FA','MI-','RE7']);
+assert.notEqual(oldWinner.chord,'DO','Fixture must reproduce original global-ranking regression');
+assert.equal(audio.recognizeExpectedChord(actualDo,'DO',['SOL','DO','LA-','FA','MI-','RE7']).chord,'DO',
+ 'Complete target triad must be accepted despite a higher-ranking unrelated template');
+const actualLa=Array(12).fill(.001);for(const note of [9,0,4])actualLa[note]=.32;
+assert.equal(audio.recognizeExpectedChord(actualLa,'DO',['SOL','DO','LA-']),null,
+ 'Cannot accept an unrelated chord that shares only two target notes');
+assert.equal(audio.recognizeExpectedChord(Array(12).fill(0),'DO',['DO']),null,'Silence is not a chord');
+const actualRe=Array(12).fill(.001);for(const note of [2,6,9])actualRe[note]=.32;
+assert.equal(audio.recognizeExpectedChord(actualRe,'RE7',['RE','RE7']).chord,'RE7',
+ 'A complete major triad supports a seventh-labelled target when the seventh is omitted');
+assert.equal(audio.parseChord('FA7+').intervals.at(-1),11,'FA7+ must have a major seventh');
+assert.ok(audioSource.includes('recognizeExpectedChord(chroma,expected,sequence().map(x=>x.label))'));
+
+// Integration: simulate frequency bins received by a live microphone over time.
+let clock=0,notes=[392,494,587],scheduled=[],pages=[];
+class LiveContext {
+ constructor(){this.state='running';this.sampleRate=44100;}
+ createAnalyser(){return {fftSize:8192,frequencyBinCount:4096,
+  getByteFrequencyData(buffer){buffer.fill(0);for(const hz of notes)buffer[Math.round(hz*8192/44100)]=255;},
+  getByteTimeDomainData(buffer){buffer.fill(128);}};}
+ createMediaStreamSource(){return {connect(){},disconnect(){}};}
+ async resume(){}
+}
+const liveWindow={
+ document:fakeDocument,AudioContext:LiveContext,
+ navigator:{mediaDevices:{async getUserMedia(){return {getTracks(){return [{stop(){}}]}};}}},
+ setTimeout(fn){scheduled.push(fn);return scheduled.length;},
+ clearTimeout(){},requestAnimationFrame(fn){fn();}
+};
+const clockDate={now(){return clock;}};
+vm.runInNewContext(audioSource,{window:liveWindow,Date:clockDate,module:{exports:{}}});
+const live=liveWindow.CantoriaAudioFollow;
+const feed=ticks=>{for(let k=0;k<ticks;k++){clock+=160;const next=scheduled.shift();assert.ok(next,'Audio processing must remain scheduled');next();}};
+(async()=>{
+ live.setScore('synth',[
+  {id:'first',label:'SOL',page:0},{id:'second',label:'DO',page:0},
+  {id:'third',label:'LA-',page:1}],page=>pages.push(page));
+ await live.microphone();
+ feed(3);
+ assert.equal(live.activeIndex,0,'First SOL from mic must be detected');
+ notes=[294,370,440];feed(5);
+ assert.equal(live.activeIndex,0,'Future unrelated chord must not skip DO');
+ notes=[262,330,392,440];feed(5);
+ assert.equal(live.activeIndex,1,'Expected DO must be detected even with interfering LA');
+ notes=[440,262,330];feed(5);
+ assert.equal(live.activeIndex,2,'Next expected LA- must be detected and move to page 1');
+ assert.equal(pages.at(-1),1);
+ assert.equal(live.mode,'mic','Microphone must remain active');
+ live.stop();
+ console.log('PASS: actual synthesized microphone spectrum follows all expected chords without skips');
+})().catch(e=>{console.error(e);process.exitCode=1});

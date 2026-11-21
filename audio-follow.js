@@ -16,7 +16,7 @@
   const sus=/(?:sus2|sus4)/i.exec(suffix)?.[0]?.toLowerCase();
   const diminished=/dim|°/i.test(suffix);
   let intervals= diminished?[0,3,6]:sus==="sus2"?[0,2,7]:sus==="sus4"?[0,5,7]:minor?[0,3,7]:[0,4,7];
-  if(/7/.test(suffix))intervals=[...intervals,(/maj7|M7/.test(suffix)?11:10)];
+  if(/7/.test(suffix))intervals=[...intervals,(/maj7|M7|7\+/.test(suffix)?11:10)];
   return {root:rootPc,minor,intervals,label:s};
  }
  function chromaFromFFT(bins,sampleRate,fftSize){
@@ -54,6 +54,30 @@
   }
   if(!best||best.score<.43)return null;
   return {chord:best.label,confidence:Math.min(1,Math.max(0,best.score)),margin:best.score-second};
+ }
+ // The previous classifier searched EVERY chord in the song, then the strict cursor
+ // rejected the winner whenever its label differed from the immediately next chord.
+ // Check the expected harmony directly instead, without scanning for a later position.
+ function recognizeExpectedChord(chroma,expected,allLabels=[]){
+  const chord=parseChord(expected);
+  if(!chord||!Array.isArray(chroma)||chroma.length!==12)return null;
+  const values=chroma.map(v=>Math.max(0,Number(v)||0)),total=values.reduce((a,b)=>a+b,0);
+  if(total<.005)return null;
+  const triad=chord.intervals.slice(0,3).map(interval=>clampPitch(chord.root+interval));
+  if(triad.length<3)return null;
+  const peak=Math.max(...values)/total,threshold=Math.max(.045,peak*.12);
+  const strengths=triad.map(pc=>values[pc]/total);
+  const present=strengths.filter(value=>value>=threshold).length;
+  const coverage=strengths.reduce((sum,value)=>sum+value,0);
+  if(coverage<.52)return null;
+  const globallyHeard=recognizeChord(chroma,allLabels);
+  const other=globallyHeard&&parseChord(globallyHeard.chord);
+  const sameTriad=other&&other.root===chord.root&&
+    triad.every((pc,i)=>pc===clampPitch(other.root+(other.intervals[i]??999)));
+  // Three chord tones are strong direct evidence even when another chord's
+  // template ranks slightly higher due to harmonics or an added note.
+  if(present<3&&!(present>=2&&coverage>=.68&&sameTriad))return null;
+  return {chord:chord.label,confidence:Math.min(1,coverage+.10*strengths[0]),coverage};
  }
  // Positions are immutable events in the full score, not a search window in the visible page.
  function chordIdentity(label){return String(label||"").trim().toUpperCase().replace(/♯/g,"#").replace(/♭/g,"B").replace(/\s+/g,"");}
@@ -187,8 +211,9 @@
   analyser.getByteFrequencyData(bins);
   updateDynamics();
   const chroma=chromaFromFFT(bins,ctx.sampleRate,analyser.fftSize);
-  const prediction=recognizeChord(chroma,sequence().map(x=>x.label));
-  const name=prediction&&prediction.confidence>=.46?prediction.chord:"";
+  const expected=sequence()[activeIndex+1]?.label;
+  const prediction=recognizeExpectedChord(chroma,expected,sequence().map(x=>x.label));
+  const name=prediction?prediction.chord:"";
   if(name&&name===stableName)stableCount++;
   else{stableName=name;stableCount=1;}
   if(name&&stableCount>=3){match(name);seenAt=Date.now();}
@@ -243,7 +268,7 @@
   activeIndex=-1;activeName="";stableName="";stableCount=0;lastAdvance=0;attackCount=0;lastMarkAttackCount=0;previousRms=0;silentFrames=0;releasedSinceLast=false;refresh();
  }
  if(player)player.addEventListener("ended",()=>stop());
- const api={parseChord,chromaFromFFT,recognizeChord,nextChordIndex,stepChordIndex,setScore,step,loadTrack,play,microphone,toggle,rewind,stop,reset,refresh,syncControls,get mode(){return mode;},get activeIndex(){return activeIndex;},get hasSource(){return preferredSource==="mic"||!!player?.src;}};
+ const api={parseChord,chromaFromFFT,recognizeChord,recognizeExpectedChord,nextChordIndex,stepChordIndex,setScore,step,loadTrack,play,microphone,toggle,rewind,stop,reset,refresh,syncControls,get mode(){return mode;},get activeIndex(){return activeIndex;},get hasSource(){return preferredSource==="mic"||!!player?.src;}};
  root.CantoriaAudioFollow=api;
- if(typeof module!=="undefined"&&module.exports)module.exports={parseChord,chromaFromFFT,recognizeChord,nextChordIndex,stepChordIndex};
+ if(typeof module!=="undefined"&&module.exports)module.exports={parseChord,chromaFromFFT,recognizeChord,recognizeExpectedChord,nextChordIndex,stepChordIndex};
 })(typeof window!=="undefined"?window:globalThis);

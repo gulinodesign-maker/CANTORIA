@@ -1,3 +1,14 @@
+## Cantoria 1.1 (25) — ripristino riconoscimento accordi (21 novembre 2026)
+
+- Corretto il blocco del microfono introdotto dalla build 23: la vecchia classificazione sceglieva l’accordo più probabile nell’intero brano, ma l’avanzamento sequenziale accettava solo la sigla successiva esatta.
+- Adesso l’analisi armonica valuta direttamente l’accordo atteso, richiede evidenza reale di più note della sua triade e non salta ad altre strofe o pagine.
+- Accetta l’accordo atteso anche quando una nota aggiuntiva rende un altro accordo globalmente più probabile; evita falsi avanzamenti con accordi che condividono soltanto due note.
+- Conservati i pulsanti manuali precedenti/successivi, l’indicatore luminoso del microfono, il riconoscimento di attacchi distinti e la continuità in landscape.
+- Test nuovi con sequenze di spettri simulati da una sorgente microfono, inclusi accordi errati intermedi e passaggio di pagina.
+- Versione 1.1, build 25.
+
+---
+
 ## Cantoria 1.1 (24) — navigazione manuale accordi e stato microfono (21 novembre 2026)
 
 - Due nuove frecce nella barra del lettore per tornare all’accordo precedente o avanzare al successivo, mantenendo attivo l’ascolto del microfono o del file audio.
