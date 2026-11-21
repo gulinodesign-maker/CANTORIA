@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const html=fs.readFileSync('index.html','utf8'),inline=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(inline);new vm.Script(inline);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:25});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:26});
 assert.equal(require('../package.json').version,'1.1.0');
 for(const text of ['releaseInfo.build','data-action="follow-source"','data-action="choose-section-text"','data-action="recognize-photo"','data-action="follow-play"','data-action="follow-rewind"','data-follow-chord=','audio-follow.js','library-action-icon','song-options-grid'])assert.ok(html.includes(text),text);
 for(const text of ['Apple Intelligence','recognize-apple','cantoriaAI'])assert.ok(!html.includes(text),text);
@@ -117,8 +117,11 @@ const follower=fakeWindow.CantoriaAudioFollow;
  await follower.microphone();
  assert.equal(captured,1);
  assert.equal(follower.mode,'mic');
+ assert.equal(follower.activeIndex,-1,'The microphone arms the first chord instead of resuming a previous position');
  assert.equal(micButton.dataset.listening,'true');
+ assert.equal(micButton.dataset.waiting,'true');
  assert.equal(micButton.attributes['aria-pressed'],'true');
+ assert.equal(follower.step(1),true);
  assert.equal(follower.step(1),true);
  assert.equal(follower.step(1),true);
  assert.equal(follower.activeIndex,2);
@@ -186,3 +189,23 @@ const feed=ticks=>{for(let k=0;k<ticks;k++){clock+=160;const next=scheduled.shif
  live.stop();
  console.log('PASS: actual synthesized microphone spectrum follows all expected chords without skips');
 })().catch(e=>{console.error(e);process.exitCode=1});
+
+/* Build 26: mic starts at first chord and only then starts score; no upload UI. */
+assert.ok(!html.includes('<strong>Carica audio</strong>'),'Remove upload option entirely');
+assert.ok(!html.includes('id="audioTrackInput"'),'No audio file picker');
+assert.ok(!html.includes("if(m.type==='follow-source')"),'Do not show a source-selection modal');
+assert.ok(inline.includes("if(follower.mode==='mic'){follower.stop();return;}"));
+assert.ok(inline.includes("follower.microphone().catch(err=>notify(err.message))"));
+const reader26=inline.slice(inline.indexOf('function readerHTML()'),inline.indexOf('const CATHOLIC_CORNER ='));
+const leftEnd=reader26.indexOf(' </div>\\n <div class="reader-chord-nav"'.replace('\\n','\n'));
+assert.ok(leftEnd>=0,'Chord navigation must be a separate toolbar sibling, not nested over transport');
+assert.ok(reader26.includes('id="readerVerification"')&&reader26.includes('id="audioFollowStatus"'));
+assert.ok(html.includes('/* CANTORIA 1.1 (26)'),'Responsive toolbar correction required');
+assert.ok(audioSource.includes('accumulatedChroma('));
+assert.ok(audioSource.includes('activeIndex=-1;activeName="";lastAdvance=0;resetListeningWindow();refresh();'));
+assert.ok(audioSource.includes('In attesa del primo accordo: '));
+const fullC=[.001,.001,.001,.001,.001,.001,.001,.001,.001,.001,.001,.001];
+for(const n of [0,4,7])fullC[n]=.3;
+assert.equal(audio.recognizeExpectedChord(fullC,'DO',['DO','LA-']).chord,'DO');
+assert.equal(audio.recognizeExpectedChord(fullC,'SOL',['SOL','DO']),null);
+console.log('PASS: the mic is armed from the first chord and the uploader is absent');

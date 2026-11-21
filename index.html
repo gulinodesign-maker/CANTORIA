@@ -1119,6 +1119,28 @@
  .reader-layer:not(.reader-photo) .reader-chord-step{flex-basis:43px!important;width:43px!important;min-width:43px!important;height:41px!important}
 }
 
+/* CANTORIA 1.1 (26) — separate chord navigation from transport. */
+.reader-layer:not(.reader-photo) .reader-toolbar{isolation:isolate!important}
+.reader-layer:not(.reader-photo) .reader-toolbar-left{gap:5px!important;flex-shrink:0!important}
+.reader-layer:not(.reader-photo) .reader-chord-nav{display:flex!important;align-items:center!important;gap:8px!important;flex:0 0 auto!important;position:relative;z-index:8!important}
+.reader-layer:not(.reader-photo) .reader-title{min-width:0!important}
+.reader-layer .reader-follow-status{display:block;color:#756e56!important;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:clamp(9px,1.7vw,12px)!important;font-weight:750;max-width:100%;line-height:1.15}
+.reader-layer .reader-follow-status[hidden],.reader-layer #readerVerification[hidden]{display:none!important}
+.reader-layer .reader-follow-btn[data-waiting="true"]{animation:cantoria-mic-armed 1.25s ease-in-out infinite}
+@keyframes cantoria-mic-armed{50%{box-shadow:0 0 0 4px #f2c451b8,0 0 15px #e4af51b0!important}}
+@media(min-width:740px){.reader-layer:not(.reader-photo) .reader-title{left:calc(50% + 10px)!important;width:calc(100% - 505px)!important}}
+@media(max-width:739px){
+ .reader-layer:not(.reader-photo) .reader-toolbar{height:calc(105px + env(safe-area-inset-top,0px))!important;align-items:flex-start!important;padding-top:calc(7px + env(safe-area-inset-top,0px))!important}
+ .reader-layer:not(.reader-photo) .reader-chord-nav{position:absolute!important;left:50%!important;bottom:7px!important;transform:translateX(-50%)!important;gap:10px!important}
+ .reader-layer:not(.reader-photo) .reader-chord-step{flex:0 0 43px!important;width:43px!important;min-width:43px!important;height:40px!important}
+ .reader-layer:not(.reader-photo) .reader-title{left:50%!important;width:calc(100% - 250px)!important;top:calc(7px + env(safe-area-inset-top,0px))!important}
+ .reader-layer:not(.reader-photo) .reader-title strong{font-size:clamp(11px,3.4vw,17px)!important}
+}
+@media(max-width:739px) and (orientation:landscape){
+ .reader-layer:not(.reader-photo) .reader-toolbar{height:calc(94px + env(safe-area-inset-top,0px))!important}
+ .reader-layer:not(.reader-photo) .reader-chord-step{height:35px!important}
+}
+
 </style>
   <title>Cantoria — Canti per la liturgia cattolica</title>
 </head>
@@ -1452,12 +1474,11 @@ function readerHTML(){
  <button class="reader-back app-back-btn" type="button" data-action="close-reader" aria-label="Indietro"><svg class="app-back-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m15 19-7-7 7-7"/></svg></button>
  <button class="reader-audio-btn" type="button" data-action="follow-rewind" title="Torna all’inizio" aria-label="Torna all’inizio del brano"><svg class="reader-transport-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3.5 5v14" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" fill="none"/><path d="M12 6v12L5 12zM21 6v12l-7-6z" fill="currentColor"/></svg></button>
  <button class="reader-audio-btn reader-play-toggle" type="button" data-action="follow-play" title="Play / Stop" aria-label="Play"><svg class="reader-transport-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 4v16l13-8z" fill="currentColor"/></svg></button>
+ </div>
  <div class="reader-chord-nav" role="group" aria-label="Navigazione manuale degli accordi">
  <button class="reader-chord-step" type="button" data-action="follow-prev-chord" title="Accordo precedente" aria-label="Accordo precedente"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5 7.5 12l7 7" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
  <button class="reader-chord-step" type="button" data-action="follow-next-chord" title="Accordo successivo" aria-label="Accordo successivo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 5 7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
- </div>
- </div>
- <div class="reader-title" title="${escapeAttr(song.title)}"><div class="reader-title-line"><strong>${escape(song.title)}</strong></div><small>${horizontal?(state.page+1)+' / '+pages.length:''}${song.verified?'':' · DA VERIFICARE'}</small></div>
+ </div> <div class="reader-title" title="${escapeAttr(song.title)}"><div class="reader-title-line"><strong>${escape(song.title)}</strong></div><small id="readerVerification">${horizontal?(state.page+1)+' / '+pages.length:''}${song.verified?'':' · DA VERIFICARE'}</small><small id="audioFollowStatus" class="reader-follow-status" hidden></small></div>
  <div class="reader-toolbar-right">
  <button class="reader-follow-btn" type="button" data-action="follow-source" title="Segui accordi" aria-label="Segui accordi">♫</button>
  <button class="reader-menu-btn" type="button" data-action="song-options" title="Impostazioni brano" aria-label="Impostazioni brano">☰</button>
@@ -1828,8 +1849,6 @@ function bandColorsModal(){
 
 function reuseMassFormHTML(m){const old=store.masses.find(x=>x.id===m.massId);if(!old)return '';return `<div class="modal-shade"><form class="modal-card" id="reuseMassForm"><h2>Riutilizza scaletta</h2><p>${escape(old.name)} · ${(old.items||[]).length} canti</p><div class="field"><label for="reuseMassName">Nome nuova Messa</label><input id="reuseMassName" name="massName" required maxlength="160" value="${escapeAttr(old.name)}"></div><div class="field"><label for="reuseMassDate">Data</label><input id="reuseMassDate" name="massDate" type="date"></div><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button class="primary-btn">Crea copia</button></div></form></div>`;}
 function modalHTML(){const m=state.modal;
- if(m.type==='follow-source')return `<div class="modal-shade follow-source-shade"><div class="modal-card follow-source-modal" role="dialog" aria-modal="true" aria-label="Segui accordi"><div class="song-options-header"><h2>Segui accordi</h2><button type="button" class="song-close" data-action="close-modal" aria-label="Chiudi">×</button></div><p>Seleziona il suono da seguire.</p><div class="follow-source-choices"><label class="follow-source-choice" for="audioTrackInput"><span aria-hidden="true">♫</span><strong>Carica audio</strong><input id="audioTrackInput" type="file" accept="audio/*,.mp3,.wav,.m4a,.aac" class="visually-hidden-file"></label><button type="button" class="follow-source-choice" data-action="follow-use-mic"><span aria-hidden="true">◉</span><strong>Microfono</strong></button></div></div></div>`;
-
  if(m.type==='delete-mass-confirm'){
   const mass=store.masses.find(x=>x.id===m.massId);if(!mass)return '';
   return `<div class="modal-shade"><div class="modal-card" role="alertdialog" aria-modal="true" aria-label="Conferma eliminazione Messa"><h2>Eliminare la Messa?</h2><p><strong>${escape(mass.name)}</strong> e la sua scaletta saranno eliminati. I brani resteranno nella Biblioteca.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button type="button" class="primary-btn" data-action="delete-mass" style="background:#9e3e33">Elimina Messa</button></div></div></div>`;
@@ -1850,7 +1869,7 @@ function modalHTML(){const m=state.modal;
   const song=currentSong();if(!song?.photoData)return '';
   return `<div class="modal-shade"><div class="modal-card" role="alertdialog" aria-modal="true" aria-label="Conferma ricalcolo accordi"><h2>Ricalcolare gli accordi?</h2><p>La partitura verrà ricalcolata dalla fotografia originale con le coordinate OCR. Le modifiche manuali fatte sulle sillabe e sugli accordi saranno sostituite. La fotografia originale resterà disponibile.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button type="button" class="primary-btn" data-action="reparse-photo">Ricalcola accordi</button></div></div></div>`;
  }
- if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (25)</h2><p>Ripristinato il riconoscimento del microfono: viene analizzato direttamente l’accordo atteso, senza confonderlo con accordi simili presenti più avanti nel brano. Restano le frecce manuali e la spia luminosa dell’ascolto introdotte nella build 24.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
+ if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (26)</h2><p>Il microfono cerca il primo accordo e avvia il seguito del brano solo quando lo riconosce. Rimossa la scelta di caricare file audio e corretta la sovrapposizione dei pulsanti nella barra superiore.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
 
 
  if(m.type==='key-analysis'){
@@ -2399,15 +2418,14 @@ root.addEventListener('click',e=>{
  if(action==='read-mass-song'){const x=currentMass()?.items.find(i=>i.id===el.dataset.item);if(x)openSong(x.songId,x.shift,x.id);return;}
  if(action==='next-page'||action==='prev-page'){state.page+=action==='next-page'?1:-1;render();return;}
  if(action==='song-options'){const song=currentSong();if(!song)return;state.songMetaDraft={songId:song.id,title:song.title||'',author:song.author||''};state.modal={type:'song-options'};render();return;}
- if(action==='follow-source'){state.modal={type:'follow-source'};render();return;}
- if(action==='follow-use-mic'){
-  const task=window.CantoriaAudioFollow?.microphone();
-  state.modal=null;render();task?.catch(err=>notify(err.message));return;
+ if(action==='follow-source'){
+  const follower=window.CantoriaAudioFollow;
+  if(!follower)return;
+  if(follower.mode==='mic'){follower.stop();return;}
+  follower.microphone().catch(err=>notify(err.message));return;
  }
  if(action==='follow-play'){
-  const player=window.CantoriaAudioFollow;
-  if(!player?.hasSource){state.modal={type:'follow-source'};render();return;}
-  player.toggle().catch(err=>notify(err.message));return;
+  window.CantoriaAudioFollow?.toggle().catch(err=>notify(err.message));return;
  }
  if(action==='follow-prev-chord'||action==='follow-next-chord'){
   window.CantoriaAudioFollow?.step(action==='follow-prev-chord'?-1:1);
@@ -2599,7 +2617,6 @@ root.addEventListener('input',e=>{if(e.target.id==='songTitleEdit'||e.target.id=
 root.addEventListener('change',async e=>{
  if(e.target.id==='libraryAuthorFilter'){state.libraryAuthor=e.target.value;render();return;}
  if(e.target.id==='librarySort'){state.librarySort=e.target.value;render();return;}
- if(e.target.id==='audioTrackInput'){const file=e.target.files?.[0];if(!file)return;try{await window.CantoriaAudioFollow.loadTrack(file);state.modal=null;render();notify('Audio caricato. Premi ▶ nella barra superiore.');}catch(err){notify(err.message);}return;}
  if(e.target.matches('#bandColorsForm select')){
   const preview=root.querySelector('[data-preview="'+e.target.name+'"]');
   if(preview&&window.CantoriaEditor.PALETTE.some(p=>p.value===e.target.value))

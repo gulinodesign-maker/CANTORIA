@@ -74,9 +74,12 @@
   const other=globallyHeard&&parseChord(globallyHeard.chord);
   const sameTriad=other&&other.root===chord.root&&
     triad.every((pc,i)=>pc===clampPitch(other.root+(other.intervals[i]??999)));
-  // Three chord tones are strong direct evidence even when another chord's
-  // template ranks slightly higher due to harmonics or an added note.
-  if(present<3&&!(present>=2&&coverage>=.68&&sameTriad))return null;
+  // Strong evidence from all three tones works even with extra harmonics.
+  // If only two are audible (guitar/piano voicings), demand the target root,
+  // a substantial combined energy and that competing harmony does not win.
+  const twoTone=present>=2&&coverage>=.60&&strengths[0]>=threshold&&
+    (!other||sameTriad||chordIdentity(other.label)===chordIdentity(chord.label));
+  if(present<3&&!twoTone)return null;
   return {chord:chord.label,confidence:Math.min(1,coverage+.10*strengths[0]),coverage};
  }
  // Positions are immutable events in the full score, not a search window in the visible page.
@@ -98,10 +101,25 @@
  let ctx=null,analyser=null,mediaNode=null,micNode=null,stream=null,trackURL=null;
  let preferredSource="none",mode="idle",timer=0,bins=null,wave=null,activeIndex=-1,activeName="",stableName="",stableCount=0,lastAdvance=0,seenAt=0,currentSongId="";
  let scoreItems=[],showPage=null,previousRms=0,silentFrames=0,releasedSinceLast=false,attackCount=0,lastMarkAttackCount=0,lastAttackAt=0;
+ let chromaHistory=[];
  const $=selector=>root.document?.querySelector(selector);
  function status(message){
   const element=$("#audioFollowStatus");
   if(element)element.textContent=message;
+ }
+ function resetListeningWindow(){chromaHistory=[];stableName="";stableCount=0;}
+ function accumulatedChroma(chroma){
+  if(silentFrames>=3){resetListeningWindow();return chroma;}
+  if(chroma.some(value=>value>.0001)){
+   chromaHistory.push(chroma);
+   if(chromaHistory.length>7)chromaHistory.shift();
+  }
+  if(!chromaHistory.length)return chroma;
+  // A seven-frame (~1.1 s) window makes plucked or arpeggiated chords
+  // detectable without requiring every note to peak in the same FFT frame.
+  const average=Array(12).fill(0);
+  for(const frame of chromaHistory)for(let i=0;i<12;i++)average[i]+=frame[i]/chromaHistory.length;
+  return average;
  }
  function sequence(){return scoreItems;}
  function setScore(songId,items,onPage){
@@ -116,9 +134,13 @@
  function activeLabel(){const id=scoreItems[activeIndex]?.id;return id?visibleLabels().find(el=>el.dataset.followId===id):null;}
  function syncControls(){
   const mic=$("#readerLayer .reader-follow-btn");
+  const hint=$("#audioFollowStatus"),verification=$("#readerVerification");
+  if(hint)hint.hidden=mode!=="mic";
+  if(verification)verification.hidden=mode==="mic";
   if(mic&&!mic.disabled){
    const listening=mode==="mic"&&!!stream;
    mic.dataset.listening=String(listening);
+   mic.dataset.waiting=String(listening&&activeIndex<0);
    mic.setAttribute("aria-pressed",String(listening));
    mic.setAttribute("aria-label",listening?"Microfono attivo, in ascolto":"Segui accordi");
    mic.setAttribute("title",listening?"Microfono attivo":"Segui accordi");
@@ -149,14 +171,14 @@
    if(row){rows.add(row);if(active)activeRows.add(row);}
   }
   for(const row of rows)row.classList.toggle("audio-row-active",activeRows.has(row));
-  if(mode==="idle")status("Carica un audio oppure ascolta dal microfono.");
+  if(mode==="idle")status("Microfono inattivo.");
   syncControls();
  }
  function reset(songId=""){
   stop();currentSongId=String(songId||"");scoreItems=[];showPage=null;
   activeIndex=-1;activeName="";stableName="";stableCount=0;lastAdvance=0;
   attackCount=0;lastMarkAttackCount=0;previousRms=0;silentFrames=0;releasedSinceLast=false;
-  refresh();
+  resetListeningWindow();refresh();
  }
  function scrollToActive(){
   const el=activeLabel(),stage=$("#readerStage"),row=el?.closest(".music-row");
@@ -169,17 +191,18 @@
   const item=scoreItems[index];if(!item)return;
   activeIndex=index;activeName=item.label;lastAdvance=Date.now();
   lastMarkAttackCount=attackCount;releasedSinceLast=false;
+  resetListeningWindow();
   if(typeof showPage==="function")showPage(item.page);
   refresh();
   if(typeof root.requestAnimationFrame==="function")root.requestAnimationFrame(()=>{refresh();scrollToActive();});
   else scrollToActive();
-  status("Accordo: "+item.label+" · "+(index+1)+" / "+scoreItems.length);
+  status((index===0?"Brano avviato · ":"Accordo: ")+item.label+" · "+(index+1)+" / "+scoreItems.length);
  }
  function step(direction){
   const index=stepChordIndex(scoreItems,activeIndex,direction);
   if(index<0||index===activeIndex)return false;
   // Manual correction adjusts only the score cursor; the audio source stays active.
-  stableName="";stableCount=0;
+  resetListeningWindow();
   mark(index);
   return true;
  }
@@ -210,14 +233,15 @@
   if(ctx.state==="suspended"){timer=root.setTimeout(detect,250);return;}
   analyser.getByteFrequencyData(bins);
   updateDynamics();
-  const chroma=chromaFromFFT(bins,ctx.sampleRate,analyser.fftSize);
+  const chroma=accumulatedChroma(chromaFromFFT(bins,ctx.sampleRate,analyser.fftSize));
   const expected=sequence()[activeIndex+1]?.label;
   const prediction=recognizeExpectedChord(chroma,expected,sequence().map(x=>x.label));
   const name=prediction?prediction.chord:"";
   if(name&&name===stableName)stableCount++;
   else{stableName=name;stableCount=1;}
   if(name&&stableCount>=3){match(name);seenAt=Date.now();}
-  if(!name&&Date.now()-seenAt>2000)status(mode==="mic"?"In ascolto…":"Riproduzione…");
+  if(!name&&Date.now()-seenAt>2000&&mode==="mic")
+   status(activeIndex<0?"In attesa del primo accordo: "+(scoreItems[0]?.label||"—"):"In ascolto · prossimo: "+(expected||"fine"));
   timer=root.setTimeout(detect,155);
  }
  async function ensureContext(){
@@ -232,7 +256,7 @@
   try{micNode?.disconnect();}catch(_){}
   micNode=null;
   if(player&&!player.paused)player.pause();
-  mode="idle";stableName="";stableCount=0;previousRms=0;silentFrames=0;releasedSinceLast=false;lastMarkAttackCount=attackCount;
+  mode="idle";resetListeningWindow();previousRms=0;silentFrames=0;releasedSinceLast=false;lastMarkAttackCount=attackCount;
   status("Rilevamento fermato.");syncControls();
  }
  async function loadTrack(file){
@@ -252,20 +276,27 @@
  }
  async function microphone(){
   if(!root.navigator?.mediaDevices?.getUserMedia)throw new Error("Il microfono non è disponibile.");
+  if(!scoreItems.length)throw new Error("Questo brano non contiene accordi da seguire.");
   stop();await ensureContext();
+  // Arming always begins at the very first chord; the score does not start
+  // until a stable live match marks position zero.
+  activeIndex=-1;activeName="";lastAdvance=0;resetListeningWindow();refresh();
   stream=await root.navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false},video:false});
   micNode=ctx.createMediaStreamSource(stream);micNode.connect(analyser);
-  mode="mic";preferredSource="mic";status("Ascolto dal microfono…");syncControls();detect();
+  mode="mic";preferredSource="mic";
+  status("In attesa del primo accordo: "+scoreItems[0].label);
+  syncControls();detect();
  }
  async function toggle(){
   if(mode!=="idle"){stop();return;}
   if(preferredSource==="mic")return microphone();
   if(player?.src)return play();
-  throw new Error("Seleziona audio o microfono dal tasto Segui.");
+  return microphone();
  }
  function rewind(){
   if(player?.src)try{player.currentTime=0;}catch(_){}
-  activeIndex=-1;activeName="";stableName="";stableCount=0;lastAdvance=0;attackCount=0;lastMarkAttackCount=0;previousRms=0;silentFrames=0;releasedSinceLast=false;refresh();
+  activeIndex=-1;activeName="";lastAdvance=0;attackCount=0;lastMarkAttackCount=0;previousRms=0;silentFrames=0;releasedSinceLast=false;resetListeningWindow();refresh();
+  if(mode==="mic")status("In attesa del primo accordo: "+(scoreItems[0]?.label||"—"));
  }
  if(player)player.addEventListener("ended",()=>stop());
  const api={parseChord,chromaFromFFT,recognizeChord,recognizeExpectedChord,nextChordIndex,stepChordIndex,setScore,step,loadTrack,play,microphone,toggle,rewind,stop,reset,refresh,syncControls,get mode(){return mode;},get activeIndex(){return activeIndex;},get hasSource(){return preferredSource==="mic"||!!player?.src;}};

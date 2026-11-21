@@ -1,3 +1,14 @@
+## Cantoria 1.1 (26) — attesa del primo accordo e microfono diretto (21 novembre 2026)
+
+- Toccando il pulsante ♫ si attiva direttamente il microfono senza una finestra di scelta della sorgente. La funzione «Carica audio» è rimossa dall’interfaccia.
+- Quando il microfono è attivo, la posizione degli accordi torna all’inizio e compare «In attesa del primo accordo: ...». Il brano entra in modalità di seguito soltanto quando il primo accordo viene riconosciuto stabilmente.
+- Dopo il primo accordo riconosciuto il lettore procede cronologicamente senza saltare sezioni, con i controlli manuali precedente/successivo sempre disponibili.
+- Riconoscimento potenziato per accordi realmente suonati: una breve finestra di circa un secondo accumula le note di accordi arpeggiati e permette due note con fondamentale riconoscibile soltanto quando la classificazione globale le conferma.
+- Corretto il layout: le frecce sono una sezione indipendente nella toolbar, e sugli schermi stretti si spostano nella seconda riga senza sovrapporsi ai tasti di trasporto. Stato di ascolto visibile vicino al titolo.
+- Test sintetici in CI; la verifica della precisione tramite microfono iPhone rimane necessaria.
+
+---
+
 ## Cantoria 1.1 (25) — ripristino riconoscimento accordi (21 novembre 2026)
 
 - Corretto il blocco del microfono introdotto dalla build 23: la vecchia classificazione sceglieva l’accordo più probabile nell’intero brano, ma l’avanzamento sequenziale accettava solo la sigla successiva esatta.
