@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Cantoria" />
   <meta name="description" content="Cantoria: canti cattolici, accordi e repertorio per la Santa Messa, le celebrazioni liturgiche e la preghiera." />
-  <link rel="manifest" href="./manifest.webmanifest?v=20261121.5" />
+  <link rel="manifest" href="./manifest.webmanifest?v=20261121.6" />
   <link rel="apple-touch-icon" sizes="192x192" href="./assets/cantoria-icona-ufficiale-045.png" />
   <link rel="icon" href="./assets/cantoria-icona-ufficiale-045.png" type="image/png" />
   <style>:root{--forest:#153e32;--forest-2:#2b5547;--gold:#ac8128;--ink:#1d2925;--muted:#697b70;--ivory:#faf6ee;--sand:#f1ebdf;--line:#dfd7c7;--blueband:rgba(98,136,154,.18);--sageband:rgba(121,138,107,.17);--orangeband:rgba(163,116,93,.17);--radius:17px;--lyric-size:24px;--shadow:0 12px 35px rgba(31,55,43,.08)}
@@ -551,6 +551,38 @@
 .harmony-detail p{margin:9px 0}
 .harmony-candidates{padding:8px 10px;background:#f4f0e5;border:1px solid #e2d9c7;border-radius:10px}
 .harmony-candidates div{display:flex;justify-content:space-between;gap:6px;padding:4px 0}
+
+/* Cantoria 1.1 (6) — compact library cards: title, then actions only. */
+.song-card .song-cover{
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  height:auto!important;min-height:91px!important;padding:11px 15px 11px 94px!important;
+}
+.song-card .song-cover .corner-ornament{width:106px!important;height:88px!important;z-index:0!important}
+.song-card .song-cover .cover-label{
+  position:relative!important;z-index:1!important;flex:1;min-width:0;
+  padding:0!important;margin:0!important;text-align:center!important;
+  font:normal clamp(21px,4.5vw,28px)/1.12 Georgia,serif!important;
+  color:#173d33!important;overflow-wrap:anywhere;
+}
+.song-card .card-body.library-card-actions-only{padding:9px 10px 11px!important}
+.song-card .library-card-actions-only .card-actions{margin:0!important;gap:7px!important}
+.song-card .library-card-actions-only .card-actions button{min-height:48px!important}
+@media(max-width:370px){.song-card .song-cover{min-height:86px!important;padding-left:86px!important}.song-card .song-cover .corner-ornament{width:98px!important;height:83px!important}}
+
+/* Cantoria 1.1 (6) — title and author controls directly below key transport. */
+.song-options-compact .song-meta-edit{
+  display:grid;grid-template-columns:1fr;gap:8px;margin:0 0 9px;
+}
+.song-options-compact .song-meta-edit .song-meta-field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.song-options-compact .song-meta-edit .song-meta-field span{font:700 12px ui-sans-serif,-apple-system,sans-serif;color:#2c5243}
+.song-options-compact .song-meta-edit input{
+  display:block;width:100%;min-width:0;min-height:42px;padding:8px 12px;
+  background:#fffdf7;color:#173d33;border:1px solid #cdbd9b;border-radius:10px;
+  font:500 15px ui-sans-serif,-apple-system,sans-serif;
+}
+.song-options-compact .song-meta-edit input:focus-visible{
+  outline:2px solid #b58c43;outline-offset:1px;border-color:#b58c43;
+}
 </style>
   <title>Cantoria — Canti per la liturgia cattolica</title>
 </head>
@@ -859,7 +891,7 @@ function headerHTML(){
 function navHTML(){const nav=Object.keys(labels);return `<nav class="sidenav">${nav.map(k=>`<button class="nav-item ${state.view===k?'active':''}" data-nav="${k}"><span class="ico">${icons[k]}</span>${labels[k]}</button>`).join('')}<div class="nav-helper">La tua biblioteca è salvata in questo dispositivo.<br><strong>Il cloud verrà aggiunto in una prossima versione.</strong></div></nav><nav class="bottom-nav">${nav.map(k=>`<button class="bottom-item ${state.view===k?'active':''}" data-nav="${k}"><span class="ico">${icons[k]}</span>${labels[k]}</button>`).join('')}</nav>`;}
 function libraryHTML(){const songs=store.songs.filter(s=>(s.title||'').toLowerCase().includes(state.filter.toLowerCase()));return `<div class="page-heading"><div><h1>Biblioteca</h1></div><div class="library-import"><label class="outline-btn" for="songImportInput" style="cursor:pointer"><span class="library-action-icon" aria-hidden="true">⇩</span><span>Importa brano</span></label><input type="file" id="songImportInput" accept=".cantoria.json,.json,application/json" style="position:absolute;width:1px;height:1px;opacity:0" aria-label="Scegli un file brano Cantoria"><button type="button" class="primary-btn" data-nav="capture"><span class="library-action-icon" aria-hidden="true">⊕</span><span>Aggiungi canto</span></button></div></div>
   <label class="search-bar">⌕ <input id="search" type="search" placeholder="Cerca un canto…" value="${escapeAttr(state.filter)}" autocomplete="off" aria-label="Cerca un canto"></label>
-  <div class="tiles">${songs.map(song=>`<article class="song-card" role="button" tabindex="0" data-action="read-song" data-song="${escapeAttr(song.id)}" aria-label="Apri ${escapeAttr(song.title)}"><div class="song-cover">${CATHOLIC_CORNER}<div class="cover-label">${escape(song.title)}</div></div><div class="card-body"><div class="meta-row"><span class="pill">${song.photoData&&!song.sections.length?'Foto':escape(song.key||inferSongKey(song)||'Tonalità da rilevare')}</span>${song.photoData&&!song.sections.length?'<span class="pill warning">Da trascrivere</span>':song.verified?'<span class="pill good">Verificato</span>':'<span class="pill warning">Da verificare</span>'}</div><p>${song.author?escape(song.author)+' · ':''}${song.photoData&&!song.sections.length?'Bozza fotografica':escape(song.subtitle||'Canto')+' · '+(song.sections||[]).length+' sezioni'}</p><div class="card-actions" role="group" aria-label="Azioni brano"><button type="button" class="outline-btn" data-action="add-to-mass" data-song="${escapeAttr(song.id)}" aria-label="Aggiungi alla messa"><span aria-hidden="true">⊕</span><span>Alla messa</span></button><button type="button" class="outline-btn" data-action="export-song" data-song="${escapeAttr(song.id)}"><span aria-hidden="true">⇧</span><span>Esporta</span></button><button type="button" class="outline-btn" data-action="card-pdf" data-song="${escapeAttr(song.id)}" ${song.sections?.length?'':'disabled aria-disabled="true"'}><span aria-hidden="true">▤</span><span>Crea PDF</span></button></div></div></article>`).join('')||'<div class="empty">Nessun canto trovato.</div>'}</div>
+  <div class="tiles">${songs.map(song=>`<article class="song-card" role="button" tabindex="0" data-action="read-song" data-song="${escapeAttr(song.id)}" aria-label="Apri ${escapeAttr(song.title)}"><div class="song-cover">${CATHOLIC_CORNER}<div class="cover-label">${escape(song.title)}</div></div><div class="card-body library-card-actions-only"><div class="card-actions" role="group" aria-label="Azioni brano"><button type="button" class="outline-btn" data-action="add-to-mass" data-song="${escapeAttr(song.id)}" aria-label="Aggiungi alla messa"><span aria-hidden="true">⊕</span><span>Alla messa</span></button><button type="button" class="outline-btn" data-action="export-song" data-song="${escapeAttr(song.id)}"><span aria-hidden="true">⇧</span><span>Esporta</span></button><button type="button" class="outline-btn" data-action="card-pdf" data-song="${escapeAttr(song.id)}" ${song.sections?.length?'':'disabled aria-disabled="true"'}><span aria-hidden="true">▤</span><span>Crea PDF</span></button></div></div></article>`).join('')||'<div class="empty">Nessun canto trovato.</div>'}</div>
   `;}
 function massDateDisplay(date){if(!date)return 'Data da definire';const parts=String(date).split('-');return parts.length===3?[parts[2],parts[1],parts[0]].join('/'):String(date);}
 function massSongSummary(m){return (m.items||[]).map(item=>{const song=store.songs.find(x=>x.id===item.songId);return escape(m.celebratedAt?(item.archiveTitle||song?.title||'Canto non disponibile'):(song?.title||'Canto non disponibile'));}).join(' · ');}
@@ -988,7 +1020,7 @@ function captureHTML(){
      </form>`:`<p class="photo-capture-hint">Fotografa lo spartito per iniziare.</p>`}
   </section>`;
 }
-function settingsHTML(){return `<div class="page-heading"><div><div class="eyebrow">Versione 1.1 (5)</div><h1>Impostazioni</h1></div></div><div class="form-wrap"><div class="panel"><h3>Dati e salvataggi</h3><p>I canti e le scalette sono attualmente memorizzati <strong>solo nel browser di questo dispositivo</strong>. Non sono ancora sincronizzati su iCloud o GitHub.</p><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px"><button class="outline-btn" data-action="backup">Scarica backup JSON</button><label class="outline-btn" style="cursor:pointer">Ripristina backup<input type="file" id="backupInput" accept="application/json" style="display:none"></label></div></div><div class="panel"><h3>Ultimo aggiornamento</h3><p>Scopri le modifiche e le migliorie introdotte con la versione più recente.</p><button type="button" class="outline-btn" data-action="show-release-notes">Novità dell'ultima versione</button></div><div class="panel"><h3>Modello musicale</h3><p>Gli accordi delle fotografie conservano anche coordinate OCR, indice del carattere e livello di affidabilità. La disposizione grafica non cambia il loro ancoraggio musicale.</p><div class="alert" style="margin-top:15px">OCR geometrico sperimentale: dove sono disponibili soltanto i riquadri delle parole gli ancoraggi ai caratteri sono stimati e sempre da verificare. Se mancano le coordinate, l'app non inventa una posizione. Le note sul pentagramma non sono ancora riconosciute.</div></div></div>`;}
+function settingsHTML(){return `<div class="page-heading"><div><div class="eyebrow">Versione 1.1 (6)</div><h1>Impostazioni</h1></div></div><div class="form-wrap"><div class="panel"><h3>Dati e salvataggi</h3><p>I canti e le scalette sono attualmente memorizzati <strong>solo nel browser di questo dispositivo</strong>. Non sono ancora sincronizzati su iCloud o GitHub.</p><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px"><button class="outline-btn" data-action="backup">Scarica backup JSON</button><label class="outline-btn" style="cursor:pointer">Ripristina backup<input type="file" id="backupInput" accept="application/json" style="display:none"></label></div></div><div class="panel"><h3>Ultimo aggiornamento</h3><p>Scopri le modifiche e le migliorie introdotte con la versione più recente.</p><button type="button" class="outline-btn" data-action="show-release-notes">Novità dell'ultima versione</button></div><div class="panel"><h3>Modello musicale</h3><p>Gli accordi delle fotografie conservano anche coordinate OCR, indice del carattere e livello di affidabilità. La disposizione grafica non cambia il loro ancoraggio musicale.</p><div class="alert" style="margin-top:15px">OCR geometrico sperimentale: dove sono disponibili soltanto i riquadri delle parole gli ancoraggi ai caratteri sono stimati e sempre da verificare. Se mancano le coordinate, l'app non inventa una posizione. Le note sul pentagramma non sono ancora riconosciute.</div></div></div>`;}
 function appHTML(){
  const views={home:homeHTML,library:libraryHTML,masses:massesHTML,capture:captureHTML,settings:settingsHTML};
  const builder=views[state.view]||homeHTML;
@@ -1104,7 +1136,7 @@ function modalHTML(){const m=state.modal;
   const song=currentSong();if(!song?.photoData)return '';
   return `<div class="modal-shade"><div class="modal-card" role="alertdialog" aria-modal="true" aria-label="Conferma ricalcolo accordi"><h2>Ricalcolare gli accordi?</h2><p>La partitura verrà ricalcolata dalla fotografia originale con le coordinate OCR. Le modifiche manuali fatte sulle sillabe e sugli accordi saranno sostituite. La fotografia originale resterà disponibile.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button type="button" class="primary-btn" data-action="reparse-photo">Ricalcola accordi</button></div></div></div>`;
  }
- if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (5)</h2><p>Analisi armonica della tonalità con verifica delle cadenze e delle alternative; correzione delle tonalità OCR e icone vettoriali.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
+ if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (6)</h2><p>Card della Biblioteca più compatte senza metadati superflui; campi Titolo e Autore sempre visibili sotto la tonalità nelle impostazioni del brano.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
 
 
  if(m.type==='key-analysis'){
