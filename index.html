@@ -748,6 +748,40 @@
  .home-grid .home-tile strong{font-size:14px!important}
 }
 
+
+/* CANTORIA 1.1 (14): three equal capture choices + library author/alpha filters. */
+.capture-photo-card .photo-capture-actions{
+ display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;
+ gap:clamp(5px,1.8vw,10px)!important;width:100%
+}
+.capture-photo-card .photo-capture-choice{
+ display:flex!important;flex-direction:column!important;align-items:center!important;
+ justify-content:center!important;gap:6px!important;min-width:0!important;
+ min-height:78px!important;padding:9px 4px!important;
+ font-size:clamp(11px,2.9vw,15px)!important;line-height:1.15!important;
+ white-space:normal!important;overflow-wrap:anywhere
+}
+.capture-photo-card .photo-capture-choice span:first-child{
+ font-size:clamp(20px,5.2vw,27px)!important;line-height:1.05!important
+}
+.capture-photo-card .photo-capture-choice span:last-child{text-align:center}
+.library-filter-bar{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;
+ width:100%;margin:-9px 0 17px
+}
+.library-filter-bar select{
+ width:100%;min-width:0;min-height:45px;border:1px solid #c8c3b4;
+ border-radius:11px;padding:8px 27px 8px 10px;color:#194638;
+ background:#fffdf6;font:700 clamp(12px,3vw,15px)/1.2 ui-sans-serif,-apple-system,sans-serif;
+ text-overflow:ellipsis
+}
+@media(max-width:350px){
+ .capture-photo-card{padding:12px!important}
+ .capture-photo-card .photo-capture-choice{min-height:73px!important;font-size:11px!important}
+ .library-filter-bar{gap:6px}
+ .library-filter-bar select{padding-left:7px;font-size:12px}
+}
+
 </style>
   <title>Cantoria — Canti per la liturgia cattolica</title>
 </head>
@@ -889,7 +923,7 @@ function makeId() { return `${Date.now().toString(36)}-${Math.random().toString(
 
 const root = document.querySelector('#app');
 const store = loadStore();
-const state = { view: 'home', filter: '', massId: null, songId: null, massItemId: null, shift: 0, page: 0, modal: null, songMetaDraft: null, photoURL: null, photoTitle: '', photoAuthor: '', photoMetadata: null, ocrText: '', geometryDraft: null, geometryRawText: '', ocrBusy: false, ocrStatus: '', toast: '', fontScale: 1 };
+const state = { view: 'home', filter: '', libraryAuthor: '', librarySort: 'title-asc', massId: null, songId: null, massItemId: null, shift: 0, page: 0, modal: null, songMetaDraft: null, photoURL: null, photoTitle: '', photoAuthor: '', photoMetadata: null, ocrText: '', geometryDraft: null, geometryRawText: '', ocrBusy: false, ocrStatus: '', toast: '', fontScale: 1 };
 let toastTimer;
 const escape = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const escapeAttr = escape;
@@ -1054,8 +1088,42 @@ function headerHTML(){
  return `<header class="topbar topbar-section">${CATHOLIC_CORNER}<span class="header-spacer" aria-hidden="true"></span><strong class="header-section-title">${titles[state.view]||'Cantoria'}</strong><button class="header-home-btn" data-nav="home" aria-label="Torna alla Home" title="Indietro">‹</button></header>`;
 }
 function navHTML(){const nav=Object.keys(labels);return `<nav class="sidenav">${nav.map(k=>`<button class="nav-item ${state.view===k?'active':''}" data-nav="${k}"><span class="ico">${icons[k]}</span>${labels[k]}</button>`).join('')}<div class="nav-helper">La tua biblioteca è salvata in questo dispositivo.<br><strong>Il cloud verrà aggiunto in una prossima versione.</strong></div></nav><nav class="bottom-nav">${nav.map(k=>`<button class="bottom-item ${state.view===k?'active':''}" data-nav="${k}"><span class="ico">${icons[k]}</span>${labels[k]}</button>`).join('')}</nav>`;}
-function libraryHTML(){const songs=store.songs.filter(s=>(s.title||'').toLowerCase().includes(state.filter.toLowerCase()));return `<div class="page-heading"><div><h1>Biblioteca</h1></div><div class="library-import"><label class="outline-btn" for="songImportInput" style="cursor:pointer"><span class="library-action-icon" aria-hidden="true">⇩</span><span>Importa brano</span></label><input type="file" id="songImportInput" accept=".cantoria.json,.json,application/json" style="position:absolute;width:1px;height:1px;opacity:0" aria-label="Scegli un file brano Cantoria"><button type="button" class="primary-btn" data-nav="capture"><span class="library-action-icon" aria-hidden="true">⊕</span><span>Aggiungi canto</span></button></div></div>
-  <label class="search-bar">⌕ <input id="search" type="search" placeholder="Cerca un canto…" value="${escapeAttr(state.filter)}" autocomplete="off" aria-label="Cerca un canto"></label>
+function libraryHTML(){
+ const collator=new Intl.Collator('it',{sensitivity:'base',numeric:true});
+ const query=String(state.filter||'').trim().toLocaleLowerCase('it');
+ const author=String(state.libraryAuthor||'');
+ const sort=String(state.librarySort||'title-asc');
+ const authors=Array.from(new Set(store.songs.map(song=>String(song.author||'').trim()).filter(Boolean)))
+  .sort((a,b)=>collator.compare(a,b));
+ const songs=store.songs.filter(song=>{
+  const title=String(song.title||'');
+  const composer=String(song.author||'');
+  return (!query||title.toLocaleLowerCase('it').includes(query)||composer.toLocaleLowerCase('it').includes(query))&&
+   (!author||collator.compare(composer.trim(),author)===0);
+ }).sort((a,b)=>{
+  const byAuthor=sort.startsWith('author-');
+  const key=byAuthor?'author':'title';
+  const secondary=byAuthor?'title':'author';
+  const left=String(a[key]||'').trim(),right=String(b[key]||'').trim();
+  // Uncredited songs stay below credited ones in author sorting.
+  if(byAuthor&&!!left!==!!right)return left?-1:1;
+  const descending=sort.endsWith('-desc');
+  const primary=collator.compare(left,right);
+  if(primary)return descending?-primary:primary;
+  return collator.compare(String(a[secondary]||''),String(b[secondary]||''))||
+   collator.compare(String(a.id||''),String(b.id||''));
+ });
+ return `<div class="page-heading"><div><h1>Biblioteca</h1></div><div class="library-import"><label class="outline-btn" for="songImportInput" style="cursor:pointer"><span class="library-action-icon" aria-hidden="true">⇩</span><span>Importa brano</span></label><input type="file" id="songImportInput" accept=".cantoria.json,.json,application/json" style="position:absolute;width:1px;height:1px;opacity:0" aria-label="Scegli un file brano Cantoria"><button type="button" class="primary-btn" data-nav="capture"><span class="library-action-icon" aria-hidden="true">⊕</span><span>Aggiungi canto</span></button></div></div>
+  <label class="search-bar">⌕ <input id="search" type="search" placeholder="Cerca titolo o autore…" value="${escapeAttr(state.filter||'')}" autocomplete="off" aria-label="Cerca per titolo o autore"></label>
+  <div class="library-filter-bar" role="group" aria-label="Filtri della Biblioteca">
+   <select id="libraryAuthorFilter" aria-label="Filtra per autore"><option value="">Tutti gli autori</option>${authors.map(name=>`<option value="${escapeAttr(name)}" ${collator.compare(name,author)===0?'selected':''}>${escape(name)}</option>`).join('')}</select>
+   <select id="librarySort" aria-label="Ordine alfabetico dei brani">
+    <option value="title-asc" ${sort==='title-asc'?'selected':''}>Titolo A–Z</option>
+    <option value="title-desc" ${sort==='title-desc'?'selected':''}>Titolo Z–A</option>
+    <option value="author-asc" ${sort==='author-asc'?'selected':''}>Autore A–Z</option>
+    <option value="author-desc" ${sort==='author-desc'?'selected':''}>Autore Z–A</option>
+   </select>
+  </div>
   <div class="tiles">${songs.map(song=>`<article class="song-card" role="button" tabindex="0" data-action="read-song" data-song="${escapeAttr(song.id)}" aria-label="Apri ${escapeAttr(song.title)}"><div class="song-cover">${CATHOLIC_CORNER}<div class="cover-label">${escape(song.title)}</div><button class="card-delete-btn" type="button" data-action="ask-delete-song" data-song="${escapeAttr(song.id)}" title="Elimina brano" aria-label="Elimina ${escapeAttr(song.title)}">×</button></div><div class="card-body library-card-actions-only"><div class="card-actions" role="group" aria-label="Azioni brano"><button type="button" class="outline-btn" data-action="add-to-mass" data-song="${escapeAttr(song.id)}" aria-label="Aggiungi alla messa"><span aria-hidden="true">⊕</span><span>Alla messa</span></button><button type="button" class="outline-btn" data-action="export-song" data-song="${escapeAttr(song.id)}"><span aria-hidden="true">⇧</span><span>Esporta</span></button><button type="button" class="outline-btn" data-action="card-pdf" data-song="${escapeAttr(song.id)}" ${song.sections?.length?'':'disabled aria-disabled="true"'}><span aria-hidden="true">▤</span><span>Crea PDF</span></button></div></div></article>`).join('')||'<div class="empty">Nessun canto trovato.</div>'}</div>
   `;}
 function massDateDisplay(date){if(!date)return 'Data da definire';const parts=String(date).split('-');return parts.length===3?[parts[2],parts[1],parts[0]].join('/'):String(date);}
@@ -1218,10 +1286,12 @@ function captureHTML(){
  return `<div class="page-heading"><div><h1>Acquisisci un canto</h1></div></div>
   <section class="panel capture-photo-card">
    <div class="photo-capture-actions">
-    <label class="primary-btn photo-capture-choice" for="photoCameraInput">📷 &nbsp; Scatta una foto</label>
+    <label class="primary-btn photo-capture-choice" for="photoCameraInput"><span aria-hidden="true">📷</span><span>Scatta una foto</span></label>
     <input type="file" id="photoCameraInput" accept="image/*" capture="environment" class="visually-hidden-file" aria-label="Scatta una foto dello spartito">
-    <label class="outline-btn photo-capture-choice" for="photoLibraryInput">▧ &nbsp; Scegli una foto</label>
+    <label class="outline-btn photo-capture-choice" for="photoLibraryInput"><span aria-hidden="true">▧</span><span>Scegli una foto</span></label>
     <input type="file" id="photoLibraryInput" accept="image/*" class="visually-hidden-file" aria-label="Scegli una fotografia dello spartito">
+    <label class="outline-btn photo-capture-choice" for="songImportCaptureInput"><span aria-hidden="true">⇩</span><span>Importa brano</span></label>
+    <input type="file" id="songImportCaptureInput" accept=".cantoria.json,.json,application/json" class="visually-hidden-file" aria-label="Importa un file brano Cantoria">
    </div>
    ${state.photoURL?`<form id="photoSongForm" class="photo-draft-form"><img class="photo-draft-preview" src="${escapeAttr(state.photoURL)}" alt="Anteprima foto dello spartito">
       <div class="field"><input id="photoSongTitle" name="photoSongTitle" aria-label="Titolo del canto" maxlength="160" value="${escapeAttr(state.photoTitle||'')}" placeholder="Titolo del canto" autocomplete="off"><input id="photoSongAuthor" name="photoSongAuthor" aria-label="Autore o compositore" maxlength="160" value="${escapeAttr(state.photoAuthor||'')}" placeholder="Autore / compositore" autocomplete="off" style="margin-top:8px"></div>
@@ -1230,7 +1300,7 @@ function captureHTML(){
      </form>`:`<p class="photo-capture-hint">Fotografa lo spartito per iniziare.</p>`}
   </section>`;
 }
-function settingsHTML(){return `<div class="page-heading"><div><div class="eyebrow">Versione 1.1 (13)</div><h1>Impostazioni</h1></div></div><div class="form-wrap"><div class="panel"><h3>Dati e salvataggi</h3><p>I canti e le scalette sono attualmente memorizzati <strong>solo nel browser di questo dispositivo</strong>. Non sono ancora sincronizzati su iCloud o GitHub.</p><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px"><button class="outline-btn" data-action="backup">Scarica backup JSON</button><label class="outline-btn" style="cursor:pointer">Ripristina backup<input type="file" id="backupInput" accept="application/json" style="display:none"></label></div></div><div class="panel"><h3>Ultimo aggiornamento</h3><p>Scopri le modifiche e le migliorie introdotte con la versione più recente.</p><button type="button" class="outline-btn" data-action="show-release-notes">Novità dell'ultima versione</button></div><div class="panel"><h3>Modello musicale</h3><p>Gli accordi delle fotografie conservano anche coordinate OCR, indice del carattere e livello di affidabilità. La disposizione grafica non cambia il loro ancoraggio musicale.</p><div class="alert" style="margin-top:15px">OCR geometrico sperimentale: dove sono disponibili soltanto i riquadri delle parole gli ancoraggi ai caratteri sono stimati e sempre da verificare. Se mancano le coordinate, l'app non inventa una posizione. Le note sul pentagramma non sono ancora riconosciute.</div></div></div>`;}
+function settingsHTML(){return `<div class="page-heading"><div><div class="eyebrow">Versione 1.1 (14)</div><h1>Impostazioni</h1></div></div><div class="form-wrap"><div class="panel"><h3>Dati e salvataggi</h3><p>I canti e le scalette sono attualmente memorizzati <strong>solo nel browser di questo dispositivo</strong>. Non sono ancora sincronizzati su iCloud o GitHub.</p><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px"><button class="outline-btn" data-action="backup">Scarica backup JSON</button><label class="outline-btn" style="cursor:pointer">Ripristina backup<input type="file" id="backupInput" accept="application/json" style="display:none"></label></div></div><div class="panel"><h3>Ultimo aggiornamento</h3><p>Scopri le modifiche e le migliorie introdotte con la versione più recente.</p><button type="button" class="outline-btn" data-action="show-release-notes">Novità dell'ultima versione</button></div><div class="panel"><h3>Modello musicale</h3><p>Gli accordi delle fotografie conservano anche coordinate OCR, indice del carattere e livello di affidabilità. La disposizione grafica non cambia il loro ancoraggio musicale.</p><div class="alert" style="margin-top:15px">OCR geometrico sperimentale: dove sono disponibili soltanto i riquadri delle parole gli ancoraggi ai caratteri sono stimati e sempre da verificare. Se mancano le coordinate, l'app non inventa una posizione. Le note sul pentagramma non sono ancora riconosciute.</div></div></div>`;}
 function appHTML(){
  const views={home:homeHTML,library:libraryHTML,masses:massesHTML,capture:captureHTML,settings:settingsHTML};
  const builder=views[state.view]||homeHTML;
@@ -1357,7 +1427,7 @@ function modalHTML(){const m=state.modal;
   const song=currentSong();if(!song?.photoData)return '';
   return `<div class="modal-shade"><div class="modal-card" role="alertdialog" aria-modal="true" aria-label="Conferma ricalcolo accordi"><h2>Ricalcolare gli accordi?</h2><p>La partitura verrà ricalcolata dalla fotografia originale con le coordinate OCR. Le modifiche manuali fatte sulle sillabe e sugli accordi saranno sostituite. La fotografia originale resterà disponibile.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button type="button" class="primary-btn" data-action="reparse-photo">Ricalcola accordi</button></div></div></div>`;
  }
- if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (13)</h2><p>Messe e brani con card cliccabili e tasto × di eliminazione con conferma. Scaletta con card uniformi alla Biblioteca e comandi compatti; home adattata all’orientamento orizzontale.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
+ if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (14)</h2><p>Messe e brani con card cliccabili e tasto × di eliminazione con conferma. Scaletta con card uniformi alla Biblioteca e comandi compatti; home adattata all’orientamento orizzontale.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
 
 
  if(m.type==='key-analysis'){
@@ -2076,6 +2146,8 @@ root.addEventListener('input',e=>{if(e.target.id==='songTitleEdit'||e.target.id=
  state.songMetaDraft=draft;return;
 }if(e.target.id==='photoSongTitle'){state.photoTitle=e.target.value;return;}if(e.target.id==='photoSongAuthor'){state.photoAuthor=e.target.value;return;}if(e.target.id==='photoOcrText'){state.ocrText=e.target.value.slice(0,20000);return;}if(e.target.id==='search'){state.filter=e.target.value;const pos=e.target.selectionStart;render();const s=root.querySelector('#search');s?.focus();if(s?.setSelectionRange)s.setSelectionRange(pos,pos);}});
 root.addEventListener('change',async e=>{
+ if(e.target.id==='libraryAuthorFilter'){state.libraryAuthor=e.target.value;render();return;}
+ if(e.target.id==='librarySort'){state.librarySort=e.target.value;render();return;}
  if(e.target.id==='audioTrackInput'){const file=e.target.files?.[0];if(!file)return;try{await window.CantoriaAudioFollow.loadTrack(file);state.modal=null;render();notify('Audio caricato. Premi ▶ nella barra superiore.');}catch(err){notify(err.message);}return;}
  if(e.target.matches('#bandColorsForm select')){
   const preview=root.querySelector('[data-preview="'+e.target.name+'"]');
@@ -2083,7 +2155,16 @@ root.addEventListener('change',async e=>{
    preview.style.background=e.target.value;
   return;
  }
- if(e.target.id==='songKeyInline'){const song=currentSong();if(song){song.key=e.target.value;song.keySource='manual';persist();render();}return;}if(e.target.id==='songImportInput'){const file=e.target.files?.[0];if(!file)return;try{if(file.size>3000000)throw new Error('File troppo grande');const song=importSongFile(await file.text());notify('Brano importato: '+song.title);}catch(err){notify('Importazione non riuscita: '+err.message);}return;}if(e.target.id==='photoCameraInput'||e.target.id==='photoLibraryInput'){
+ if(e.target.id==='songKeyInline'){const song=currentSong();if(song){song.key=e.target.value;song.keySource='manual';persist();render();}return;}if(e.target.id==='songImportInput'||e.target.id==='songImportCaptureInput'){
+ const file=e.target.files?.[0];if(!file)return;
+ try{
+  if(file.size>3000000)throw new Error('File troppo grande');
+  const song=importSongFile(await file.text());
+  if(e.target.id==='songImportCaptureInput'){state.view='library';state.filter='';state.libraryAuthor='';}
+  notify('Brano importato: '+song.title);
+ }catch(err){notify('Importazione non riuscita: '+err.message);}
+ return;
+}if(e.target.id==='photoCameraInput'||e.target.id==='photoLibraryInput'){
  const file=e.target.files?.[0];if(!file)return;
  try{state.photoURL=await compressScorePhoto(file);state.photoTitle='';state.photoAuthor='';state.photoMetadata=null;state.ocrText='';state.geometryDraft=null;state.geometryRawText='';state.ocrStatus='';render();recognizePhotoText();}
  catch(err){console.error(err);notify('Impossibile aprire la foto. Prova un file JPEG o PNG.');}

@@ -5,7 +5,7 @@ const html=fs.readFileSync('index.html','utf8');
 const js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(js,'App script missing');
 new vm.Script(js);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:13});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:14});
 
 function pick(begin,end){
  const a=js.indexOf(begin),b=js.indexOf(end,a+begin.length);
@@ -57,7 +57,7 @@ const failed={modal:{type:'song-options'}};
 save('save-song',()=>song,failed,{querySelector:sel=>({value:sel==='#songTitleEdit'?'Different':'Different Author'})},()=>false,{},()=>{});
 assert.deepEqual({title:song.title,author:song.author,savedAt:song.savedAt},original);
 assert.equal(failed.modal.type,'song-options');
-assert.ok(fs.readFileSync('sw.js','utf8').includes('cantoria-shell-v1.1-build13'));
+assert.ok(fs.readFileSync('sw.js','utf8').includes('cantoria-shell-v1.1-build14'));
 assert.ok(html.includes('/* Cantoria 1.1 (6) — compact library cards'));
 console.log('Cantoria build 6 library compactness and song metadata tests passed');
 
