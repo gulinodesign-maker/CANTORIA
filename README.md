@@ -1,3 +1,13 @@
+## Cantoria 1.1 (6) — schede compatte e metadati del brano (21 novembre 2026)
+
+- **Biblioteca:** la card mostra solo intestazione con titolo e azioni («Alla messa», «Esporta», «Crea PDF»). Rimossi pill tonalità/stato e descrizione/sezioni, ridotta l'altezza mantenendo l'angolo liturgico.
+- **Impostazioni brano:** sotto i comandi di tonalità sono sempre disponibili i campi **Titolo** e **Autore**. Si salvano insieme premendo **Salva**, con validazione del titolo obbligatorio e recupero dei dati in caso di errore nel salvataggio.
+- Durante la trasposizione `+`/`−`, le modifiche non ancora salvate nei due campi restano intatte. Chiudere le impostazioni senza salvare annulla le modifiche.
+- Titolo e autore restano parte del modello dati del brano, del backup JSON e dell'esportazione `.cantoria.json`.
+- PWA e pacchetto iOS aggiornati alla build `1.1 (6)`. Test layout e gestione metadati aggiunti al workflow di verifica.
+
+---
+
 # Cantoria — Foto → Partitura (beta 0.5.0)
 
 ## Cantoria 1.1 (5) — tonalità armonica e comandi (21 novembre 2026)
