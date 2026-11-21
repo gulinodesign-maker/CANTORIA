@@ -17,7 +17,7 @@ const reader=inner.slice(inner.indexOf('function readerHTML()'),inner.indexOf('c
 assert.ok(reader.indexOf('data-action="follow-play"')<reader.indexOf('class="reader-chord-nav"'),'Chord arrows must follow Stop');
 assert.ok(reader.includes(' </div>\n </div>\n <div class="reader-title"'),
  'Chord navigation must be physically inside the left transport group in landscape');
-const css=html.slice(html.indexOf('/* CANTORIA 1.1 (28)'));
+const css=html.slice(html.indexOf('/* CANTORIA 1.1 (27)'));
 assert.ok(css.includes('@media(orientation:landscape)'));
 assert.ok(css.includes('left:auto!important;bottom:auto!important'),'Landscape navigation must not be positioned over title');
 assert.ok(css.includes('.reader-toolbar-left{position:static!important}'),'Portrait arrows must anchor to full toolbar');
