@@ -491,6 +491,33 @@
 .song-options-footer .danger-button{color:#9a3732;border-color:#c7a19b}
 @media(max-width:370px){.song-options-grid{gap:6px}.song-options-grid .song-option-tile{font-size:11px;padding:8px 3px}.song-card .card-actions{gap:4px}}
 
+
+/* 1.1: full-width library actions and compact score controls */
+.section-workspace .page-heading:has(.library-import){display:flex;align-items:stretch;flex-wrap:wrap;gap:12px;margin-bottom:14px}
+.section-workspace .page-heading:has(.library-import)>div:first-child{flex:1 1 100%}
+.library-import{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;gap:10px!important}
+.library-import .outline-btn,.library-import .primary-btn{width:100%;min-width:0;min-height:67px;display:flex;flex-direction:column;justify-content:center;gap:3px;font-size:clamp(12px,3.1vw,15px);font-weight:750;text-align:center;white-space:normal}
+.library-action-icon{font-size:26px;line-height:1}
+.song-options-compact{max-height:min(95dvh,780px)!important;padding:clamp(10px,2.7vw,16px)!important}
+.song-options-compact .song-options-header{margin-bottom:6px!important}
+.song-options-compact .song-transport{margin:4px 0 8px!important;height:50px}
+.song-options-compact .song-transport button{min-height:50px!important;height:50px!important}
+.song-options-compact .song-options-grid{gap:6px}
+.song-options-compact .song-option-tile{min-height:65px;padding:7px 4px;gap:3px}
+.song-options-compact .song-option-tile span[aria-hidden="true"]{font-size:19px}
+.song-options-compact .song-options-divider{margin:7px 0}
+.song-options-compact .song-options-footer{margin-top:7px}
+.song-review-notice{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left;border:1px solid #dec7a8;border-radius:10px;color:#83501d;background:#fff5e5;padding:9px 12px;margin:0 0 9px;font-size:13px;font-weight:700}
+.reader-follow-btn{border:1px solid #d0b47a;border-radius:10px;background:#204d3e;color:#f7dca5;font-size:12px;font-weight:750;padding:8px;white-space:nowrap;min-height:38px}
+.reader-toolbar:has(.reader-follow-btn) .reader-title{min-width:0}
+.audio-follow-bar{flex:0 0 auto;display:flex;align-items:center;gap:5px;min-height:46px;padding:5px 9px;background:#f6f0e4;border-bottom:1px solid #d3c1a2;color:#375a47}
+.audio-follow-icon{min-width:36px;width:36px;height:36px;display:grid;place-items:center;flex:0 0 auto;padding:0;border:1px solid #d0c7b4;border-radius:9px;background:#fffdf6;color:#1a4938;font-size:19px;font-weight:700;cursor:pointer}
+.audio-follow-import{position:relative}
+.audio-follow-bar #audioFollowStatus{flex:1;min-width:0;font-size:11px;line-height:1.3;max-height:34px;overflow:hidden}
+.reader-layer .chord-label.audio-chord-active{background:#f4c848!important;color:#172a21!important;border-radius:8px!important;box-shadow:0 0 0 3px #f4c848aa!important;z-index:5}
+.reader-layer .music-row.audio-row-active .lyric-line{border-left:3px solid #d69b21;padding-left:7px}
+@media screen and (max-height:700px){.song-options-compact .song-option-tile{min-height:55px!important}.song-options-compact .song-transport,.song-options-compact .song-transport button{height:43px!important;min-height:43px!important}}
+
 </style>
   <title>Cantoria — Canti per la liturgia cattolica</title>
 </head>
@@ -626,7 +653,7 @@ function makeId() { return `${Date.now().toString(36)}-${Math.random().toString(
 
 const root = document.querySelector('#app');
 const store = loadStore();
-const state = { appleAIAvailable:false, appleAIProbeBusy:false, appleAIBusy:false, appleSuggestions:[], view: 'home', filter: '', massId: null, songId: null, massItemId: null, shift: 0, page: 0, modal: null, photoURL: null, photoTitle: '', ocrText: '', geometryDraft: null, geometryRawText: '', ocrBusy: false, ocrStatus: '', toast: '', fontScale: 1 };
+const state = { followControlsOpen:false, view: 'home', filter: '', massId: null, songId: null, massItemId: null, shift: 0, page: 0, modal: null, photoURL: null, photoTitle: '', ocrText: '', geometryDraft: null, geometryRawText: '', ocrBusy: false, ocrStatus: '', toast: '', fontScale: 1 };
 let toastTimer;
 const escape = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const escapeAttr = escape;
@@ -636,7 +663,7 @@ function notify(message){state.toast=message;clearTimeout(toastTimer);render();t
 function persist(){if(!saveStore(store))notify('Memoria del browser non disponibile: esporta un backup dei dati.');}
 function currentSong(){return store.songs.find(x=>x.id===state.songId);}
 function currentMass(){return store.masses.find(x=>x.id===state.massId);}
-function go(view){state.view=view;state.songId=null;state.modal=null;render();}
+function go(view){window.CantoriaAudioFollow?.reset();state.followControlsOpen=false;state.view=view;state.songId=null;state.modal=null;render();}
 function inferSongKey(song){
  const symbols=[];
  const collect=x=>{if(Array.isArray(x))for(const c of x)symbols.push(String(typeof c==='string'?c:c?.chord||''));};
@@ -690,7 +717,7 @@ function chordOnlyBand(chords,kind,geometry,si=-1,rowIndex=-1,isPrint=false){
   const src=geometry?.[i],bbox=src?.sourceLineBBox;
   const x=positioned?100*(src.sourceX-bbox.x0)/(bbox.x1-bbox.x0):0;
   const tag=editable?'button':'span';
-  return `<${tag} class="chord-label ${editable?'editable':''} ${chord==='?'?'unresolved':''}" data-source-ratio="${positioned?(x/100).toFixed(5):''}" ${positioned?`style="left:${x.toFixed(4)}%;position:absolute"`:''} ${editable?`type="button" data-action="edit-chord-only" data-section="${si}" data-row-index="${rowIndex}" data-chord="${i}" title="Tieni premuto per correggere"`:''}>${chord==='?'?'<span class="unresolved-spot" aria-hidden="true"></span>':chordLabel(chord)}</${tag}>`;
+  return `<${tag} class="chord-label ${editable?'editable':''} ${chord==='?'?'unresolved':''}" data-follow-chord="${escapeAttr(transposeChord(chord,state.shift))}" data-source-ratio="${positioned?(x/100).toFixed(5):''}" ${positioned?`style="left:${x.toFixed(4)}%;position:absolute"`:''} ${editable?`type="button" data-action="edit-chord-only" data-section="${si}" data-row-index="${rowIndex}" data-chord="${i}" title="Tieni premuto per correggere"`:''}>${chord==='?'?'<span class="unresolved-spot" aria-hidden="true"></span>':chordLabel(chord)}</${tag}>`;
  }).join('');
  return `<div class="music-row ${escapeAttr(kind)} chords-only" ${musicBandStyle(kind,si,null,rowIndex)}><div class="chord-band" ${editable?`data-action="edit-band" data-section="${si}" data-row-index="${rowIndex}" role="button" tabindex="0" title="Tieni premuto sullo spazio vuoto per cambiare colore; sull’accordo per correggerlo"`:''}>${labels}</div></div>`;
 }
@@ -705,7 +732,7 @@ function lineHTML(section,line,si,li,isPrint=false){
     const cIndex=Number.isInteger(a.anchorCharacterIndex)?a.anchorCharacterIndex:'';
     const offset=Number.isFinite(a.offsetX)?a.offsetX:'';
     const sourceWidth=Number.isFinite(a.sourceCharWidth)?a.sourceCharWidth:'';
-    return `<${tag} class="chord-label ${isPrint?'':'editable'} ${uncertain?'uncertain':''} ${a.unresolved?'unresolved':''}" data-slot="${a.slot}" data-char-index="${cIndex}" data-offset-x="${offset}" data-source-char-width="${sourceWidth}" ${isPrint?'':`data-action="edit-chord" data-section="${si}" data-line="${li}" data-chord="${ai}"`} title="${escapeAttr(a.unresolved?'Simbolo musicale non riconosciuto (letto: '+(a.sourceSymbol||'?')+'). Tieni premuto e correggi.':uncertain?'Posizione da verificare sulla foto':'Accordo')}" aria-label="${a.unresolved?'Simbolo da verificare: ': 'Accordo '}${escapeAttr(a.chord)}${uncertain?' da verificare':''}">${a.unresolved?'<span class="unresolved-spot" aria-hidden="true"></span>':chordLabel(a.chord)}</${tag}>`;
+    return `<${tag} class="chord-label ${isPrint?'':'editable'} ${uncertain?'uncertain':''} ${a.unresolved?'unresolved':''}" data-follow-chord="${escapeAttr(transposeChord(a.chord,state.shift))}" data-slot="${a.slot}" data-char-index="${cIndex}" data-offset-x="${offset}" data-source-char-width="${sourceWidth}" ${isPrint?'':`data-action="edit-chord" data-section="${si}" data-line="${li}" data-chord="${ai}"`} title="${escapeAttr(a.unresolved?'Simbolo musicale non riconosciuto (letto: '+(a.sourceSymbol||'?')+'). Tieni premuto e correggi.':uncertain?'Posizione da verificare sulla foto':'Accordo')}" aria-label="${a.unresolved?'Simbolo da verificare: ': 'Accordo '}${escapeAttr(a.chord)}${uncertain?' da verificare':''}">${a.unresolved?'<span class="unresolved-spot" aria-hidden="true"></span>':chordLabel(a.chord)}</${tag}>`;
   }).join('');
   // A photographed lyric without recognised chords needs no blank chord bar.
   const chordBand=chords||!line.sourceRowId?`<div class="chord-band" ${isPrint?'':`data-action="edit-band" data-section="${si}" data-line="${li}" role="button" tabindex="0" title="Tieni premuto sullo spazio vuoto per cambiare colore; sull’accordo per correggerlo"`}>${chords}</div>`:'';
@@ -767,10 +794,16 @@ function readerHTML(){
   <button class="reader-back" data-action="close-reader" aria-label="Chiudi spartito">‹</button>
   <div class="reader-title" title="${escapeAttr(song.title)}"><div class="reader-title-line"><strong>${escape(song.title)}</strong></div><small>${horizontal?(state.page+1)+' / '+pages.length:''}${song.verified?'':' · DA VERIFICARE'}</small></div>
   <button class="reader-menu-btn" type="button" data-action="song-options" aria-label="Opzioni brano: tonalità, trasporto, PDF ed esportazione" title="Opzioni brano">☰</button>
+  <button class="reader-follow-btn" type="button" data-action="toggle-follow-controls" aria-expanded="${state.followControlsOpen?'true':'false'}" aria-label="Segui accordi">♫ Segui</button>
  </header>
+ ${state.followControlsOpen?`<div class="audio-follow-bar" aria-label="Segui gli accordi dalla riproduzione">
+   <label class="audio-follow-icon audio-follow-import" for="audioTrackInput" title="Carica traccia audio" aria-label="Carica audio">♫<input type="file" id="audioTrackInput" accept="audio/*,.mp3,.wav,.m4a" class="visually-hidden-file"></label>
+   <button class="audio-follow-icon" data-action="follow-play" type="button" title="Riproduci audio o pausa" aria-label="Riproduci audio">▶</button>
+   <button class="audio-follow-icon" data-action="follow-mic" type="button" title="Ascolta con il microfono" aria-label="Ascolta con il microfono">◉</button>
+   <button class="audio-follow-icon" data-action="follow-stop" type="button" title="Arresta" aria-label="Arresta">■</button>
+   <span id="audioFollowStatus" role="status" aria-live="polite">Carica un audio o usa il microfono</span>
+  </div>`:''}
  <div class="reader-stage" id="readerStage"><article class="reader-paper" id="readerPaper" tabindex="0">
-  ${song.photoData&&song.photoParserVersion!==6?'<div class="reader-warning" role="status">Questa partitura usa il vecchio riconoscimento. Apri ☰ e scegli Riconosci di nuovo dalla fotografia per applicare le correzioni.</div>':''}
-  ${song.photoData?(()=>{const anchors=song.sections.flatMap(sec=>(sec.lines||[]).flatMap(line=>line.anchors||[]));const pending=anchors.filter(a=>a.needsReview&&!a.verified).length;const unresolved=song.sections.reduce((n,sec)=>n+(sec.lines||[]).reduce((m,line)=>m+(line.unresolvedChords?.length||0),0),0);return pending||unresolved?`<div class="reader-warning" role="status">${pending} accordi da controllare con la foto${unresolved?' · '+unresolved+' simboli non letti':''}. Tieni premuto per correggere.</div>`:''})():''}
   <div class="sheet-columns" style="--reader-cols:${cols}">${columns.map(col=>`<div class="sheet-column">${entriesHTML(col)}</div>`).join('')}</div>
  </article></div></div>`;
 }
@@ -791,7 +824,7 @@ function headerHTML(){
  return `<header class="topbar topbar-section">${CATHOLIC_CORNER}<span class="header-spacer" aria-hidden="true"></span><strong class="header-section-title">${titles[state.view]||'Cantoria'}</strong><button class="header-home-btn" data-nav="home" aria-label="Torna alla Home" title="Indietro">‹</button></header>`;
 }
 function navHTML(){const nav=Object.keys(labels);return `<nav class="sidenav">${nav.map(k=>`<button class="nav-item ${state.view===k?'active':''}" data-nav="${k}"><span class="ico">${icons[k]}</span>${labels[k]}</button>`).join('')}<div class="nav-helper">La tua biblioteca è salvata in questo dispositivo.<br><strong>Il cloud verrà aggiunto in una prossima versione.</strong></div></nav><nav class="bottom-nav">${nav.map(k=>`<button class="bottom-item ${state.view===k?'active':''}" data-nav="${k}"><span class="ico">${icons[k]}</span>${labels[k]}</button>`).join('')}</nav>`;}
-function libraryHTML(){const songs=store.songs.filter(s=>(s.title||'').toLowerCase().includes(state.filter.toLowerCase()));return `<div class="page-heading"><div><h1>Biblioteca</h1></div><div class="library-import"><label class="outline-btn" for="songImportInput" style="cursor:pointer">↓ Importa brano</label><input type="file" id="songImportInput" accept=".cantoria.json,.json,application/json" style="position:absolute;width:1px;height:1px;opacity:0" aria-label="Scegli un file brano Cantoria"><button class="primary-btn" data-nav="capture">+ Aggiungi canto</button></div></div>
+function libraryHTML(){const songs=store.songs.filter(s=>(s.title||'').toLowerCase().includes(state.filter.toLowerCase()));return `<div class="page-heading"><div><h1>Biblioteca</h1></div><div class="library-import"><label class="outline-btn" for="songImportInput" style="cursor:pointer"><span class="library-action-icon" aria-hidden="true">⇩</span><span>Importa brano</span></label><input type="file" id="songImportInput" accept=".cantoria.json,.json,application/json" style="position:absolute;width:1px;height:1px;opacity:0" aria-label="Scegli un file brano Cantoria"><button type="button" class="primary-btn" data-nav="capture"><span class="library-action-icon" aria-hidden="true">⊕</span><span>Aggiungi canto</span></button></div></div>
   <label class="search-bar">⌕ <input id="search" type="search" placeholder="Cerca un canto…" value="${escapeAttr(state.filter)}" autocomplete="off" aria-label="Cerca un canto"></label>
   <div class="tiles">${songs.map(song=>`<article class="song-card" role="button" tabindex="0" data-action="read-song" data-song="${escapeAttr(song.id)}" aria-label="Apri ${escapeAttr(song.title)}"><div class="song-cover">${CATHOLIC_CORNER}<div class="cover-label">${escape(song.title)}</div></div><div class="card-body"><div class="meta-row"><span class="pill">${song.photoData&&!song.sections.length?'Foto':escape(song.key||inferSongKey(song)||'Tonalità da rilevare')}</span>${song.photoData&&!song.sections.length?'<span class="pill warning">Da trascrivere</span>':song.verified?'<span class="pill good">Verificato</span>':'<span class="pill warning">Da verificare</span>'}</div><p>${song.author?escape(song.author)+' · ':''}${song.photoData&&!song.sections.length?'Bozza fotografica':escape(song.subtitle||'Canto')+' · '+(song.sections||[]).length+' sezioni'}</p><div class="card-actions" role="group" aria-label="Azioni brano"><button type="button" class="outline-btn" data-action="add-to-mass" data-song="${escapeAttr(song.id)}" aria-label="Aggiungi alla messa"><span aria-hidden="true">⊕</span><span>Alla messa</span></button><button type="button" class="outline-btn" data-action="export-song" data-song="${escapeAttr(song.id)}"><span aria-hidden="true">⇧</span><span>Esporta</span></button><button type="button" class="outline-btn" data-action="card-pdf" data-song="${escapeAttr(song.id)}" ${song.sections?.length?'':'disabled aria-disabled="true"'}><span aria-hidden="true">▤</span><span>Crea PDF</span></button></div></div></article>`).join('')||'<div class="empty">Nessun canto trovato.</div>'}</div>
   `;}
@@ -829,19 +862,8 @@ function photoOcrFormHTML(inReader=false) {
  const ready=draft.trim().length>0&&!!state.geometryDraft?.hasGeometry&&
   state.geometryDraft.sections?.some(s=>s.lines?.length)&&draft.trim()===state.geometryRawText;
  return '<section class="photo-ocr-panel" aria-label="Riconoscimento foto">' +
-  '<div class="photo-analysis-actions" role="group" aria-label="Scegli il tipo di analisi">' +
-  '<button type="button" class="outline-btn photo-ocr-start" data-action="recognize-photo"' +
-  ((state.ocrBusy||state.appleAIBusy)?' disabled':'') + '>◉ ' +
-  (state.ocrBusy&&!state.appleAIBusy?'Analisi…':'Classica') + '</button>' +
-  '<button type="button" class="primary-btn apple-ai-button" data-action="recognize-apple"' +
-  ((!state.appleAIAvailable||state.ocrBusy||state.appleAIBusy)?' disabled':'') +
-  ' title="Apple Vision e Apple Intelligence direttamente sull’iPhone">✦ ' +
-  (state.appleAIBusy?'AI in corso…':'Apple Intelligence') + '</button>' +
-  '</div>' +
-  (!state.appleAIAvailable?
-    '<p class="apple-ai-availability" id="appleAIAvailability">Apple Intelligence non disponibile su questo dispositivo. Per attivarla servono un iPhone compatibile, iOS 26 o successivo e Apple Intelligence abilitata in Impostazioni. Classica rimane disponibile.</p>':
-    '<p class="apple-ai-availability available">Apple Vision e Apple Intelligence sul dispositivo · nessun costo per analisi.</p>') +
-   (state.appleSuggestions.length?'<div class="apple-ai-suggestions" role="status"><p>'+state.appleSuggestions.length+' suggerimenti da verificare:</p><ul>'+state.appleSuggestions.map(x=>'<li>'+escape(x.before)+' → <strong>'+escape(x.after)+'</strong> · '+escape(x.reason)+'</li>').join('')+'</ul><button type="button" class="primary-btn" data-action="apply-apple-suggestions">Applica suggerimenti</button><button type="button" class="outline-btn" data-action="discard-apple-suggestions">Scarta</button></div>':'') +
+  '<button type="button" class="primary-btn photo-ocr-start" data-action="recognize-photo"' +
+  (state.ocrBusy?' disabled':'') + '>◉ ' + (state.ocrBusy?'Analisi in corso…':'Riconosci accordi dalla foto') + '</button>' +
    '<p class="photo-ocr-status" id="ocrStatus" aria-live="polite">' +
   escape(state.ocrStatus||'Dopo la lettura, correggi le parole e gli accordi.') + '</p>' +
   '<div class="field"><label for="photoOcrText">Trascrizione da verificare</label>' +
@@ -866,196 +888,57 @@ function photoSectionsFromText(text){
  if(!sections.some(s=>s.lines?.length))throw new Error('Nessuna riga di canto riconosciuta con coordinate geometriche. Salva la foto e riprova.');
  return sections;
 }
-async function recognizePhotoText(replaceExisting=false,mode='classic'){
- if(state.ocrBusy||state.appleAIBusy)return;
- if(mode==='apple'&&!state.appleAIAvailable){
-  notify('Apple Intelligence non disponibile. Usa Classica oppure abilita Apple Intelligence sul dispositivo.');
-  return;
- }
+async function recognizePhotoText(replaceExisting=false){
+ if(state.ocrBusy)return;
  if(!state.songId)state.photoTitle=document.getElementById("photoSongTitle")?.value||state.photoTitle||"";
  const image=state.songId?currentSong()?.photoData:state.photoURL;
  if(!image){notify('Prima scatta o scegli una foto.');return;}
- state.ocrBusy=true;state.ocrStatus=mode==='apple'?'Apple Vision: lettura della foto sul dispositivo…':'Caricamento motore OCR…';render();
+ state.ocrBusy=true;state.ocrStatus='Caricamento riconoscimento classico…';render();
  let worker;
  try{
-  let result;
-  if(mode==='apple'){
-   const native=nativeAppleIntelligence();
-   if(!native)throw new Error('Plugin Apple Intelligence non disponibile');
-   const data=await native.recognize({image});
-   result={data};
-  }else{
-   await loadOcrLibrary();
-   worker=await window.Tesseract.createWorker('ita+eng',1,{logger:message=>{
-    if(message.status==='recognizing text'&&typeof message.progress==='number'){
-     state.ocrStatus='Lettura del testo: '+Math.round(message.progress*100)+'%';
-    }else if(message.status==='loading language traineddata'){
-     state.ocrStatus='Caricamento lingua italiana e inglese…';
-    }
-    const status=document.getElementById('ocrStatus');
-    if(status)status.textContent=state.ocrStatus;
-   }});
-   state.ocrStatus='Analisi classica della fotografia…';
-   await worker.setParameters({preserve_interword_spaces:"1"});
-   result=await worker.recognize(image, {}, {text:true,blocks:true});
-  }
+  await loadOcrLibrary();
+  worker=await window.Tesseract.createWorker('ita+eng',1,{logger:message=>{
+   if(message.status==='recognizing text'&&typeof message.progress==='number')
+    state.ocrStatus='Lettura della foto: '+Math.round(message.progress*100)+'%';
+   else if(message.status==='loading language traineddata')
+    state.ocrStatus='Preparazione OCR italiano e inglese…';
+   const status=document.getElementById('ocrStatus');
+   if(status)status.textContent=state.ocrStatus;
+  }});
+  await worker.setParameters({preserve_interword_spaces:"1"});
+  const result=await worker.recognize(image,{}, {text:true,blocks:true});
   state.ocrText=String(result.data?.text||'').trim().slice(0,20000);
-   state.appleSuggestions=[];
   state.geometryRawText=state.ocrText;
   state.geometryDraft=window.CantoriaGeometry?.parseGeometry(result.data)||null;
-  if(mode==='apple'&&state.geometryDraft?.hasGeometry&&state.geometryDraft?.sections?.some(s=>s.lines?.length)){
-   state.ocrStatus='Apple Intelligence: controllo delle sigle incerte…';
-   await improvePhotoWithApple();
-  }
   const diag=state.geometryDraft?.diagnostics;
   if(!state.geometryDraft?.sections?.some(s=>s.lines?.length)){
-   state.ocrStatus='Non sono disponibili coordinate sufficienti per associare gli accordi. Salva la foto e riprova.';
+   state.ocrStatus='Coordinate insufficienti per associare gli accordi. Salva la foto e riprova.';
   }else{
-   state.ocrStatus='Coordinate conservate. '+diag.totalAnchored+' accordi associati; '+diag.needsReview+
-    ' associazioni da verificare con l’originale.'+
-    (mode==='apple'?' Apple Intelligence: '+state.appleSuggestions.length+' suggerimenti da controllare.':'');
+   state.ocrStatus='Coordinate conservate. '+diag.totalAnchored+' accordi; '+diag.needsReview+' da verificare.';
    if(replaceExisting){
     const song=currentSong();
     if(song?.photoData){
-     const previous={sections:song.sections,ocrText:song.ocrText,geometryDiagnostics:song.geometryDiagnostics,title:song.title,photoParserVersion:song.photoParserVersion,verified:song.verified,key:song.key};
+     const old={sections:song.sections,ocrText:song.ocrText,geometryDiagnostics:song.geometryDiagnostics,title:song.title,photoParserVersion:song.photoParserVersion,verified:song.verified,key:song.key};
      song.sections=structuredClone(state.geometryDraft.sections);
      if(!song.key)song.key=inferSongKey(song);
      song.ocrText=state.ocrText;
      song.geometryDiagnostics=structuredClone(diag);
-     if(diag.refrainInferredFromRepeats&&/^Canto fotografato/i.test(song.title||''))
-       song.title=diag.suggestedTitle;
-     song.photoParserVersion=6;
-     song.verified=false;
-     if(!saveStore(store)){
-      Object.assign(song,previous);state.ocrStatus='Memoria insufficiente: partitura non aggiornata.';
-     }else state.ocrStatus='Partitura ricalcolata dalle coordinate originali. Verifica gli accordi segnalati.';
+     if(diag.refrainInferredFromRepeats&&/^Canto fotografato/i.test(song.title||''))song.title=diag.suggestedTitle;
+     song.photoParserVersion=6;song.verified=false;
+     if(!saveStore(store)){Object.assign(song,old);state.ocrStatus='Memoria insufficiente.';}
+     else state.ocrStatus='Partitura ricalcolata. Verifica gli accordi nelle impostazioni.';
     }
    }
   }
  }catch(err){
   console.error('OCR:',err);
-  state.ocrStatus=mode==='apple'?
-    'Lettura Apple non riuscita. Puoi provare Classica: la foto è conservata.':
-    'OCR non riuscito. Verifica la connessione e riprova; la foto resta disponibile.';
+  state.ocrStatus='Riconoscimento non riuscito. Verifica la connessione e riprova.';
  }finally{
-  if(worker){try{await worker.terminate();}catch(err){console.warn('Chiusura OCR:',err);}}
+  if(worker){try{await worker.terminate();}catch(_){ }}
   state.ocrBusy=false;render();
  }
 }
 
-// On-device Apple Vision and Apple Intelligence, without replacing the
-// Capacitor startup controller. Messages travel through an isolated
-// WKScriptMessageHandler attached to the existing WebView from AppDelegate.
-let cantoriaAINextRequest=0;
-const cantoriaAIPending=new Map();
-window.__cantoriaAIReply=function(packet){
- const id=Number(packet?.id),p=cantoriaAIPending.get(id);
- if(!p)return;
- clearTimeout(p.timeout);
- cantoriaAIPending.delete(id);
- if(packet.error)p.reject(new Error(String(packet.error)));
- else p.resolve(packet.result||{});
-};
-function nativeAppleIntelligence(){
- if(!window.Capacitor?.isNativePlatform?.())return null;
- const handler=window.webkit?.messageHandlers?.cantoriaAI;
- if(!handler?.postMessage)return null;
- const call=(method,payload={})=>new Promise((resolve,reject)=>{
-  const id=++cantoriaAINextRequest;
-  const timeout=setTimeout(()=>{
-   cantoriaAIPending.delete(id);
-   reject(new Error('Apple Intelligence non risponde. Puoi utilizzare Classica.'));
-  },method==='improve'?125000:method==='recognize'?70000:12000);
-  cantoriaAIPending.set(id,{resolve,reject,timeout});
-  try{handler.postMessage({id,method,...payload});}
-  catch(err){
-   clearTimeout(timeout);cantoriaAIPending.delete(id);reject(err);
-  }
- });
- return {
-  availability:()=>call('availability'),
-  recognize:({image})=>call('recognize',{image}),
-  improve:({candidates})=>call('improve',{candidates})
- };
-}
-async function probeAppleIntelligence(){
- const plugin=nativeAppleIntelligence();
- if(!plugin||state.appleAIProbeBusy)return;
- state.appleAIProbeBusy=true;
- try{const status=await plugin.availability();const supported=status?.available===true;
-  if(supported!==state.appleAIAvailable){state.appleAIAvailable=supported;render();}
- }catch(err){state.appleAIAvailable=false;}
- finally{state.appleAIProbeBusy=false;}
-}
-function proposedAppleCorrections(output,eligible){
- let raw=String(output||'').trim();
- if(!raw.startsWith('[')){
-  const a=raw.indexOf('['),b=raw.lastIndexOf(']');
-  if(a<0||b<a)return [];
-  raw=raw.slice(a,b+1);
- }
- const changes=JSON.parse(raw);
- if(!Array.isArray(changes))return [];
- return changes.slice(0,40).flatMap(x=>{
-  const si=Number(x.si),li=Number(x.li),ai=Number(x.ai);
-  if(![si,li,ai].every(Number.isInteger))return [];
-  if(eligible&&!eligible.has(si+':'+li+':'+ai))return [];
-  const anchor=state.geometryDraft?.sections?.[si]?.lines?.[li]?.anchors?.[ai];
-  if(!anchor||anchor.verified)return [];
-  const after=window.CantoriaOCR?.chordName(String(x.chord||''))||'';
-  if(!after||after===anchor.chord)return [];
-  return {si,li,ai,before:anchor.chord,after,
-   reason:String(x.reason||'Controlla sulla fotografia').slice(0,130)};
- });
-}
-async function improvePhotoWithApple(){
- const native=nativeAppleIntelligence();
- if(!native||!state.appleAIAvailable||state.appleAIBusy)return;
- if(!state.geometryDraft?.hasGeometry||state.ocrText.trim()!==state.geometryRawText)return;
- // Candidates retain original chord glyphs, coordinates and nearby Italian lyrics.
- // Prioritize uncertain glyphs to avoid unnecessary local-model inference.
- const candidates=[];
- state.geometryDraft.sections.forEach((section,si)=>(section.lines||[]).forEach((line,li)=>
-  (line.anchors||[]).forEach((anchor,ai)=>{
-   if(!anchor.verified&&candidates.length<54)candidates.push({
-    si,li,ai,source:String(anchor.sourceSymbol||anchor.chord||'').slice(0,20),
-    chord:anchor.chord,sourceX:Number(anchor.sourceX)||0,
-    uncertain:!!anchor.unresolved,lyric:line.marked.slice(0,125),
-    section:section.kind,sectionName:section.name,
-    neighbors:(line.anchors||[]).filter((_,j)=>j!==ai).map(a=>a.chord).slice(0,6)
-   });
-  })));
- if(!candidates.length){
-  state.ocrStatus='Apple Vision ha letto la partitura: non ci sono accordi incerti da revisionare.';
-  return;
- }
- state.appleAIBusy=true;state.appleSuggestions=[];render();
- try{
-  const changes=[];
-  for(let offset=0;offset<candidates.length;offset+=18){
-   const batch=candidates.slice(offset,offset+18);
-   state.ocrStatus='Apple Intelligence: controllo '+(offset+1)+'–'+
-     Math.min(offset+batch.length,candidates.length)+' di '+candidates.length+' accordi…';
-   const result=await native.improve({candidates:JSON.stringify(batch)});
-   const allowed=new Set(batch.map(x=>x.si+':'+x.li+':'+x.ai));
-   changes.push(...proposedAppleCorrections(result?.suggestion||'[]',allowed));
-  }
-  const seen=new Set();
-  state.appleSuggestions=changes.filter(x=>{
-   const key=x.si+':'+x.li+':'+x.ai;
-   if(seen.has(key))return false;
-   seen.add(key);return true;
-  }).slice(0,40);
-  if(state.appleSuggestions.length){
-   notify(state.appleSuggestions.length+' correzioni proposte: controllale prima di applicarle.');
-  }else{
-   state.ocrStatus='Apple Vision ha letto la foto; il modello non propone correzioni musicali sicure.';
-  }
- }catch(err){
-  console.error('Apple Intelligence:',err);
-  state.ocrStatus='Apple Vision ha completato la lettura, ma la revisione AI non è riuscita. Puoi correggere manualmente.';
- }finally{state.appleAIBusy=false;render();}
-}
 function captureHTML(){
  return `<div class="page-heading"><div><h1>Acquisisci un canto</h1></div></div>
   <section class="panel capture-photo-card">
@@ -1072,7 +955,7 @@ function captureHTML(){
      </form>`:`<p class="photo-capture-hint">Fotografa lo spartito per iniziare.</p>`}
   </section>`;
 }
-function settingsHTML(){return `<div class="page-heading"><div><div class="eyebrow">Versione 0.7.3</div><h1>Impostazioni</h1></div></div><div class="form-wrap"><div class="panel"><h3>Dati e salvataggi</h3><p>I canti e le scalette sono attualmente memorizzati <strong>solo nel browser di questo dispositivo</strong>. Non sono ancora sincronizzati su iCloud o GitHub.</p><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px"><button class="outline-btn" data-action="backup">Scarica backup JSON</button><label class="outline-btn" style="cursor:pointer">Ripristina backup<input type="file" id="backupInput" accept="application/json" style="display:none"></label></div></div><div class="panel"><h3>Ultimo aggiornamento</h3><p>Scopri le modifiche e le migliorie introdotte con la versione più recente.</p><button type="button" class="outline-btn" data-action="show-release-notes">Novità dell'ultima versione</button></div><div class="panel"><h3>Modello musicale</h3><p>Gli accordi delle fotografie conservano anche coordinate OCR, indice del carattere e livello di affidabilità. La disposizione grafica non cambia il loro ancoraggio musicale.</p><div class="alert" style="margin-top:15px">OCR geometrico sperimentale: dove sono disponibili soltanto i riquadri delle parole gli ancoraggi ai caratteri sono stimati e sempre da verificare. Se mancano le coordinate, l'app non inventa una posizione. Le note sul pentagramma non sono ancora riconosciute.</div></div></div>`;}
+function settingsHTML(){return `<div class="page-heading"><div><div class="eyebrow">Versione 1.1 (1)</div><h1>Impostazioni</h1></div></div><div class="form-wrap"><div class="panel"><h3>Dati e salvataggi</h3><p>I canti e le scalette sono attualmente memorizzati <strong>solo nel browser di questo dispositivo</strong>. Non sono ancora sincronizzati su iCloud o GitHub.</p><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px"><button class="outline-btn" data-action="backup">Scarica backup JSON</button><label class="outline-btn" style="cursor:pointer">Ripristina backup<input type="file" id="backupInput" accept="application/json" style="display:none"></label></div></div><div class="panel"><h3>Ultimo aggiornamento</h3><p>Scopri le modifiche e le migliorie introdotte con la versione più recente.</p><button type="button" class="outline-btn" data-action="show-release-notes">Novità dell'ultima versione</button></div><div class="panel"><h3>Modello musicale</h3><p>Gli accordi delle fotografie conservano anche coordinate OCR, indice del carattere e livello di affidabilità. La disposizione grafica non cambia il loro ancoraggio musicale.</p><div class="alert" style="margin-top:15px">OCR geometrico sperimentale: dove sono disponibili soltanto i riquadri delle parole gli ancoraggi ai caratteri sono stimati e sempre da verificare. Se mancano le coordinate, l'app non inventa una posizione. Le note sul pentagramma non sono ancora riconosciute.</div></div></div>`;}
 function appHTML(){
  const views={home:homeHTML,library:libraryHTML,masses:massesHTML,capture:captureHTML,settings:settingsHTML};
  const builder=views[state.view]||homeHTML;
@@ -1187,17 +1070,20 @@ function modalHTML(){const m=state.modal;
   const song=currentSong();if(!song?.photoData)return '';
   return `<div class="modal-shade"><div class="modal-card" role="alertdialog" aria-modal="true" aria-label="Conferma ricalcolo accordi"><h2>Ricalcolare gli accordi?</h2><p>La partitura verrà ricalcolata dalla fotografia originale con le coordinate OCR. Le modifiche manuali fatte sulle sillabe e sugli accordi saranno sostituite. La fotografia originale resterà disponibile.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button type="button" class="primary-btn" data-action="reparse-photo">Ricalcola accordi</button></div></div></div>`;
  }
- if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità dell'ultima versione"><h2>Novità dell'ultima versione</h2><p><strong>Versione 0.7.2:</strong> riattivato il pulsante Apple Intelligence con un collegamento nativo indipendente dal controller di avvio. Apple Vision riconosce parole e coordinate dalla fotografia; il modello Apple sul dispositivo propone correzioni degli accordi da verificare. L'app mantiene il controller standard di Capacitor e l'OCR Classica resta disponibile anche su dispositivi non compatibili. Nessuna chiamata API a pagamento.</p><p><strong>Versione 0.7.1:</strong> ripristinato il controller standard di Capacitor dopo il problema di avvio della 0.7.0. Acquisizione Classica, biblioteca, editor, colori delle pill e PDF restano operativi. Apple Intelligence rimane visibile ma temporaneamente disattivata, finché il plugin nativo non supera i test di avvio su iPhone.</p><p><strong>Versione 0.7.0:</strong> due pulsanti affiancati nell'acquisizione: Classica (motore OCR tradizionale) e Apple Intelligence (Apple Vision sul dispositivo con lettura delle parole e coordinate, poi revisione locale dei simboli musicali incerti mediante Foundation Models). Il secondo pulsante è attivo solo sui dispositivi compatibili, senza costi API. Le correzioni proposte restano da confermare. Conservati l'editing delle parole, gli accordi e i colori delle pill, il PDF e Salva brano.</p><p><strong>Versione 0.6.9:</strong> PDF ridisegnato secondo il riferimento approvato: intestazioni, separatori dorati, primo ritornello azzurro, strofe verdi, ritornello ripetuto arancione, font unico e accordi affiancati senza impilamento verticale. La ricostruzione delle sezioni considera i versi ripetuti e il parser filtra i frammenti OCR evidentemente danneggiati. Per i brani precedenti usa Riconosci di nuovo dalla fotografia o importa una partitura verificata.</p><p><strong>Versione 0.6.8:</strong> tieni premuto su uno spazio vuoto della pill accordi per scegliere il colore esclusivamente di quella fascia. Tieni premuto direttamente su un accordo per correggerlo. Ogni colore viene salvato nel brano, anche su introduzioni e finali, e può tornare al colore della sezione.</p><p><strong>Versione 0.6.7:</strong> la frase più lunga determina la dimensione unica del testo per tutto il brano: nessun verso esce dal display e non è necessario scorrere orizzontalmente. Le pill colorate si modificano tenendo premuto in qualsiasi punto della fascia degli accordi; puoi correggere o aggiungere accordi senza impilarli. Restano attivi la modifica delle parole con un tocco, i colori per sezione e il comando Salva brano nel menu ☰.</p><p><strong>Versione 0.6.6:</strong> testo del canto con carattere uniforme senza riduzioni per riga; rimozione dei simboli grafici letti dall'OCR; modifica delle parole toccando una riga o un'intera sezione dal menu ☰; scelta e salvataggio dei colori delle pill separatamente per Intro, Strofa, Ritornello e Finale. Gli accordi non letti non mostrano simboli inventati. Per ripulire brani già acquisiti usa ☰ → Riconosci di nuovo dalla fotografia (prima salva un backup se hai fatto correzioni manuali).</p><p><strong>Nuovo riconoscimento 0.6.5:</strong> le righe di accordi in maiuscolo/minuscolo misto (Sol Do Sol Re, Mi- Si- Do Re) vengono riconosciute sopra il testo, gli accordi dubbi restano modificabili e le intestazioni numerate non vengono cantate. Per i brani già acquisiti, dal menu ☰ usa Riconosci di nuovo dalla fotografia; il ricalcolo sostituisce eventuali modifiche manuali.</p><p><strong>Acquisizione da fotografia:</strong> le sigle difficili come SIm M7 o SIm MI/7 restano nella fascia degli accordi, anche quando l'OCR ne riconosce soltanto una parte. I simboli incerti sono segnalati con ?, senza spostarli nel testo.</p><p><strong>Pulizia e leggibilità:</strong> eliminati i simboli estranei come @ e le scritte dei comandi del dispositivo; le righe senza accordi non generano fasce vuote. Riconosciuta l'indicazione RIT all'inizio del ritornello.</p><p><strong>Verifica musicale:</strong> ogni accordo mantiene la propria posizione OCR; quelli incerti richiedono correzione sulla fotografia originale. Restano disponibili la modifica manuale, Elimina partitura e la dichiarazione automatica della crittografia esente.</p><p><strong>Versione 0.6.3:</strong> MI/7 riconosciuto; accordi affiancati senza impilamento; accordi di introduzione e finale modificabili; Salva brano nel menu ☰; Apple Intelligence sarà riattivata dopo la verifica del componente nativo: per sicurezza resta momentaneamente disabilitata.</p><p>Il riconoscimento delle note sul pentagramma non è ancora disponibile e gli accordi restano da verificare rispetto all'originale.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
+ if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1</h2><p>Biblioteca ottimizzata, riconoscimento fotografico classico e modalità Segui accordi con audio e microfono.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
 
  if(m.type==='song-options'){
   const song=currentSong();if(!song)return '';
   const hasScore=!!song.sections?.length,hasPhoto=!!song.photoData;
   const noScore=hasScore?'':' disabled aria-disabled="true"';
   const noPhoto=hasPhoto?'':' disabled aria-disabled="true"';
+  const pending=(song.sections||[]).flatMap(s=>s.lines||[]).flatMap(l=>l.anchors||[]).filter(a=>(a.needsReview||a.unresolved)&&!a.verified).length;
+  const missed=(song.sections||[]).flatMap(s=>s.lines||[]).reduce((n,l)=>n+(l.unresolvedChords?.length||0),0);
+  const review=(pending||missed)?`<button type="button" class="song-review-notice" data-action="review-chords">⚠ ${pending+missed} accordi da controllare <span>›</span></button>`:'';
   return `<div class="modal-shade"><div class="modal-card song-options song-options-compact" role="dialog" aria-modal="true" aria-label="Impostazioni brano">
     <div class="song-options-header"><h2>Impostazioni brano</h2><button type="button" class="song-close" data-action="close-modal" aria-label="Chiudi">×</button></div>
     <div class="song-transport" aria-label="Tonalità e trasporto"><button type="button" class="song-transport-btn" data-action="shift-down" aria-label="Abbassa di un semitono">−</button><button type="button" class="song-transport-key" data-action="reset-shift" aria-label="Tonalità attuale, tocca per azzerare il trasporto"><strong>${escape(describeTonality(song,state.shift))}</strong><small>${song.key?'Originale':'Rilevata'} · ${state.shift>0?'+':''}${state.shift}</small></button><button type="button" class="song-transport-btn" data-action="shift-up" aria-label="Alza di un semitono">+</button></div>
-    <div class="song-options-grid">
+    ${review}<div class="song-options-grid">
       <button type="button" class="song-option-tile" data-action="choose-section-text"${noScore}><span aria-hidden="true">✎</span><span>Modifica testo delle strofe</span></button>
       <button type="button" class="song-option-tile" data-action="band-colors"${noScore}><span aria-hidden="true">◒</span><span>Colori pill e accordi</span></button>
       <button type="button" class="song-option-tile" data-action="show-original-photo"${noPhoto}><span aria-hidden="true">▧</span><span>Vedi foto originale</span></button>
@@ -1359,7 +1245,7 @@ function alignChords(scope=document){
   for(const p of positions)p.label.style.left=Math.max(0,p.x).toFixed(2)+'px';
  }
 }
-function render(){const oldStage=document.querySelector('#readerStage'),oldReader=document.querySelector('#readerLayer');const oldSong=oldReader?.dataset.song,oldScroll=oldStage?.scrollTop||0;root.innerHTML=appHTML();requestAnimationFrame(()=>{fitSongToDisplay();alignChords();const newStage=document.querySelector('#readerStage'),newReader=document.querySelector('#readerLayer');if(newStage&&oldSong===newReader?.dataset.song&&newReader?.classList.contains('reader-portrait'))newStage.scrollTop=oldScroll;});}
+function render(){const oldStage=document.querySelector('#readerStage'),oldReader=document.querySelector('#readerLayer');const oldSong=oldReader?.dataset.song,oldScroll=oldStage?.scrollTop||0;root.innerHTML=appHTML();requestAnimationFrame(()=>{fitSongToDisplay();alignChords();const newStage=document.querySelector('#readerStage'),newReader=document.querySelector('#readerLayer');if(newStage&&oldSong===newReader?.dataset.song&&newReader?.classList.contains('reader-portrait'))newStage.scrollTop=oldScroll;window.CantoriaAudioFollow?.refresh();});}
 function compressScorePhoto(file){
  if(!file.type.startsWith('image/')||file.size>25000000)return Promise.reject(new Error('Formato o dimensione non supportati'));
  return new Promise((resolve,reject)=>{
@@ -1389,7 +1275,7 @@ function compressScorePhoto(file){
   img.src=url;
  });
 }
-function openSong(songId, shift=0, massItemId=null){const song=store.songs.find(x=>x.id===songId);if(!song)return;state.songId=songId;state.ocrText=String(song.ocrText||'');state.ocrStatus='';state.shift=shift;state.page=0;state.massItemId=massItemId;state.modal=null;render();}
+function openSong(songId, shift=0, massItemId=null){const song=store.songs.find(x=>x.id===songId);if(!song)return;window.CantoriaAudioFollow?.reset(songId);state.followControlsOpen=false;state.songId=songId;state.ocrText=String(song.ocrText||'');state.ocrStatus='';state.shift=shift;state.page=0;state.massItemId=massItemId;state.modal=null;render();}
 function modifyMassItem(id,fn){const m=currentMass(),item=m?.items.find(x=>x.id===id);if(!item)return;fn(item,m);persist();render();}
 function openChordModal(si,li,ai,slot=0){state.modal={type:'chord-edit',si,li,ai,slot};render();}
 function makeCantoriaPdf(song,shift=0){
@@ -1637,20 +1523,9 @@ root.addEventListener('click',e=>{
  if(action==='ask-reparse-photo'){const song=currentSong();if(song?.photoData){state.modal={type:'reparse-photo-confirm'};render();}return;}
  if(action==='reparse-photo'){
   const song=currentSong();if(state.modal?.type!=='reparse-photo-confirm'||!song?.photoData)return;
-  state.modal=null;state.page=0;recognizePhotoText(true,state.appleAIAvailable?'apple':'classic');return;
+  state.modal=null;state.page=0;recognizePhotoText(true);return;
  }
  if(action==='recognize-photo'){recognizePhotoText();return;}
-  if(action==='recognize-apple'){recognizePhotoText(false,'apple');return;}
-  if(action==='improve-photo-apple'){improvePhotoWithApple();return;}
-  if(action==='discard-apple-suggestions'){state.appleSuggestions=[];render();return;}
-  if(action==='apply-apple-suggestions'){
-   let applied=0;
-   for(const x of state.appleSuggestions){
-    const anchor=state.geometryDraft?.sections?.[x.si]?.lines?.[x.li]?.anchors?.[x.ai];
-    if(anchor&&!anchor.verified&&anchor.chord===x.before){anchor.chord=x.after;anchor.symbol=x.after;anchor.unresolved=false;anchor.needsReview=true;applied++;}
-   }
-   state.appleSuggestions=[];render();notify(applied+' suggerimenti applicati alla bozza. Verifica sulla foto.');return;
-  }
  if(action==='save-ocr-text'){const song=currentSong();if(song?.photoData){song.ocrText=state.ocrText.trim().slice(0,20000);persist();notify('Trascrizione salvata.');}return;}
  if(action==='convert-ocr-photo'){
   const song=currentSong();if(!song?.photoData)return;
@@ -1666,11 +1541,16 @@ root.addEventListener('click',e=>{
   state.ocrStatus='';state.page=0;render();notify('Partitura creata. Controlla gli accordi sulle sillabe.');return;
  }
  if(action==='show-original-photo'){state.modal={type:'photo-source'};render();return;}
- if(action==='close-reader'){state.songId=null;state.modal=null;render();return;}
+ if(action==='close-reader'){window.CantoriaAudioFollow?.reset();state.songId=null;state.modal=null;state.followControlsOpen=false;render();return;}
  if(action==='read-song'){openSong(el.dataset.song);return;}
  if(action==='read-mass-song'){const x=currentMass()?.items.find(i=>i.id===el.dataset.item);if(x)openSong(x.songId,x.shift,x.id);return;}
  if(action==='next-page'||action==='prev-page'){state.page+=action==='next-page'?1:-1;render();return;}
  if(action==='song-options'){state.modal={type:'song-options'};render();return;}
+ if(action==='toggle-follow-controls'){state.followControlsOpen=!state.followControlsOpen;render();return;}
+ if(action==='follow-play'){window.CantoriaAudioFollow?.play().catch(err=>notify(err.message));return;}
+ if(action==='follow-mic'){window.CantoriaAudioFollow?.microphone().catch(err=>notify(err.message));return;}
+ if(action==='follow-stop'){window.CantoriaAudioFollow?.stop();return;}
+ if(action==='review-chords'){const song=currentSong();for(let si=0;si<(song?.sections||[]).length;si++)for(let li=0;li<(song.sections[si].lines||[]).length;li++){const ai=(song.sections[si].lines[li].anchors||[]).findIndex(a=>(a.needsReview||a.unresolved)&&!a.verified);if(ai>=0){openChordModal(si,li,ai);render();return;}}if(song?.photoData){state.modal={type:'photo-source'};render();}else notify('Nessun accordo incerto trovato.');return;}
  if(action==='choose-section-text'){state.modal={type:'section-text-picker'};render();return;}
  if(action==='open-section-text'){
   const si=Number(el.dataset.section);
@@ -1809,6 +1689,7 @@ root.addEventListener('submit',e=>{e.preventDefault();const form=e.target;const 
 root.addEventListener('keydown',e=>{const card=e.target.closest('.song-card[data-action="read-song"]');if(card&&e.target===card&&(e.key==='Enter'||e.key===' ')){e.preventDefault();openSong(card.dataset.song);}});
 root.addEventListener('input',e=>{if(e.target.id==='photoSongTitle'){state.photoTitle=e.target.value;return;}if(e.target.id==='photoOcrText'){state.ocrText=e.target.value.slice(0,20000);return;}if(e.target.id==='search'){state.filter=e.target.value;const pos=e.target.selectionStart;render();const s=root.querySelector('#search');s?.focus();if(s?.setSelectionRange)s.setSelectionRange(pos,pos);}});
 root.addEventListener('change',async e=>{
+ if(e.target.id==='audioTrackInput'){const file=e.target.files?.[0];if(!file)return;try{await window.CantoriaAudioFollow.loadTrack(file);}catch(err){notify(err.message);}return;}
  if(e.target.matches('#bandColorsForm select')){
   const preview=root.querySelector('[data-preview="'+e.target.name+'"]');
   if(preview&&window.CantoriaEditor.PALETTE.some(p=>p.value===e.target.value))
@@ -1817,8 +1698,7 @@ root.addEventListener('change',async e=>{
  }
  if(e.target.id==='songKeyInline'){const song=currentSong();if(song){song.key=e.target.value;persist();render();}return;}if(e.target.id==='songImportInput'){const file=e.target.files?.[0];if(!file)return;try{if(file.size>3000000)throw new Error('File troppo grande');const song=importSongFile(await file.text());notify('Brano importato: '+song.title);}catch(err){notify('Importazione non riuscita: '+err.message);}return;}if(e.target.id==='photoCameraInput'||e.target.id==='photoLibraryInput'){
  const file=e.target.files?.[0];if(!file)return;
- try{state.photoURL=await compressScorePhoto(file);state.photoTitle='';state.ocrText='';state.geometryDraft=null;state.geometryRawText='';state.ocrStatus='';state.appleSuggestions=[];render();
-  setTimeout(probeAppleIntelligence,250);}
+ try{state.photoURL=await compressScorePhoto(file);state.photoTitle='';state.ocrText='';state.geometryDraft=null;state.geometryRawText='';state.ocrStatus='';render();}
  catch(err){console.error(err);notify('Impossibile aprire la foto. Prova un file JPEG o PNG.');}
  return;
 }if(e.target.id==='backupInput'){const file=e.target.files?.[0];if(!file)return;try{const data=importJSON(await file.text());store.songs=data.songs.map(normalizedSong);store.masses=data.masses;persist();state.view='library';notify('Backup ripristinato.');}catch(err){notify('Impossibile leggere il backup.');}}});
@@ -1926,14 +1806,11 @@ let startX=0,startY=0;root.addEventListener('touchstart',e=>{if(!e.target.closes
 root.addEventListener('touchend',e=>{if(!e.target.closest('#readerPaper'))return;const t=e.changedTouches[0],dx=t.clientX-startX,dy=t.clientY-startY;if(window.innerWidth>window.innerHeight&&Math.abs(dx)>65&&Math.abs(dx)>Math.abs(dy)*1.4){state.page+=dx<0?1:-1;state.page=Math.max(0,Math.min(pageList(currentSong()).length-1,state.page));render();}},{passive:true});
 window.addEventListener('resize',()=>{if(state.songId){state.page=0;render();}});
 window.addEventListener('beforeprint',()=>{const holder=document.querySelector('#print-sheet');if(holder&&currentSong()&&!holder.innerHTML)holder.innerHTML=`<div class="print-body"><div class="print-head">${escape(currentSong().title)}</div>${sectionsAllHTML(currentSong(),true)}</div>`;alignChords(holder||document);});
+window.addEventListener('pagehide',()=>window.CantoriaAudioFollow?.stop());
 if('serviceWorker'in navigator&&location.protocol.startsWith('http'))window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 render();
-// AppDelegate attaches the native channel only after the stock WKWebView
-// appears; re-check without ever running the on-device model on startup.
-for(const delay of [650,1550,3400,6000,10000])setTimeout(probeAppleIntelligence,delay);
-window.addEventListener('focus',probeAppleIntelligence);
-window.addEventListener('pageshow',probeAppleIntelligence);
 </script>
+<script src="./audio-follow.js"></script>
 <script src="./score-ocr.js"></script>
 <script src="./score-geometry.js"></script>
   <script src="./score-editor.js"></script>

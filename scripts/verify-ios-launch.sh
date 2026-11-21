@@ -12,8 +12,8 @@ echo "Building launch-test iOS app (no Apple signing)…"
 if ! xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
   -destination 'generic/platform=iOS Simulator' \
   -derivedDataPath "$data" CODE_SIGNING_ALLOWED=NO \
-  MARKETING_VERSION="$(node -p "require('./package.json').version")" \
-  CURRENT_PROJECT_VERSION="${GITHUB_RUN_NUMBER:-1}" build >"$log" 2>&1; then
+  MARKETING_VERSION="$(node -p "require('./release.json').version")" \
+  CURRENT_PROJECT_VERSION="$(node -p "require('./release.json').build")" build >"$log" 2>&1; then
   tail -n 120 "$log"
   exit 1
 fi

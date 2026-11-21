@@ -88,12 +88,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          MARKETING_VERSION="$(node -p "require('./package.json').version")"
+          MARKETING_VERSION="$(node -p "require('./release.json').version")"
           xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
             -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/Cantoria.xcarchive" \
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID" CODE_SIGN_STYLE=Automatic \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
-            MARKETING_VERSION="$MARKETING_VERSION" CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER" \
+            MARKETING_VERSION="$MARKETING_VERSION" CURRENT_PROJECT_VERSION="$(node -p "require('./release.json').build")" \
             archive
 
       - name: Verify archived export compliance declaration

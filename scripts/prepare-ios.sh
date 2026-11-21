@@ -23,68 +23,17 @@ if [[ ! -d ios/App/App.xcodeproj ]]; then
 fi
 npx cap sync ios
 
-# CRITICAL 0.7.1 HOTFIX: Keep Capacitor's stock CAPBridgeViewController.
-# The 0.7.0 compiled custom Swift controller triggered a black launch screen.
-# Do NOT append the experimental Foundation Models plugin to AppDelegate.swift
-# or change Main.storyboard until a proper native runtime launch test passes.
-# The classic photo OCR remains available with all local user data preserved.
-
-# Fail closed if a future change restores a custom storyboard controller
-# without an explicit successful launch test.
+# Preserve Capacitor's stock controller; never replace the startup storyboard.
 if ! grep -q 'customClass="CAPBridgeViewController" customModule="Capacitor"' ios/App/App/Base.lproj/Main.storyboard; then
-  echo "Unsafe custom iOS controller detected: refusing possible black-screen build." >&2
-  exit 1
+ echo "Unsafe controller. Refusing build." >&2; exit 1
 fi
-
-# The native AI bridge is independent of Capacitor's custom plugin mechanism.
-# It hooks into AppDelegate's already-compiled code, and attaches to the
-# existing WKWebView after it has started. Never change Main.storyboard here.
-python3 - ios/App/App/AppDelegate.swift <<'PY'
-from pathlib import Path
-import sys
-
-delegate = Path(sys.argv[1])
-source = delegate.read_text(encoding='utf-8')
-if 'import Capacitor' not in source or 'func applicationDidBecomeActive(_ application: UIApplication) {' not in source:
-    raise SystemExit('Capacitor AppDelegate template mismatch: refusing unsafe native patch')
-if 'CantoriaAppleMessageHandler' in source:
-    raise SystemExit('AppDelegate was already modified: refusing duplicate bridge')
-source = source.replace(
-    'import Capacitor',
-    'import Capacitor\nimport WebKit\nimport Vision\nimport FoundationModels',
-    1
-)
-source = source.replace(
-    '    var window: UIWindow?',
-    '    var window: UIWindow?\n    private let cantoriaAIHandler = CantoriaAppleMessageHandler()',
-    1
-)
-hook = '    func applicationDidBecomeActive(_ application: UIApplication) {'
-source = source.replace(hook, hook + '''
-        // Safe lifecycle hook: the system Capacitor controller has already
-        // been created. The handler attaches after its WKWebView appears.
-        // No model is ever executed on app launch.
-        for delay in [0.4, 1.2, 3.0] {
-            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
-                self?.cantoriaAIHandler.installIfNeeded(window: self?.window)
-            }
-        }
-''', 1)
-native = Path('native/CantoriaAppleMessageHandler.swift').read_text(encoding='utf-8')
-delegate.write_text(source + '\n' + native, encoding='utf-8')
-PY
-
-# The 0.7.0 failure was caused by a replacement bridge ViewController.
-# Reject any storyboard/controller change even if Swift compiles successfully.
-grep -q 'customClass="CAPBridgeViewController" customModule="Capacitor"' ios/App/App/Base.lproj/Main.storyboard
-grep -q 'CantoriaAppleMessageHandler()' ios/App/App/AppDelegate.swift
-grep -q 'WKScriptMessageHandler' ios/App/App/AppDelegate.swift
 
 # Required prompts for photo-based song capture on iOS.
 plist="ios/App/App/Info.plist"
 for entry in \
   "NSCameraUsageDescription|Cantoria usa la fotocamera per fotografare gli spartiti." \
-  "NSPhotoLibraryUsageDescription|Cantoria apre le foto degli spartiti che scegli dalla libreria."; do
+  "NSPhotoLibraryUsageDescription|Cantoria apre le foto degli spartiti che scegli dalla libreria." \
+  "NSMicrophoneUsageDescription|Cantoria ascolta la musica, solo quando lo richiedi, per seguire gli accordi sullo spartito."; do
   key="${entry%%|*}"
   value="${entry#*|}"
   /usr/libexec/PlistBuddy -c "Add :$key string $value" "$plist" 2>/dev/null || \

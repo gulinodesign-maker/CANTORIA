@@ -16,7 +16,7 @@ jobs:
           node scripts/test-photo-geometry.js
           node scripts/test-editor.js
           node scripts/test-reader-fit.js
-          node scripts/test-apple-intelligence.js
+          node scripts/test-audio-follow.js
       - name: Check inline JS and generate a sample PDF
         run: |
           node - <<'NODE'

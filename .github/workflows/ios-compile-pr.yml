@@ -24,5 +24,5 @@ jobs:
         run: |
           xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
             -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO \
-            MARKETING_VERSION="$(node -p "require('./package.json').version")" \
-            CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER" build
+            MARKETING_VERSION="$(node -p "require('./release.json').version")" \
+            CURRENT_PROJECT_VERSION="$(node -p "require('./release.json').build")" build
