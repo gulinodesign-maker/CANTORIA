@@ -5,7 +5,7 @@ const html=fs.readFileSync('index.html','utf8');
 const js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(js,'App script missing');
 new vm.Script(js);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:10});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:11});
 
 function pick(begin,end){
  const a=js.indexOf(begin),b=js.indexOf(end,a+begin.length);
@@ -57,7 +57,7 @@ const failed={modal:{type:'song-options'}};
 save('save-song',()=>song,failed,{querySelector:sel=>({value:sel==='#songTitleEdit'?'Different':'Different Author'})},()=>false,{},()=>{});
 assert.deepEqual({title:song.title,author:song.author,savedAt:song.savedAt},original);
 assert.equal(failed.modal.type,'song-options');
-assert.ok(fs.readFileSync('sw.js','utf8').includes('cantoria-shell-v1.1-build10'));
+assert.ok(fs.readFileSync('sw.js','utf8').includes('cantoria-shell-v1.1-build11'));
 assert.ok(html.includes('/* Cantoria 1.1 (6) — compact library cards'));
 console.log('Cantoria build 6 library compactness and song metadata tests passed');
 
@@ -75,7 +75,7 @@ assert.ok(!cleaned.includes('<span>Autore</span>'));
 assert.equal((cleaned.match(/class="song-option-tile"/g)||[]).length,6);
 console.log('Visible title/author labels removed, accessible editable fields retained.');
 
-const cardCSS=html.slice(html.indexOf('/* Cantoria 1.1 (10): truly centered library song title'));
+const cardCSS=html.slice(html.indexOf('/* Cantoria 1.1 (11): truly centered library song title'));
 assert.ok(cardCSS.includes('padding:11px 16px!important'),'Card must have symmetrical horizontal padding');
 assert.ok(cardCSS.includes('place-items:center!important'),'Card content must center across its whole width');
 assert.ok(cardCSS.includes('text-align:center!important'),'Title text must stay centered');

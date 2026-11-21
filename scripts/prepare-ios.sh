@@ -8,7 +8,7 @@ fi
 
 # Bundle the actual web application offline inside the iOS app.
 mkdir -p web
-cp index.html audio-follow.js harmony-analysis.js score-ocr.js score-geometry.js score-editor.js manifest.webmanifest sw.js web/
+cp index.html audio-follow.js harmony-analysis.js score-ocr.js score-geometry.js score-metadata.js score-editor.js manifest.webmanifest sw.js web/
 cp -R assets web/assets
 cat > capacitor.config.json <<EOF
 {

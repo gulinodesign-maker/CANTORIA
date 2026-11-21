@@ -251,7 +251,7 @@
       sourceRowId:source.rowId||null
     };
   }
-  function parseGeometry(data) {
+  function parseGeometry(data,options={}) {
     const rows=extractRows(data),sections=[];let current=null,pending=null;
     const diagnostics={totalRecognized:0,totalAnchored:0,unresolved:0,estimated:0,
       needsReview:0,ignoredArtifacts:0,sourceRows:rows.length,sourceMethod:'tesseract-bbox'};
@@ -270,8 +270,10 @@
       diagnostics.unresolved+=pending.unresolved.length;
       pending=null;
     }
+    const excluded=new Set(Array.isArray(options?.excludedRowIds)?options.excludedRowIds:[]);
     for(let rowIndex=0;rowIndex<rows.length;rowIndex++){
       const row=rows[rowIndex],nextRow=rows[rowIndex+1];
+      if(excluded.has(row.id)){diagnostics.ignoredArtifacts++;continue;}
       if(isEditorialRow(row)){diagnostics.ignoredArtifacts++;continue;}
       if(rowIndex===0&&isNumberedTitle(row)){
         diagnostics.titleCandidate=row.text.trim();
