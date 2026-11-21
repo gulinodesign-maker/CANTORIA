@@ -706,6 +706,48 @@
  .home-grid .home-tile strong{font-size:clamp(12px,3.5vh,22px)!important;line-height:1.12!important}
 }
 
+
+/* Cantoria 1.1 (13) — one-tap Mass song cards and used-song state. */
+.mass-song-card.mass-song-used{opacity:.5!important}
+.mass-song-card.mass-song-archived{opacity:.5!important}
+.mass-song-card .song-cover{height:auto!important;min-height:91px!important}
+.mass-song-card .mass-song-reset{
+ position:absolute;z-index:8;top:10px;right:10px;
+ display:grid;place-items:center;
+ width:38px;height:38px;padding:0;
+ color:#174638;background:#fffaf0;
+ border:1px solid #baaa8d;border-radius:11px;
+ box-shadow:0 2px 7px #00000012;
+ font:700 27px/1 ui-sans-serif,-apple-system,sans-serif;
+ cursor:pointer;touch-action:manipulation
+}
+.mass-song-card.mass-song-used .mass-song-reset:focus-visible{outline:3px solid #aa8134;outline-offset:3px}
+.mass-song-card .song-cover:has(.mass-song-reset) .cover-label{box-sizing:border-box;padding:0 40px!important}
+/* Portrait and landscape share the same rounded-square design and icon proportions. */
+@media screen and (orientation:landscape){
+ .home-grid .home-tile-icon{
+  width:min(100%,clamp(110px,33vh,164px))!important;
+  height:auto!important;
+  max-height:none!important;
+  aspect-ratio:1/1!important;
+  border-radius:clamp(33px,8vh,49px)!important;
+  border:1.7px solid #b4a991!important;
+ }
+ .home-grid .home-tile-icon svg{width:47%!important;height:47%!important}
+ .home-grid .home-tile strong{
+  font-size:clamp(17px,3.2vh,23px)!important;
+  line-height:1.15!important
+ }
+}
+@media screen and (orientation:landscape) and (max-height:310px){
+ .home-grid .home-tile-icon{
+  width:min(100%,clamp(75px,27vh,110px))!important;
+  border-radius:clamp(21px,7vh,32px)!important;
+ }
+ .home-screen h1{font-size:28px!important;margin-bottom:7px!important}
+ .home-grid .home-tile strong{font-size:14px!important}
+}
+
 </style>
   <title>Cantoria — Canti per la liturgia cattolica</title>
 </head>
@@ -1049,16 +1091,12 @@ function massDetailHTML(){
  <div class="tiles mass-song-tiles">${(mass.items||[]).map((item,i)=>{
   const song=store.songs.find(x=>x.id===item.songId);
   const title=done?(item.archiveTitle||song?.title||'Canto non disponibile'):(song?.title||'Canto non disponibile');
-  const disabled=done?' disabled aria-disabled="true"':'';
-  const actionGroups=`<div class="mass-card-action-group"><span>Tonalità</span><div class="mass-dual-buttons"><button type="button" class="outline-btn" data-action="mass-shift-down" data-item="${escapeAttr(item.id)}" aria-label="Abbassa tonalità"${disabled}>−</button><button type="button" class="outline-btn" data-action="mass-shift-up" data-item="${escapeAttr(item.id)}" aria-label="Alza tonalità"${disabled}>+</button></div></div>
-  <div class="mass-card-action-group"><span>Ordine</span><div class="mass-dual-buttons"><button type="button" class="outline-btn" data-action="move-up" data-item="${escapeAttr(item.id)}" aria-label="Sposta prima"${done||i===0?' disabled':''}>↑</button><button type="button" class="outline-btn" data-action="move-down" data-item="${escapeAttr(item.id)}" aria-label="Sposta dopo"${done||i===count-1?' disabled':''}>↓</button></div></div>
-  <button type="button" class="outline-btn mass-card-open" data-action="read-mass-song" data-item="${escapeAttr(item.id)}"><span aria-hidden="true">▶</span><span>Apri brano</span></button>`;
-  return `<article class="song-card mass-song-card ${done?'mass-song-archived':''}" role="button" tabindex="0" data-action="read-mass-song" data-item="${escapeAttr(item.id)}" aria-label="Apri ${escapeAttr(title)}">
-   <div class="song-cover">${CATHOLIC_CORNER}<div class="cover-label">${escape(title)}</div>
-    ${done?'':`<button type="button" class="card-delete-btn" data-action="ask-remove-mass-item" data-item="${escapeAttr(item.id)}" title="Rimuovi dalla Messa" aria-label="Rimuovi ${escapeAttr(title)} dalla Messa">×</button>`}
-   </div>
-   <div class="card-body library-card-actions-only"><div class="card-actions mass-card-action-groups" role="group" aria-label="Gestione canto">${actionGroups}</div></div>
-  </article>`;
+  const used=!!item.usedAt;
+  return `<article class="song-card mass-song-card ${done?'mass-song-archived':used?'mass-song-used':''}" role="button" tabindex="0" data-action="read-mass-song" data-item="${escapeAttr(item.id)}" aria-label="Apri ${escapeAttr(title)}">
+    <div class="song-cover">${CATHOLIC_CORNER}<div class="cover-label">${escape(title)}</div>
+    ${!done&&used?`<button type="button" class="mass-song-reset" data-action="reset-mass-item-used" data-item="${escapeAttr(item.id)}" title="Rendi di nuovo disponibile" aria-label="Rendi di nuovo disponibile ${escapeAttr(title)}">↺</button>`:''}
+    </div>
+   </article>`;
  }).join('')||'<div class="empty">Nessun canto in questa scaletta.</div>'}</div>
  ${done?'<div class="mass-archive-footer"><button class="text-btn" data-action="reopen-mass">Riapri per modificare</button><button class="outline-btn" data-action="reuse-mass">Riutilizza scaletta</button></div>':''}`;
 }
@@ -1192,7 +1230,7 @@ function captureHTML(){
      </form>`:`<p class="photo-capture-hint">Fotografa lo spartito per iniziare.</p>`}
   </section>`;
 }
-function settingsHTML(){return `<div class="page-heading"><div><div class="eyebrow">Versione 1.1 (12)</div><h1>Impostazioni</h1></div></div><div class="form-wrap"><div class="panel"><h3>Dati e salvataggi</h3><p>I canti e le scalette sono attualmente memorizzati <strong>solo nel browser di questo dispositivo</strong>. Non sono ancora sincronizzati su iCloud o GitHub.</p><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px"><button class="outline-btn" data-action="backup">Scarica backup JSON</button><label class="outline-btn" style="cursor:pointer">Ripristina backup<input type="file" id="backupInput" accept="application/json" style="display:none"></label></div></div><div class="panel"><h3>Ultimo aggiornamento</h3><p>Scopri le modifiche e le migliorie introdotte con la versione più recente.</p><button type="button" class="outline-btn" data-action="show-release-notes">Novità dell'ultima versione</button></div><div class="panel"><h3>Modello musicale</h3><p>Gli accordi delle fotografie conservano anche coordinate OCR, indice del carattere e livello di affidabilità. La disposizione grafica non cambia il loro ancoraggio musicale.</p><div class="alert" style="margin-top:15px">OCR geometrico sperimentale: dove sono disponibili soltanto i riquadri delle parole gli ancoraggi ai caratteri sono stimati e sempre da verificare. Se mancano le coordinate, l'app non inventa una posizione. Le note sul pentagramma non sono ancora riconosciute.</div></div></div>`;}
+function settingsHTML(){return `<div class="page-heading"><div><div class="eyebrow">Versione 1.1 (13)</div><h1>Impostazioni</h1></div></div><div class="form-wrap"><div class="panel"><h3>Dati e salvataggi</h3><p>I canti e le scalette sono attualmente memorizzati <strong>solo nel browser di questo dispositivo</strong>. Non sono ancora sincronizzati su iCloud o GitHub.</p><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px"><button class="outline-btn" data-action="backup">Scarica backup JSON</button><label class="outline-btn" style="cursor:pointer">Ripristina backup<input type="file" id="backupInput" accept="application/json" style="display:none"></label></div></div><div class="panel"><h3>Ultimo aggiornamento</h3><p>Scopri le modifiche e le migliorie introdotte con la versione più recente.</p><button type="button" class="outline-btn" data-action="show-release-notes">Novità dell'ultima versione</button></div><div class="panel"><h3>Modello musicale</h3><p>Gli accordi delle fotografie conservano anche coordinate OCR, indice del carattere e livello di affidabilità. La disposizione grafica non cambia il loro ancoraggio musicale.</p><div class="alert" style="margin-top:15px">OCR geometrico sperimentale: dove sono disponibili soltanto i riquadri delle parole gli ancoraggi ai caratteri sono stimati e sempre da verificare. Se mancano le coordinate, l'app non inventa una posizione. Le note sul pentagramma non sono ancora riconosciute.</div></div></div>`;}
 function appHTML(){
  const views={home:homeHTML,library:libraryHTML,masses:massesHTML,capture:captureHTML,settings:settingsHTML};
  const builder=views[state.view]||homeHTML;
@@ -1319,7 +1357,7 @@ function modalHTML(){const m=state.modal;
   const song=currentSong();if(!song?.photoData)return '';
   return `<div class="modal-shade"><div class="modal-card" role="alertdialog" aria-modal="true" aria-label="Conferma ricalcolo accordi"><h2>Ricalcolare gli accordi?</h2><p>La partitura verrà ricalcolata dalla fotografia originale con le coordinate OCR. Le modifiche manuali fatte sulle sillabe e sugli accordi saranno sostituite. La fotografia originale resterà disponibile.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button type="button" class="primary-btn" data-action="reparse-photo">Ricalcola accordi</button></div></div></div>`;
  }
- if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (12)</h2><p>Messe e brani con card cliccabili e tasto × di eliminazione con conferma. Scaletta con card uniformi alla Biblioteca e comandi compatti; home adattata all’orientamento orizzontale.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
+ if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (13)</h2><p>Messe e brani con card cliccabili e tasto × di eliminazione con conferma. Scaletta con card uniformi alla Biblioteca e comandi compatti; home adattata all’orientamento orizzontale.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
 
 
  if(m.type==='key-analysis'){
@@ -1551,6 +1589,13 @@ function compressScorePhoto(file){
   img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('Impossibile leggere la fotografia'));};
   img.src=url;
  });
+}
+function markCurrentMassSongUsed(){
+ const mass=currentMass(),item=mass?.items?.find(x=>x.id===state.massItemId);
+ if(!mass||mass.celebratedAt||!item||item.usedAt)return true;
+ item.usedAt=new Date().toISOString();
+ if(!saveStore(store)){delete item.usedAt;return false;}
+ return true;
 }
 function openSong(songId, shift=0, massItemId=null){const song=store.songs.find(x=>x.id===songId);if(!song)return;window.CantoriaAudioFollow?.reset(songId);state.songId=songId;state.ocrText=String(song.ocrText||'');state.ocrStatus='';state.shift=shift;state.page=0;state.massItemId=massItemId;state.modal=null;render();}
 function modifyMassItem(id,fn){const m=currentMass(),item=m?.items.find(x=>x.id===id);if(!item)return;fn(item,m);persist();render();}
@@ -1818,8 +1863,22 @@ root.addEventListener('click',e=>{
   state.ocrStatus='';state.page=0;render();notify('Partitura creata. Controlla gli accordi sulle sillabe.');return;
  }
  if(action==='show-original-photo'){state.modal={type:'photo-source'};render();return;}
- if(action==='close-reader'){window.CantoriaAudioFollow?.reset();state.songId=null;state.modal=null;render();return;}
+ if(action==='close-reader'){
+  const saved=markCurrentMassSongUsed();
+  window.CantoriaAudioFollow?.reset();
+  state.songId=null;state.massItemId=null;state.modal=null;
+  render();
+  if(!saved)notify('Non è stato possibile segnare il canto come utilizzato.');
+  return;
+ }
  if(action==='read-song'){openSong(el.dataset.song);return;}
+ if(action==='reset-mass-item-used'){
+  const mass=currentMass();if(!mass||mass.celebratedAt)return;
+  const item=mass.items?.find(x=>x.id===el.dataset.item);if(!item?.usedAt)return;
+  const usedAt=item.usedAt;delete item.usedAt;
+  if(!saveStore(store)){item.usedAt=usedAt;notify('Non è stato possibile rendere il canto disponibile.');return;}
+  render();return;
+ }
  if(action==='read-mass-song'){const x=currentMass()?.items.find(i=>i.id===el.dataset.item);if(x)openSong(x.songId,x.shift,x.id);return;}
  if(action==='next-page'||action==='prev-page'){state.page+=action==='next-page'?1:-1;render();return;}
  if(action==='song-options'){const song=currentSong();if(!song)return;state.songMetaDraft={songId:song.id,title:song.title||'',author:song.author||''};state.modal={type:'song-options'};render();return;}
