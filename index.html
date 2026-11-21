@@ -714,6 +714,7 @@ function refreshDetectedKey(song){
  const next=result.status==='probable'?result.key:'';
  const source=result.status==='probable'?'auto-harmony':'needs-review';
  const changed=song.key!==next||song.keySource!==source;
+ if(!song.keySource&&song.key&&song.key!==next&&!song.legacyKey)song.legacyKey=song.key;
  song.key=next;song.keySource=source;
  return changed;
 }
@@ -1120,10 +1121,12 @@ function modalHTML(){const m=state.modal;
    '<div class="song-options-header"><h2>Analisi della tonalità</h2><button type="button" class="song-close" data-action="close-modal" aria-label="Chiudi">×</button></div>'+
    '<div class="harmony-detail"><p><strong>'+escape(summary)+'</strong></p>'+
    '<p>'+escape(a?.observations||0)+' accordi riconosciuti; '+escape(a?.reviewed||0)+' segnalati come incerti dall’OCR. '+escape(a?.distinctRoots||0)+' fondamentali diverse.</p>'+
+   '<p><strong>Affidabilità della proposta:</strong> '+escape(a?.confidence||'bassa')+' (giudizio qualitativo, non certezza).</p>'+ 
+   (song.legacyKey?'<p>Tonalità precedentemente attribuita: '+label(song.legacyKey)+'. La vecchia stima è stata rivalutata.</p>':'')+
    '<p><strong>Accordi letti:</strong> '+escape(symbols)+'</p>'+
    '<p><strong>Cadenze rilevate:</strong> '+escape(sequences)+'</p>'+
    '<div class="harmony-candidates">'+alternatives+'</div>'+
-   '<p>La valutazione considera qualità degli accordi, compatibilità con la scala, inizi delle sezioni e risoluzioni dominante-tonica. La frequenza di un singolo accordo non determina da sola la tonalità.</p>'+
+   '<p>Il punteggio è comparativo, non una probabilità. Si considerano qualità degli accordi, compatibilità con la scala, inizi delle sezioni e risoluzioni dominante-tonica; la frequenza di un solo accordo non determina la tonalità.</p>'+
    '<p>'+escape(a?.warning||'La tonalità richiede conferma.')+'</p>'+
    (song.keySource==='manual'?'<p>La tonalità attuale è stata impostata manualmente e non viene sovrascritta.</p>':'')+
    '</div><div class="modal-actions"><button type="button" class="outline-btn" data-action="edit-tonality">Imposta tonalità</button><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div>'+
