@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const html=fs.readFileSync('index.html','utf8'),js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(js);new vm.Script(js);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:21});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:22});
 const escape=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const song={id:'s1',title:'Ti esalto Dio mio re',author:'Francesco Buttazzo',sections:[]};
 const planned={id:'m1',name:'Messa 1',date:'',items:[{id:'i1',songId:'s1',shift:0,label:'Ingresso'}]};
@@ -91,7 +91,7 @@ assert.ok(headA>=0&&headB>headA);
 ctx.state.view='masses';ctx.state.massId='m1';
 vm.runInNewContext(js.slice(headA,headB)+'this.makeHeader=headerHTML;',ctx);
 const titlebar=ctx.makeHeader();
-for(const token of ['topbar-mass-detail','mass-topbar-back','mass-topbar-overline','mass-topbar-name','mass-topbar-count','mass-topbar-date','Messa 1','1 canto','Data da definire'])
+for(const token of ['topbar-mass-detail','app-back-btn','mass-topbar-overline','mass-topbar-name','mass-topbar-count','mass-topbar-date','Messa 1','1 canto','Data da definire'])
  assert.ok(titlebar.includes(token),token);
 assert.equal((titlebar.match(/data-action="back-masses"/g)||[]).length,1);
 ctx.state.massId='m2';const historyBar=ctx.makeHeader();

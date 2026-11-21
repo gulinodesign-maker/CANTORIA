@@ -1056,6 +1056,53 @@
  .tiles.library-song-list>.library-song-card{width:100%!important}
 }
 
+
+/* CANTORIA 1.1 (22): consistent left back buttons and compact backup. */
+.topbar-section.topbar-standard{display:flex!important;align-items:center!important;justify-content:space-between!important;position:relative!important}
+.app-back-btn,.reader-layer .reader-back.app-back-btn{
+ display:grid!important;place-items:center!important;flex:0 0 44px!important;
+ width:44px!important;min-width:44px!important;height:44px!important;
+ margin:0!important;padding:0!important;order:0!important;
+ border:1px solid #ba995b!important;border-radius:12px!important;
+ background:#174636!important;color:#edc66d!important;
+ box-shadow:none!important;position:relative!important;z-index:12!important;cursor:pointer!important
+}
+.app-back-icon{width:25px!important;height:25px!important;display:block!important;stroke:currentColor!important}
+.topbar-standard>.app-back-btn{margin-left:clamp(8px,1.6vw,17px)!important}
+.topbar-standard>.header-section-title{position:absolute!important;left:50%!important;transform:translateX(-50%)!important;max-width:55%!important;text-align:center!important}
+.topbar-right-spacer{display:block!important;width:44px!important;min-width:44px!important;height:1px!important;flex:0 0 44px!important;margin-left:auto!important}
+.topbar-create-mass{
+ display:flex!important;align-items:center!important;justify-content:center!important;gap:5px!important;
+ position:relative!important;z-index:10!important;margin:0 clamp(5px,1.2vw,16px) 0 auto!important;
+ max-width:33%!important;min-height:44px!important;padding:6px clamp(5px,1.4vw,12px)!important;
+ border:1px solid #ba995b!important;border-radius:12px!important;
+ background:#174636!important;color:#edc66d!important;
+ font-size:clamp(10px,2.3vw,14px)!important;font-weight:750!important;line-height:1.1!important;white-space:normal!important;
+ box-shadow:none!important;cursor:pointer!important
+}
+.topbar-create-mass svg{width:19px!important;height:19px!important;flex:0 0 19px!important}
+.topbar-mass-detail .mass-topbar-row>.app-back-btn{margin-left:0!important}
+.reader-layer .reader-toolbar-left>.reader-back.app-back-btn{margin-left:0!important;align-self:center!important}
+.settings-backup-actions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;width:100%!important;margin-top:17px!important}
+.settings-backup-actions>.outline-btn{
+ display:flex!important;align-items:center!important;justify-content:center!important;
+ box-sizing:border-box!important;width:100%!important;min-width:0!important;min-height:54px!important;
+ margin:0!important;padding:9px 7px!important;white-space:normal!important;text-align:center!important;
+ font-size:clamp(12px,2.5vw,15px)!important;font-weight:750!important;line-height:1.15!important;
+ border-radius:12px!important;cursor:pointer!important
+}
+.settings-restore-btn input.visually-hidden-file{position:absolute!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important}
+@media(orientation:landscape){
+ .topbar-standard>.header-section-title{max-width:42%!important}
+ .topbar-create-mass{min-height:40px!important}
+ .settings-backup-actions>.outline-btn{min-height:45px!important}
+}
+@media(max-width:370px){
+ .topbar-standard>.header-section-title{font-size:17px!important;max-width:43%!important}
+ .topbar-create-mass{gap:2px!important}
+ .topbar-create-mass span{font-size:11px!important}
+}
+
 </style>
   <title>Cantoria — Canti per la liturgia cattolica</title>
 </head>
@@ -1162,7 +1209,29 @@ function loadStore() {
   return seed();
 }
 function saveStore(store) { try { localStorage.setItem(KEY, JSON.stringify(store)); return true; } catch(e) { return false; } }
-function exportJSON(store) { const blob = new Blob([JSON.stringify(store,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a');a.href=url;a.download='Cantoria-backup.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),5000); }
+async function exportJSON(store){
+ const data=JSON.stringify(store,null,2),name='Cantoria-backup-'+new Date().toISOString().slice(0,10)+'.json';
+ const native=window.Capacitor?.isNativePlatform?.()||['ios','android'].includes(window.Capacitor?.getPlatform?.());
+ if(native){
+  const files=window.Capacitor?.Plugins?.Filesystem,share=window.Capacitor?.Plugins?.Share;
+  if(!files?.writeFile||!share?.share)throw new Error('Salvataggio nativo non disponibile. Aggiorna CANTORIA.');
+  const output=await files.writeFile({path:name,data,directory:'CACHE',encoding:'utf8'});
+  const uri=output?.uri||(await files.getUri({path:name,directory:'CACHE'})).uri;
+  if(!uri)throw new Error('Impossibile preparare il file di backup.');
+  try{await share.share({title:'Backup Cantoria',files:[uri],dialogTitle:'Salva il backup su File'});}
+  catch(err){if(err?.name==='AbortError'||/cancel/i.test(err?.message||''))return;throw err;}
+  return;
+ }
+ const file=new File([data],name,{type:'application/json'});
+ if(typeof navigator.share==='function'&&typeof navigator.canShare==='function'&&navigator.canShare({files:[file]})){
+  try{await navigator.share({title:'Backup Cantoria',files:[file]});}
+  catch(err){if(err?.name!=='AbortError')throw err;}
+  return;
+ }
+ const url=URL.createObjectURL(file),a=document.createElement('a');
+ a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),30000);
+}
 function importJSON(text) { const data=JSON.parse(text); if(!Array.isArray(data.songs)||!Array.isArray(data.masses)) throw new Error('Formato di backup non valido'); return data; }
 const CANTORIA_FILE_VERSION=1;
 function safeSongName(title){return String(title||'brano').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9-_ ]/gi,'').trim().replace(/\s+/g,'-').slice(0,90)||'brano';}
@@ -1304,7 +1373,7 @@ function photoReaderHTML(song){
  return `<div class="reader-layer reader-portrait reader-photo" id="readerLayer" data-song="${escapeAttr(song.id)}">
  <header class="reader-toolbar">${CATHOLIC_CORNER}
  <div class="reader-toolbar-left">
- <button class="reader-back" type="button" data-action="close-reader" aria-label="Indietro">‹</button>
+ <button class="reader-back app-back-btn" type="button" data-action="close-reader" aria-label="Indietro"><svg class="app-back-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m15 19-7-7 7-7"/></svg></button>
  <button class="reader-audio-btn" type="button" data-action="follow-rewind" title="Torna all’inizio" aria-label="Torna all’inizio del brano"><svg class="reader-transport-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3.5 5v14" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" fill="none"/><path d="M12 6v12L5 12zM21 6v12l-7-6z" fill="currentColor"/></svg></button>
  <button class="reader-audio-btn reader-play-toggle" type="button" disabled data-action="follow-play" title="Play / Stop" aria-label="Play"><svg class="reader-transport-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 4v16l13-8z" fill="currentColor"/></svg></button>
  </div>
@@ -1333,7 +1402,7 @@ function readerHTML(){
  return `<div class="reader-layer ${horizontal?'reader-landscape':'reader-portrait'}" id="readerLayer" data-song="${escapeAttr(song.id)}" style="--reader-font:${font.toFixed(1)}px">
  <header class="reader-toolbar">${CATHOLIC_CORNER}
  <div class="reader-toolbar-left">
- <button class="reader-back" type="button" data-action="close-reader" aria-label="Indietro">‹</button>
+ <button class="reader-back app-back-btn" type="button" data-action="close-reader" aria-label="Indietro"><svg class="app-back-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m15 19-7-7 7-7"/></svg></button>
  <button class="reader-audio-btn" type="button" data-action="follow-rewind" title="Torna all’inizio" aria-label="Torna all’inizio del brano"><svg class="reader-transport-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3.5 5v14" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" fill="none"/><path d="M12 6v12L5 12zM21 6v12l-7-6z" fill="currentColor"/></svg></button>
  <button class="reader-audio-btn reader-play-toggle" type="button" data-action="follow-play" title="Play / Stop" aria-label="Play"><svg class="reader-transport-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 4v16l13-8z" fill="currentColor"/></svg></button>
  </div>
@@ -1359,29 +1428,27 @@ function homeHTML(){
 }
 function headerHTML(){
  if(state.view==='home')return `<header class="topbar topbar-home topbar-home-labeled">${CATHOLIC_CORNER}<h1 class="home-topbar-title">Cantoria</h1></header>`;
+ const back=(toMass=false)=>`<button type="button" class="app-back-btn" ${toMass?'data-action="back-masses"':'data-nav="home"'} aria-label="Indietro" title="Indietro"><svg class="app-back-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m15 19-7-7 7-7"/></svg></button>`;
  if(state.view==='masses'&&state.massId&&currentMass()){
   const m=currentMass(),done=!!m.celebratedAt,n=(m.items||[]).length;
   const date=massDateDisplay(m.date||(done?String(m.celebratedAt).slice(0,10):''));
   return `<header class="topbar topbar-section topbar-mass-detail" aria-label="Intestazione scaletta della Messa">
    ${CATHOLIC_CORNER}
-   <div class="mass-topbar-row">
-    <button type="button" class="mass-topbar-back" data-action="back-masses" aria-label="Torna alle Messe">← Messe</button>
-    <button type="button" class="header-home-btn" data-nav="home" aria-label="Torna alla Home" title="Home">‹</button>
-   </div>
-   <div class="mass-topbar-info">
-    <div class="mass-topbar-title-block">
-     <span class="mass-topbar-overline">${done?'CELEBRATA':'SCALETTA'}</span>
-     <strong class="mass-topbar-name">${escape(m.name)}</strong>
-    </div>
-    <span class="mass-topbar-count">${n} ${n===1?'canto':'canti'}</span>
-   </div>
+   <div class="mass-topbar-row">${back(true)}<span class="topbar-right-spacer" aria-hidden="true"></span></div>
+   <div class="mass-topbar-info"><div class="mass-topbar-title-block">
+    <span class="mass-topbar-overline">${done?'CELEBRATA':'SCALETTA'}</span>
+    <strong class="mass-topbar-name">${escape(m.name)}</strong>
+   </div><span class="mass-topbar-count">${n} ${n===1?'canto':'canti'}</span></div>
    <span class="mass-topbar-date">${escape(date)}</span>
   </header>`;
  }
  const titles={library:'Biblioteca',masses:'Messe',capture:'Acquisisci un canto',settings:'Impostazioni'};
  const buildLabel=Number.isInteger(releaseInfo.build)?'Versione '+escape(releaseInfo.version)+' ('+releaseInfo.build+')':'Versione 1.1';
  const sub=state.view==='settings'?`<small class="header-build">${buildLabel}</small>`:'';
- return `<header class="topbar topbar-section">${CATHOLIC_CORNER}<span class="header-spacer" aria-hidden="true"></span><strong class="header-section-title">${titles[state.view]||'Cantoria'}${sub}</strong><button class="header-home-btn" data-nav="home" aria-label="Torna alla Home" title="Indietro">‹</button></header>`;
+ const right=state.view==='masses'?
+ `<button type="button" class="topbar-create-mass" data-action="create-mass" aria-label="Crea nuova Messa"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 4v16M4 12h16"/></svg><span>Nuova Messa</span></button>`:
+ '<span class="topbar-right-spacer" aria-hidden="true"></span>';
+ return `<header class="topbar topbar-section topbar-standard">${CATHOLIC_CORNER}${back()}<strong class="header-section-title">${titles[state.view]||'Cantoria'}${sub}</strong>${right}</header>`;
 }
 function navHTML(){const nav=Object.keys(labels);return `<nav class="sidenav">${nav.map(k=>`<button class="nav-item ${state.view===k?'active':''}" data-nav="${k}"><span class="ico">${icons[k]}</span>${labels[k]}</button>`).join('')}<div class="nav-helper">La tua biblioteca è salvata in questo dispositivo.<br><strong>Il cloud verrà aggiunto in una prossima versione.</strong></div></nav><nav class="bottom-nav">${nav.map(k=>`<button class="bottom-item ${state.view===k?'active':''}" data-nav="${k}"><span class="ico">${icons[k]}</span>${labels[k]}</button>`).join('')}</nav>`;}
 function libraryHTML(){
@@ -1451,7 +1518,7 @@ function massesHTML(){
   </article>`;
  const plannedCards=planned.map(m=>massCard(m,false)).join('');
  const pastCards=past.map(m=>massCard(m,true)).join('');
- return `<div class="mass-list-action-row"><button class="primary-btn" data-action="create-mass">+ Crea nuova Messa</button></div><h2 class="section-kicker">In programma · ${planned.length}</h2><div class="tiles">${plannedCards||'<div class="empty">Nessuna Messa in programma.</div>'}</div><h2 class="section-kicker">Storico · ${past.length}</h2><div class="tiles">${pastCards||'<div class="empty">Le Messe celebrate compariranno qui.</div>'}</div>`;
+ return `<h2 class="section-kicker">In programma · ${planned.length}</h2><div class="tiles">${plannedCards||'<div class="empty">Nessuna Messa in programma.</div>'}</div><h2 class="section-kicker">Storico · ${past.length}</h2><div class="tiles">${pastCards||'<div class="empty">Le Messe celebrate compariranno qui.</div>'}</div>`;
 }
 function massDetailHTML(){
  const mass=currentMass(),done=!!mass.celebratedAt;
@@ -1605,7 +1672,7 @@ function captureHTML(){
      </form>`:`<p class="photo-capture-hint">Fotografa lo spartito per iniziare.</p>`}
   </section>`;
 }
-function settingsHTML(){return `<div class="form-wrap"><div class="panel"><h3>Dati e salvataggi</h3><p>I canti e le scalette sono attualmente memorizzati <strong>solo nel browser di questo dispositivo</strong>. Non sono ancora sincronizzati su iCloud o GitHub.</p><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px"><button class="outline-btn" data-action="backup">Scarica backup JSON</button><label class="outline-btn" style="cursor:pointer">Ripristina backup<input type="file" id="backupInput" accept="application/json" style="display:none"></label></div></div><div class="panel"><h3>Ultimo aggiornamento</h3><p>Scopri le modifiche e le migliorie introdotte con la versione più recente.</p><button type="button" class="outline-btn" data-action="show-release-notes">Novità dell'ultima versione</button></div><div class="panel"><h3>Modello musicale</h3><p>Gli accordi delle fotografie conservano anche coordinate OCR, indice del carattere e livello di affidabilità. La disposizione grafica non cambia il loro ancoraggio musicale.</p><div class="alert" style="margin-top:15px">OCR geometrico sperimentale: dove sono disponibili soltanto i riquadri delle parole gli ancoraggi ai caratteri sono stimati e sempre da verificare. Se mancano le coordinate, l'app non inventa una posizione. Le note sul pentagramma non sono ancora riconosciute.</div></div></div>`;}
+function settingsHTML(){return `<div class="form-wrap"><div class="panel"><h3>Dati e salvataggi</h3><p>Conserva una copia dei brani e delle Messe nell’app File. I dati restano sul dispositivo finché non ripristini un backup.</p><div class="settings-backup-actions"><button type="button" class="outline-btn" data-action="backup">Esporta backup</button><label class="outline-btn settings-restore-btn" for="backupInput">Ripristina backup<input type="file" id="backupInput" accept=".json,application/json" class="visually-hidden-file" aria-label="Seleziona il backup JSON"></label></div></div><div class="panel"><h3>Ultimo aggiornamento</h3><button type="button" class="outline-btn" data-action="show-release-notes">Novità dell'ultima versione</button></div></div>`;}
 function appHTML(){
  const views={home:homeHTML,library:libraryHTML,masses:massesHTML,capture:captureHTML,settings:settingsHTML};
  const builder=views[state.view]||homeHTML;
@@ -1732,7 +1799,7 @@ function modalHTML(){const m=state.modal;
   const song=currentSong();if(!song?.photoData)return '';
   return `<div class="modal-shade"><div class="modal-card" role="alertdialog" aria-modal="true" aria-label="Conferma ricalcolo accordi"><h2>Ricalcolare gli accordi?</h2><p>La partitura verrà ricalcolata dalla fotografia originale con le coordinate OCR. Le modifiche manuali fatte sulle sillabe e sugli accordi saranno sostituite. La fotografia originale resterà disponibile.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button type="button" class="primary-btn" data-action="reparse-photo">Ricalcola accordi</button></div></div></div>`;
  }
- if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (21)</h2><p>Biblioteca in landscape: ogni card occupa una riga e tutta la larghezza disponibile, conservando la tendina con quattro azioni.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
+ if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (22)</h2><p>Backup esportabile con il foglio di condivisione iOS, pulsanti uguali, schermata Impostazioni semplificata e navigazione Indietro uniforme a sinistra.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
 
 
  if(m.type==='key-analysis'){
@@ -2383,7 +2450,7 @@ root.addEventListener('click',e=>{
   }
  if(action==='add-chord'){openChordModal(+el.dataset.section,+el.dataset.line,-1,+el.dataset.slot);return;}
  if(action==='delete-chord'){const m=state.modal,ln=currentSong()?.sections[m.si]?.lines[m.li];if(ln){ln.anchors.splice(m.ai,1);persist();state.modal=null;render();}return;}
- if(action==='backup'){exportJSON(store);return;}
+ if(action==='backup'){exportJSON(store).catch(err=>{console.error('Backup:',err);notify(err?.message||'Esportazione del backup non riuscita.');});return;}
 });
 root.addEventListener('submit',e=>{e.preventDefault();const form=e.target;const f=new FormData(form);
  if(form.id==='newMassForm'){const name=String(f.get('massName')||'').trim();if(!name)return;const mass={id:makeId(),name,date:String(f.get('massDate')||''),items:[]};store.masses.unshift(mass);state.massId=mass.id;state.view='masses';state.modal=null;persist();render();return;}
