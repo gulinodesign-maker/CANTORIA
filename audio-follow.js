@@ -49,7 +49,7 @@
    const relevance=notes.reduce((sum,n)=>sum+Math.max(0,chroma[n]||0),0)/total;
    const bass=Math.max(0,chroma[chord.root]||0)/total;
    const score=relevance+(.10*bass)-(.025*Math.max(0,notes.length-3));
-   if(best&&score>best.score){second=best.score;best={label:chord.label,score};}
+   if(!best||score>best.score){if(best)second=Math.max(second,best.score);best={label:chord.label,score};}
    else if(score>second)second=score;
   }
   if(!best||best.score<.43)return null;
