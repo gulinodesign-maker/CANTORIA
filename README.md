@@ -1,3 +1,12 @@
+## Cantoria 1.1 (34) — Home con sfondo icone verde 50% e titolo Messa centrato (21 novembre 2026)
+
+- I quattro riquadri delle icone Home usano lo sfondo verde rgba(23,68,55,.5); la trasparenza riguarda solo lo sfondo e lascia le icone leggibili.
+- Titolo, etichetta e data della scaletta Messa centrati nell'intestazione, conteggio canti ancora a destra e tasto Indietro invariato.
+- Layout Biblioteca e lista Messa landscape invariati; regressioni testate automaticamente.
+- Versione app 1.1 build 34; nuovo rilascio TestFlight, la pipeline sostituisce la build precedente.
+
+---
+
 ## Cantoria 1.1 (33) — nuova pubblicazione TestFlight con ripristino simulatore (21 novembre 2026)
 
 - Nuovo archivio iOS, numero di build 33, stesse funzionalità della build 32.
