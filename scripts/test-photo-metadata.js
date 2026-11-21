@@ -1,6 +1,7 @@
 /* OCR title/author extraction without hallucinating metadata from sung lines. */
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
+require('../score-ocr.js');
 const geometry=require('../score-geometry.js');
 const metadata=require('../score-metadata.js');
 function row(text,y,height=20){
