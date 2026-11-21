@@ -28,6 +28,7 @@ jobs:
           node scripts/test-topbar-layout.js
           node scripts/test-card-authors.js
           node scripts/test-library-accordion.js
+          node scripts/test-library-landscape.js
           node scripts/test-release-pipeline.js
       - name: Check inline JS and generate a sample PDF
         run: |

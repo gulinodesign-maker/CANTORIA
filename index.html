@@ -1030,6 +1030,32 @@
  .song-card.library-song-card.library-card-expanded .card-actions button{min-height:44px!important}
 }
 
+
+/* CANTORIA 1.1 (21): each Library song card spans the entire display width. */
+.tiles.library-song-list{
+ display:grid!important;
+ grid-template-columns:minmax(0,1fr)!important;
+ column-gap:0!important;
+ row-gap:clamp(8px,1.2vw,12px)!important;
+ width:100%!important;
+ max-width:100%!important;
+ min-width:0!important;
+}
+.tiles.library-song-list>.library-song-card{
+ grid-column:1/-1!important;
+ width:100%!important;
+ max-width:100%!important;
+ min-width:0!important;
+ box-sizing:border-box!important;
+}
+@media(orientation:landscape){
+ .tiles.library-song-list{
+  grid-template-columns:minmax(0,1fr)!important;
+  row-gap:9px!important;
+ }
+ .tiles.library-song-list>.library-song-card{width:100%!important}
+}
+
 </style>
   <title>Cantoria — Canti per la liturgia cattolica</title>
 </head>
@@ -1394,7 +1420,7 @@ function libraryHTML(){
     <option value="author-desc" ${sort==='author-desc'?'selected':''}>Autore Z–A</option>
    </select>
   </div></div>
-  <div class="tiles">${songs.map(song=>{
+  <div class="tiles library-song-list">${songs.map(song=>{
    const expanded=state.libraryOpenId===song.id;
    const hasAuthor=!!String(song.author||'').trim();
    return `<article class="song-card library-song-card ${expanded?'library-card-expanded':'library-card-collapsed'} ${hasAuthor?'library-has-author':''}" role="button" tabindex="0" data-action="toggle-library-card" data-song="${escapeAttr(song.id)}" aria-expanded="${expanded?'true':'false'}" aria-label="${expanded?'Chiudi':'Espandi'} le azioni per ${escapeAttr(song.title)}">
@@ -1706,7 +1732,7 @@ function modalHTML(){const m=state.modal;
   const song=currentSong();if(!song?.photoData)return '';
   return `<div class="modal-shade"><div class="modal-card" role="alertdialog" aria-modal="true" aria-label="Conferma ricalcolo accordi"><h2>Ricalcolare gli accordi?</h2><p>La partitura verrà ricalcolata dalla fotografia originale con le coordinate OCR. Le modifiche manuali fatte sulle sillabe e sugli accordi saranno sostituite. La fotografia originale resterà disponibile.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button type="button" class="primary-btn" data-action="reparse-photo">Ricalcola accordi</button></div></div></div>`;
  }
- if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (20)</h2><p>Biblioteca più compatta: tocca la card per espandere quattro azioni, inclusa Apri brano. Un secondo tocco la richiude; la × appare solo quando è aperta.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
+ if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (21)</h2><p>Biblioteca in landscape: ogni card occupa una riga e tutta la larghezza disponibile, conservando la tendina con quattro azioni.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
 
 
  if(m.type==='key-analysis'){
