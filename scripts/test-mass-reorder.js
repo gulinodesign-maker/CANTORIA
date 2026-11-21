@@ -7,7 +7,7 @@ const detail=code.slice(code.indexOf('function massDetailHTML(){'),code.indexOf(
 for(const token of ['data-mass-reorder=','data-reorder-item=','mass-reorder-help'])
  assert.ok(detail.includes(token),'Missing Mass drag markup '+token);
 assert.ok(detail.includes('!done?'),'Celebrated Mass must remain read-only');
-const css=html.slice(html.indexOf('/* CANTORIA 1.1 (29):'));
+const css=html.slice(html.indexOf('/* CANTORIA 1.1 (28):'));
 for(const token of ['mass-song-ghost','mass-song-placeholder','mass-song-reordering','@media (prefers-reduced-motion:reduce)'])
  assert.ok(css.includes(token),token);
 const pureStart=code.indexOf('function reorderedMassItems(');
