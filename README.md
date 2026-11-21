@@ -1,5 +1,18 @@
 # Cantoria — Foto → Partitura (beta 0.5.0)
 
+## Cantoria 1.1 (5) — tonalità armonica e comandi (21 novembre 2026)
+
+- L'inferenza della tonalità dai canti fotografati considera qualità degli accordi, accordi diatonici, inizi delle sezioni e cadenze dominante–tonica; non usa più semplicemente l'accordo più frequente.
+- Gli accordi SOL, DO, RE, MI−, SI−, LA− possono appartenere a SOL maggiore o alla relativa MI minore: senza indizi funzionali sufficienti viene mostrato **Da verificare**. La melodia e gli accordi incerti dall'OCR devono essere confrontati con l'originale.
+- Nel menu del brano, **Analisi tonalità e verifica degli accordi** mostra candidati, conteggi, progressioni cadenzali e limiti dell'analisi. L'utente può scegliere la tonalità manualmente; l'impostazione manuale non viene sovrascritta.
+- I canti fotografati non confermati con tonalità precedentemente dedotta vengono rivalutati quando si apre la nuova versione; i dati con `keySource: manual` rimangono invariati.
+- I controlli di ritorno all'inizio e riproduzione usano icone SVG verde bosco e oro coerenti con il resto dell'interfaccia.
+- PWA: cache `cantoria-shell-v1.1-build5`; iOS: `release.json` 1.1 (5), bundle aggiornato con `harmony-analysis.js` e `audio-follow.js`. Test: `node scripts/test-harmony.js`.
+
+**Nota:** riconoscimento fotografico sperimentale. Una tonalità plausibile non è una conferma musicologica e non risolve accordi OCR da controllare.
+
+---
+
 ## Acquisizione fotografica
 
 Dalla schermata **Acquisisci**: scatta o scegli una foto, premi **Riconosci testo e accordi**, correggi la trascrizione, quindi premi **Crea partitura modificabile**. La trascrizione interpreta sezioni INTRO/STROFA/RITORNELLO e sigle italiane degli accordi su righe dedicate. Puoi anche **Salva solo la foto** e convertirla successivamente.
