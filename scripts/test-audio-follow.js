@@ -202,7 +202,7 @@ assert.ok(leftEnd>=0,'Chord nav must be nested in the left group and separated f
 assert.ok(reader26.includes('id="readerVerification"')&&reader26.includes('id="audioFollowStatus"'));
 assert.ok(html.includes('/* CANTORIA 1.1 (26)'),'Responsive toolbar correction required');
 assert.ok(audioSource.includes('accumulatedChroma('));
-assert.ok(audioSource.includes('activeIndex=-1;activeName="";lastAdvance=0;resetListeningWindow();refresh();'));
+assert.ok(audioSource.includes('activeIndex=-1;activeName="";lastAdvance=0;resetListeningWindow();markedChroma=null;refresh();'));
 assert.ok(audioSource.includes('In attesa del primo accordo: '));
 const fullC=[.001,.001,.001,.001,.001,.001,.001,.001,.001,.001,.001,.001];
 for(const n of [0,4,7])fullC[n]=.3;
