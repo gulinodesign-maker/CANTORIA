@@ -25,6 +25,7 @@ jobs:
           node scripts/test-library-filters.js
           node scripts/test-mass-cards.js
           node scripts/test-release-info.js
+          node scripts/test-topbar-layout.js
       - name: Check inline JS and generate a sample PDF
         run: |
           node - <<'NODE'
