@@ -1105,6 +1105,31 @@ function modalHTML(){const m=state.modal;
  }
  if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (5)</h2><p>Analisi armonica della tonalità con verifica delle cadenze e delle alternative; correzione delle tonalità OCR e icone vettoriali.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
 
+
+ if(m.type==='key-analysis'){
+  const song=currentSong(), a=window.CantoriaHarmony?.analyze(song);
+  if(!song)return '';
+  const label=key=>escape(describeTonality({key}));
+  const summary=!a||a.status==='insufficient'?'Accordi insufficienti per determinare la tonalità.':
+   a.status==='uncertain'?'Analisi non conclusiva: le tonalità candidate restano da verificare.':
+   'Centro tonale più probabile: '+describeTonality({key:a.key})+'. Non verificato con la melodia.';
+  const alternatives=(a?.candidates||[]).slice(0,3).map(c=>'<div><span>'+label(c.key)+'</span><span>'+escape(c.score)+' punti · '+c.cadences+' cadenze</span></div>').join('');
+  const symbols=(a?.counts||[]).slice(0,10).map(c=>c.name+' ×'+c.count).join(' · ')||'Nessuno';
+  const sequences=a?.progressions?.length?[...new Set(a.progressions)].join(' · '):'Nessuna cadenza dominante-tonica convincente nei dati letti';
+  return '<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Analisi della tonalità">'+
+   '<div class="song-options-header"><h2>Analisi della tonalità</h2><button type="button" class="song-close" data-action="close-modal" aria-label="Chiudi">×</button></div>'+
+   '<div class="harmony-detail"><p><strong>'+escape(summary)+'</strong></p>'+
+   '<p>'+escape(a?.observations||0)+' accordi riconosciuti; '+escape(a?.reviewed||0)+' segnalati come incerti dall’OCR. '+escape(a?.distinctRoots||0)+' fondamentali diverse.</p>'+
+   '<p><strong>Accordi letti:</strong> '+escape(symbols)+'</p>'+
+   '<p><strong>Cadenze rilevate:</strong> '+escape(sequences)+'</p>'+
+   '<div class="harmony-candidates">'+alternatives+'</div>'+
+   '<p>La valutazione considera qualità degli accordi, compatibilità con la scala, inizi delle sezioni e risoluzioni dominante-tonica. La frequenza di un singolo accordo non determina da sola la tonalità.</p>'+
+   '<p>'+escape(a?.warning||'La tonalità richiede conferma.')+'</p>'+
+   (song.keySource==='manual'?'<p>La tonalità attuale è stata impostata manualmente e non viene sovrascritta.</p>':'')+
+   '</div><div class="modal-actions"><button type="button" class="outline-btn" data-action="edit-tonality">Imposta tonalità</button><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div>'+
+  '</div></div>';
+ }
+
  if(m.type==='song-options'){
   const song=currentSong();if(!song)return '';
   const hasScore=!!song.sections?.length,hasPhoto=!!song.photoData;
@@ -1636,6 +1661,7 @@ root.addEventListener('click',e=>{
    if(!saveStore(store)){song.savedAt=previous;notify('Salvataggio non riuscito: memoria insufficiente.');return;}
    state.modal=null;notify('Brano salvato in Biblioteca.');return;
   }
+ if(action==='show-key-analysis'){state.modal={type:'key-analysis'};render();return;}
  if(action==='edit-tonality'){state.modal={type:'tonality-edit'};render();return;}
  if(action==='export-song'){exportSongFile(store.songs.find(s=>s.id===el.dataset.song),'share');return;}
  if(action==='card-pdf'){const song=store.songs.find(s=>s.id===el.dataset.song);if(song?.sections?.length)exportPdf('share',song,0);return;}
