@@ -7,7 +7,7 @@ const song={id:'s1',title:'Ti esalto Dio mio re',sections:[]};
 const planned={id:'m1',name:'Messa 1',date:'',items:[{id:'i1',songId:'s1',shift:0,label:'Ingresso'}]};
 const celebrated={id:'m2',name:'Messa celebrata',date:'2026-11-22',celebratedAt:'2026-11-22T10:00:00Z',items:[{id:'i2',songId:'s1',shift:0,archiveTitle:song.title}]};
 const ctx={store:{songs:[song],masses:[planned,celebrated]},state:{massId:null},escape,escapeAttr:escape,
- CATHOLIC_CORNER:'<svg class="corner-ornament"></svg>',massDateDisplay:d=>d||'Data da definire',
+ CATHOLIC_CORNER:'<svg class="corner-ornament"></svg>',massDateDisplay:d=>!d?'Data da definire':/^\d{4}-\d{2}-\d{2}$/.test(d)?d.slice(8)+'/'+d.slice(5,7)+'/'+d.slice(0,4):d,
  massSongSummary:m=>m.items.map(x=>x.archiveTitle||song.title).join(', '),currentMass(){return ctx.store.masses.find(x=>x.id===ctx.state.massId)}};
 const begin=js.indexOf('function massesHTML(){'),end=js.indexOf('const OCR_JS_URL=',begin);
 assert.ok(begin>=0&&end>begin);vm.runInNewContext(js.slice(begin,end)+'this.massList=massesHTML;this.detail=massDetailHTML;',ctx);
