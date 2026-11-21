@@ -1103,6 +1103,22 @@
  .topbar-create-mass span{font-size:11px!important}
 }
 
+/* CANTORIA 1.1 (24) — chord step controls and active microphone state. */
+.reader-layer .reader-chord-nav{display:flex;align-items:center;gap:4px;flex:0 0 auto;position:relative;z-index:7}
+.reader-layer .reader-chord-step{display:grid!important;place-items:center!important;flex:0 0 38px!important;width:38px!important;min-width:38px!important;height:42px!important;padding:0!important;margin:0!important;border:1px solid #af8a46!important;border-radius:11px!important;background:#194638!important;color:#e9c780!important;cursor:pointer!important;touch-action:manipulation}
+.reader-layer .reader-chord-step svg{display:block;width:23px;height:23px}
+.reader-layer .reader-chord-step:disabled{opacity:.34!important;cursor:default!important}
+.reader-layer .reader-chord-step:focus-visible{outline:3px solid #d5a231!important;outline-offset:2px}
+.reader-layer .reader-follow-btn{position:relative!important;transition:background-color .15s,color .15s,box-shadow .15s}
+.reader-layer .reader-follow-btn[data-listening="true"]{background:#f2c451!important;color:#163d32!important;border-color:#bd8520!important;box-shadow:0 0 0 3px #e8b13f88,0 0 14px #e0a727a6!important}
+.reader-layer .reader-follow-btn[data-listening="true"]::after{content:"";position:absolute;top:5px;right:5px;width:7px;height:7px;border-radius:50%;background:#e86e34;box-shadow:0 0 0 1px #fff5c8}
+@media(min-width:610px){.reader-layer:not(.reader-photo) .reader-title{width:calc(100% - 500px)!important}}
+@media(max-width:699px) and (orientation:portrait){
+ .reader-layer:not(.reader-photo) .reader-toolbar{height:calc(103px + env(safe-area-inset-top,0px))!important;align-items:flex-start!important;padding-top:calc(7px + env(safe-area-inset-top,0px))!important}
+ .reader-layer:not(.reader-photo) .reader-chord-nav{position:absolute!important;left:50%!important;bottom:6px!important;transform:translateX(-50%)!important;gap:8px!important}
+ .reader-layer:not(.reader-photo) .reader-chord-step{flex-basis:43px!important;width:43px!important;min-width:43px!important;height:41px!important}
+}
+
 </style>
   <title>Cantoria — Canti per la liturgia cattolica</title>
 </head>
@@ -1436,6 +1452,10 @@ function readerHTML(){
  <button class="reader-back app-back-btn" type="button" data-action="close-reader" aria-label="Indietro"><svg class="app-back-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m15 19-7-7 7-7"/></svg></button>
  <button class="reader-audio-btn" type="button" data-action="follow-rewind" title="Torna all’inizio" aria-label="Torna all’inizio del brano"><svg class="reader-transport-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3.5 5v14" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" fill="none"/><path d="M12 6v12L5 12zM21 6v12l-7-6z" fill="currentColor"/></svg></button>
  <button class="reader-audio-btn reader-play-toggle" type="button" data-action="follow-play" title="Play / Stop" aria-label="Play"><svg class="reader-transport-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 4v16l13-8z" fill="currentColor"/></svg></button>
+ <div class="reader-chord-nav" role="group" aria-label="Navigazione manuale degli accordi">
+ <button class="reader-chord-step" type="button" data-action="follow-prev-chord" title="Accordo precedente" aria-label="Accordo precedente"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5 7.5 12l7 7" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+ <button class="reader-chord-step" type="button" data-action="follow-next-chord" title="Accordo successivo" aria-label="Accordo successivo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 5 7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+ </div>
  </div>
  <div class="reader-title" title="${escapeAttr(song.title)}"><div class="reader-title-line"><strong>${escape(song.title)}</strong></div><small>${horizontal?(state.page+1)+' / '+pages.length:''}${song.verified?'':' · DA VERIFICARE'}</small></div>
  <div class="reader-toolbar-right">
@@ -1830,7 +1850,7 @@ function modalHTML(){const m=state.modal;
   const song=currentSong();if(!song?.photoData)return '';
   return `<div class="modal-shade"><div class="modal-card" role="alertdialog" aria-modal="true" aria-label="Conferma ricalcolo accordi"><h2>Ricalcolare gli accordi?</h2><p>La partitura verrà ricalcolata dalla fotografia originale con le coordinate OCR. Le modifiche manuali fatte sulle sillabe e sugli accordi saranno sostituite. La fotografia originale resterà disponibile.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button type="button" class="primary-btn" data-action="reparse-photo">Ricalcola accordi</button></div></div></div>`;
  }
- if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (23)</h2><p>Microfono e audio: avanzamento degli accordi soltanto nella sequenza musicale, senza salti fra strofa e ritornello. Riconoscimento separato degli accordi ripetuti, continuità fra le pagine in landscape e passaggio automatico alla pagina corretta. Conservate le migliorie della build 22.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
+ if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (24)</h2><p>Due frecce manuali spostano la selezione all’accordo precedente o successivo senza fermare il microfono. Il pulsante con la nota si illumina in oro durante l’ascolto dal microfono, e in portrait le frecce occupano una seconda riga.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
 
 
  if(m.type==='key-analysis'){
@@ -2388,6 +2408,10 @@ root.addEventListener('click',e=>{
   const player=window.CantoriaAudioFollow;
   if(!player?.hasSource){state.modal={type:'follow-source'};render();return;}
   player.toggle().catch(err=>notify(err.message));return;
+ }
+ if(action==='follow-prev-chord'||action==='follow-next-chord'){
+  window.CantoriaAudioFollow?.step(action==='follow-prev-chord'?-1:1);
+  return;
  }
  if(action==='follow-rewind'){
   window.CantoriaAudioFollow?.rewind();

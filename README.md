@@ -1,3 +1,13 @@
+## Cantoria 1.1 (24) — navigazione manuale accordi e stato microfono (21 novembre 2026)
+
+- Due nuove frecce nella barra del lettore per tornare all’accordo precedente o avanzare al successivo, mantenendo attivo l’ascolto del microfono o del file audio.
+- In landscape le frecce sono accanto ai comandi Play/Stop; in portrait stretto appaiono su una seconda riga per non sovrapporsi al titolo.
+- Il pulsante con la nota musicale diventa oro e mostra un indicatore arancione durante l’ascolto effettivo dal microfono; torna normale quando l’ascolto termina.
+- La progressione manuale è limitata agli accordi realmente presenti nella partitura, incluse le altre pagine. Resta attiva la sequenza cronologica introdotta nella build 23.
+- Numero build iOS/PWA 24, versione applicativa 1.1 invariata.
+
+---
+
 ## Cantoria 1.1 (23) — riconoscimento cronologico degli accordi (21 novembre 2026)
 
 - Il riconoscimento tramite microfono e audio segue esclusivamente l'accordo successivo nella sequenza della partitura, senza saltare a una strofa o pagina più avanti.

@@ -57,6 +57,11 @@
  }
  // Positions are immutable events in the full score, not a search window in the visible page.
  function chordIdentity(label){return String(label||"").trim().toUpperCase().replace(/♯/g,"#").replace(/♭/g,"B").replace(/\s+/g,"");}
+ function stepChordIndex(items,index,direction){
+  if(!Array.isArray(items)||!items.length||!direction)return index;
+  if(index<0)return direction>0?0:-1;
+  return Math.max(0,Math.min(items.length-1,index+(direction>0?1:-1)));
+ }
  function nextChordIndex(items,index,heard,freshAttack=false){
   const next=items?.[index+1],current=items?.[index];
   const wanted=typeof next==="string"?next:next?.label;
@@ -86,6 +91,18 @@
  function visibleLabels(){return Array.from(root.document?.querySelectorAll("#readerLayer .chord-label[data-follow-id]")||[]);}
  function activeLabel(){const id=scoreItems[activeIndex]?.id;return id?visibleLabels().find(el=>el.dataset.followId===id):null;}
  function syncControls(){
+  const mic=$("#readerLayer .reader-follow-btn");
+  if(mic&&!mic.disabled){
+   const listening=mode==="mic"&&!!stream;
+   mic.dataset.listening=String(listening);
+   mic.setAttribute("aria-pressed",String(listening));
+   mic.setAttribute("aria-label",listening?"Microfono attivo, in ascolto":"Segui accordi");
+   mic.setAttribute("title",listening?"Microfono attivo":"Segui accordi");
+  }
+  const previous=$("#readerLayer [data-action='follow-prev-chord']");
+  const next=$("#readerLayer [data-action='follow-next-chord']");
+  if(previous)previous.disabled=activeIndex<1||!scoreItems.length;
+  if(next)next.disabled=!scoreItems.length||activeIndex>=scoreItems.length-1;
   const play=$("#readerLayer .reader-play-toggle");
   if(play&&!play.disabled){
    const running=mode!=="idle";
@@ -133,6 +150,14 @@
   if(typeof root.requestAnimationFrame==="function")root.requestAnimationFrame(()=>{refresh();scrollToActive();});
   else scrollToActive();
   status("Accordo: "+item.label+" · "+(index+1)+" / "+scoreItems.length);
+ }
+ function step(direction){
+  const index=stepChordIndex(scoreItems,activeIndex,direction);
+  if(index<0||index===activeIndex)return false;
+  // Manual correction adjusts only the score cursor; the audio source stays active.
+  stableName="";stableCount=0;
+  mark(index);
+  return true;
  }
  function match(chord){
   if(!scoreItems.length)return;
@@ -218,7 +243,7 @@
   activeIndex=-1;activeName="";stableName="";stableCount=0;lastAdvance=0;attackCount=0;lastMarkAttackCount=0;previousRms=0;silentFrames=0;releasedSinceLast=false;refresh();
  }
  if(player)player.addEventListener("ended",()=>stop());
- const api={parseChord,chromaFromFFT,recognizeChord,nextChordIndex,setScore,loadTrack,play,microphone,toggle,rewind,stop,reset,refresh,syncControls,get mode(){return mode;},get hasSource(){return preferredSource==="mic"||!!player?.src;}};
+ const api={parseChord,chromaFromFFT,recognizeChord,nextChordIndex,stepChordIndex,setScore,step,loadTrack,play,microphone,toggle,rewind,stop,reset,refresh,syncControls,get mode(){return mode;},get activeIndex(){return activeIndex;},get hasSource(){return preferredSource==="mic"||!!player?.src;}};
  root.CantoriaAudioFollow=api;
- if(typeof module!=="undefined"&&module.exports)module.exports={parseChord,chromaFromFFT,recognizeChord,nextChordIndex};
+ if(typeof module!=="undefined"&&module.exports)module.exports={parseChord,chromaFromFFT,recognizeChord,nextChordIndex,stepChordIndex};
 })(typeof window!=="undefined"?window:globalThis);
