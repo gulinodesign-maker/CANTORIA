@@ -1236,7 +1236,11 @@ function transposeChord(chord, semitones) {
   const italian = normalized.match(/^(SOL|DO|RE|MI|FA|LA|SI)(#|b)?(.*)$/i);
   const english = italian ? null : normalized.match(/^([A-G])(#|b)?(.*)$/i);
   const m = italian || english;
-  if (!m || !window.CantoriaAudioFollow?.parseChord?.(chord)) return chord;
+  // PDF export also invokes this function without a browser or audio engine.
+  // Validate the chord locally, without relying on window.CantoriaAudioFollow.
+  const quality=String(m?.[3]||'').split('/')[0]
+    .replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹]/g,mark=>String("⁰¹²³⁴⁵⁶⁷⁸⁹".indexOf(mark)));
+  if (!m || (quality&&!/^(?:-|m(?!aj)|min|maj|M|dim|aug|sus|add|ø|°|[0-9+#()/-])[\da-zA-Z+#°()/-]*$/.test(quality))) return chord;
   const root = m[1].toUpperCase();
   let note = italian ? SEMITONE[root] : ({C:0,D:2,E:4,F:5,G:7,A:9,B:11})[root];
   if (m[2] === '#') note += 1;
