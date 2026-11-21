@@ -540,6 +540,17 @@
 .follow-source-choice{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:11px;position:relative;min-height:92px;min-width:0;border:1px solid #c9c3af;border-radius:14px;background:#f5f0e7;color:#174638;text-align:center;padding:12px;font-size:13px;cursor:pointer}
 .follow-source-choice span[aria-hidden="true"]{font-size:29px}
 
+
+/* Cantoria 1.1 (5): consistent transport buttons and harmonic analysis. */
+.reader-layer .reader-audio-btn{background:#194638!important;color:#e9c780!important;border:1px solid #af8a46!important;border-radius:11px!important;font-size:initial!important}
+.reader-layer .reader-audio-btn[data-playing="true"]{background:#235844!important;color:#ffe0a2!important}
+.reader-transport-svg{display:block;width:23px;height:23px;flex-shrink:0}
+.song-key-analysis-trigger{display:block;width:100%;text-align:center;border:1px solid #d9c8a7;background:#fbf5e8;color:#274e3d;border-radius:10px;padding:7px 9px;font-size:12px;font-weight:700;margin:3px 0 9px}
+.song-key-analysis-trigger:active{background:#f0e4cf}
+.harmony-detail{font-size:13px;line-height:1.45;color:#345043}
+.harmony-detail p{margin:9px 0}
+.harmony-candidates{padding:8px 10px;background:#f4f0e5;border:1px solid #e2d9c7;border-radius:10px}
+.harmony-candidates div{display:flex;justify-content:space-between;gap:6px;padding:4px 0}
 </style>
   <title>Cantoria — Canti per la liturgia cattolica</title>
 </head>
@@ -787,8 +798,8 @@ function photoReaderHTML(song){
  <header class="reader-toolbar">${CATHOLIC_CORNER}
  <div class="reader-toolbar-left">
  <button class="reader-back" type="button" data-action="close-reader" aria-label="Indietro">‹</button>
- <button class="reader-audio-btn" type="button" data-action="follow-rewind" title="Inizio brano" aria-label="Torna all'inizio del brano">⏮</button>
- <button class="reader-audio-btn reader-play-toggle" type="button" disabled data-action="follow-play" title="Play / Stop" aria-label="Play">▶</button>
+ <button class="reader-audio-btn" type="button" data-action="follow-rewind" title="Torna all’inizio" aria-label="Torna all’inizio del brano"><svg class="reader-transport-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3.5 5v14" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" fill="none"/><path d="M12 6v12L5 12zM21 6v12l-7-6z" fill="currentColor"/></svg></button>
+ <button class="reader-audio-btn reader-play-toggle" type="button" disabled data-action="follow-play" title="Play / Stop" aria-label="Play"><svg class="reader-transport-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 4v16l13-8z" fill="currentColor"/></svg></button>
  </div>
  <div class="reader-title" title="${escapeAttr(song.title)}"><div class="reader-title-line"><strong>${escape(song.title)}</strong></div></div>
  <div class="reader-toolbar-right">
@@ -816,8 +827,8 @@ function readerHTML(){
  <header class="reader-toolbar">${CATHOLIC_CORNER}
  <div class="reader-toolbar-left">
  <button class="reader-back" type="button" data-action="close-reader" aria-label="Indietro">‹</button>
- <button class="reader-audio-btn" type="button" data-action="follow-rewind" title="Inizio brano" aria-label="Torna all'inizio del brano">⏮</button>
- <button class="reader-audio-btn reader-play-toggle" type="button" data-action="follow-play" title="Play / Stop" aria-label="Play">▶</button>
+ <button class="reader-audio-btn" type="button" data-action="follow-rewind" title="Torna all’inizio" aria-label="Torna all’inizio del brano"><svg class="reader-transport-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3.5 5v14" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" fill="none"/><path d="M12 6v12L5 12zM21 6v12l-7-6z" fill="currentColor"/></svg></button>
+ <button class="reader-audio-btn reader-play-toggle" type="button" data-action="follow-play" title="Play / Stop" aria-label="Play"><svg class="reader-transport-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 4v16l13-8z" fill="currentColor"/></svg></button>
  </div>
  <div class="reader-title" title="${escapeAttr(song.title)}"><div class="reader-title-line"><strong>${escape(song.title)}</strong></div><small>${horizontal?(state.page+1)+' / '+pages.length:''}${song.verified?'':' · DA VERIFICARE'}</small></div>
  <div class="reader-toolbar-right">
@@ -1104,7 +1115,8 @@ function modalHTML(){const m=state.modal;
   const review=(pending||missed)?`<button type="button" class="song-review-notice" data-action="review-chords">⚠ ${pending+missed} accordi da controllare <span>›</span></button>`:'';
   return `<div class="modal-shade"><div class="modal-card song-options song-options-compact" role="dialog" aria-modal="true" aria-label="Impostazioni brano">
     <div class="song-options-header"><h2>Impostazioni brano</h2><button type="button" class="song-close" data-action="close-modal" aria-label="Chiudi">×</button></div>
-    <div class="song-transport" aria-label="Tonalità e trasporto"><button type="button" class="song-transport-btn" data-action="shift-down" aria-label="Abbassa di un semitono">−</button><button type="button" class="song-transport-key" data-action="reset-shift" aria-label="Tonalità attuale, tocca per azzerare il trasporto"><strong>${escape(describeTonality(song,state.shift))}</strong><small>${song.key?'Originale':'Rilevata'} · ${state.shift>0?'+':''}${state.shift}</small></button><button type="button" class="song-transport-btn" data-action="shift-up" aria-label="Alza di un semitono">+</button></div>
+    <div class="song-transport" aria-label="Tonalità e trasporto"><button type="button" class="song-transport-btn" data-action="shift-down" aria-label="Abbassa di un semitono">−</button><button type="button" class="song-transport-key" data-action="reset-shift" aria-label="Tonalità attuale, tocca per azzerare il trasporto"><strong>${escape(describeTonality(song,state.shift))}</strong><small>${song.keySource==='manual'?'Impostata manualmente':song.keySource==='auto-harmony'?'Proposta · da verificare':'Da verificare'} · ${state.shift>0?'+':''}${state.shift}</small></button><button type="button" class="song-transport-btn" data-action="shift-up" aria-label="Alza di un semitono">+</button></div>
+    <button type="button" class="song-key-analysis-trigger" data-action="show-key-analysis">♫ Analisi tonalità e verifica degli accordi ›</button>
     ${review}<div class="song-options-grid">
       <button type="button" class="song-option-tile" data-action="choose-section-text"${noScore}><span aria-hidden="true">✎</span><span>Modifica testo delle strofe</span></button>
       <button type="button" class="song-option-tile" data-action="band-colors"${noScore}><span aria-hidden="true">◒</span><span>Colori pill e accordi</span></button>
