@@ -935,6 +935,36 @@
  .mass-song-card .song-cover:has(.mass-song-remove):has(.mass-song-reset) .cover-label{padding-left:72px!important;padding-right:72px!important}
 }
 
+
+/* CANTORIA 1.1 (18): song title above centered composer credit. */
+.song-card .song-cover .cover-content{
+ display:flex!important;flex-direction:column!important;
+ justify-content:center!important;align-items:center!important;
+ width:100%!important;max-width:100%!important;min-width:0!important;
+ gap:5px!important;text-align:center!important;position:relative;z-index:2;
+}
+.song-card .song-cover .cover-content .cover-label{
+ display:block!important;flex:0 1 auto!important;width:100%!important;
+ margin:0!important;text-align:center!important;
+}
+.song-card .song-cover .cover-author{
+ display:block;min-width:0;max-width:100%;
+ margin:0;padding:0 14px;box-sizing:border-box;
+ color:#566d60;font:500 clamp(12px,2.8vw,15px)/1.25 ui-sans-serif,-apple-system,sans-serif;
+ text-align:center;overflow-wrap:anywhere;text-wrap:balance;
+}
+.song-card .song-cover:has(.card-delete-btn) .cover-content,
+.mass-song-card .song-cover:has(.mass-song-remove) .cover-content{
+ padding:0 34px!important;box-sizing:border-box!important
+}
+.mass-song-card .song-cover:has(.mass-song-remove):has(.mass-song-reset) .cover-content{
+ padding:0 60px!important
+}
+@media(max-width:370px){
+ .song-card .song-cover .cover-author{font-size:12px;padding:0 4px}
+ .mass-song-card .song-cover:has(.mass-song-remove):has(.mass-song-reset) .cover-content{padding:0 51px!important}
+}
+
 </style>
   <title>Cantoria — Canti per la liturgia cattolica</title>
 </head>
@@ -1299,7 +1329,7 @@ function libraryHTML(){
     <option value="author-desc" ${sort==='author-desc'?'selected':''}>Autore Z–A</option>
    </select>
   </div></div>
-  <div class="tiles">${songs.map(song=>`<article class="song-card" role="button" tabindex="0" data-action="read-song" data-song="${escapeAttr(song.id)}" aria-label="Apri ${escapeAttr(song.title)}"><div class="song-cover">${CATHOLIC_CORNER}<div class="cover-label">${escape(song.title)}</div><button class="card-delete-btn" type="button" data-action="ask-delete-song" data-song="${escapeAttr(song.id)}" title="Elimina brano" aria-label="Elimina ${escapeAttr(song.title)}">×</button></div><div class="card-body library-card-actions-only"><div class="card-actions" role="group" aria-label="Azioni brano"><button type="button" class="outline-btn" data-action="add-to-mass" data-song="${escapeAttr(song.id)}" aria-label="Aggiungi alla messa"><span aria-hidden="true">⊕</span><span>Alla messa</span></button><button type="button" class="outline-btn" data-action="export-song" data-song="${escapeAttr(song.id)}"><span aria-hidden="true">⇧</span><span>Esporta</span></button><button type="button" class="outline-btn" data-action="card-pdf" data-song="${escapeAttr(song.id)}" ${song.sections?.length?'':'disabled aria-disabled="true"'}><span aria-hidden="true">▤</span><span>Crea PDF</span></button></div></div></article>`).join('')||'<div class="empty">Nessun canto trovato.</div>'}</div>
+  <div class="tiles">${songs.map(song=>`<article class="song-card" role="button" tabindex="0" data-action="read-song" data-song="${escapeAttr(song.id)}" aria-label="Apri ${escapeAttr(song.title)}"><div class="song-cover">${CATHOLIC_CORNER}<div class="cover-content"><div class="cover-label">${escape(song.title)}</div>${String(song.author||'').trim()?`<div class="cover-author">(${escape(String(song.author).trim())})</div>` :''}</div><button class="card-delete-btn" type="button" data-action="ask-delete-song" data-song="${escapeAttr(song.id)}" title="Elimina brano" aria-label="Elimina ${escapeAttr(song.title)}">×</button></div><div class="card-body library-card-actions-only"><div class="card-actions" role="group" aria-label="Azioni brano"><button type="button" class="outline-btn" data-action="add-to-mass" data-song="${escapeAttr(song.id)}" aria-label="Aggiungi alla messa"><span aria-hidden="true">⊕</span><span>Alla messa</span></button><button type="button" class="outline-btn" data-action="export-song" data-song="${escapeAttr(song.id)}"><span aria-hidden="true">⇧</span><span>Esporta</span></button><button type="button" class="outline-btn" data-action="card-pdf" data-song="${escapeAttr(song.id)}" ${song.sections?.length?'':'disabled aria-disabled="true"'}><span aria-hidden="true">▤</span><span>Crea PDF</span></button></div></div></article>`).join('')||'<div class="empty">Nessun canto trovato.</div>'}</div>
   `;}
 function massDateDisplay(date){if(!date)return 'Data da definire';const parts=String(date).split('-');return parts.length===3?[parts[2],parts[1],parts[0]].join('/'):String(date);}
 function massSongSummary(m){return (m.items||[]).map(item=>{const song=store.songs.find(x=>x.id===item.songId);return escape(m.celebratedAt?(item.archiveTitle||song?.title||'Canto non disponibile'):(song?.title||'Canto non disponibile'));}).join(' · ');}
@@ -1329,8 +1359,9 @@ function massDetailHTML(){
   const song=store.songs.find(x=>x.id===item.songId);
   const title=done?(item.archiveTitle||song?.title||'Canto non disponibile'):(song?.title||'Canto non disponibile');
   const used=!!item.usedAt;
+  const author=String((done?(item.archiveAuthor||song?.author):song?.author)||'').trim();
   return `<article class="song-card mass-song-card ${done?'mass-song-archived':used?'mass-song-used':''}" role="button" tabindex="0" data-action="read-mass-song" data-item="${escapeAttr(item.id)}" aria-label="Apri ${escapeAttr(title)}">
-    <div class="song-cover">${CATHOLIC_CORNER}<div class="cover-label">${escape(title)}</div>
+    <div class="song-cover">${CATHOLIC_CORNER}<div class="cover-content"><div class="cover-label">${escape(title)}</div>${author?`<div class="cover-author">(${escape(author)})</div>`:''}</div>
     ${!done&&used?`<button type="button" class="mass-song-reset" data-action="reset-mass-item-used" data-item="${escapeAttr(item.id)}" title="Rendi di nuovo disponibile" aria-label="Rendi di nuovo disponibile ${escapeAttr(title)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10a8 8 0 1 1 0 6"/><path d="M4 4v6h6"/></svg></button>`:''}
     ${!done?`<button type="button" class="mass-song-remove" data-action="ask-remove-mass-item" data-item="${escapeAttr(item.id)}" title="Rimuovi dalla Messa" aria-label="Rimuovi ${escapeAttr(title)} dalla Messa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>`:''}
     </div>
@@ -1596,7 +1627,7 @@ function modalHTML(){const m=state.modal;
   const song=currentSong();if(!song?.photoData)return '';
   return `<div class="modal-shade"><div class="modal-card" role="alertdialog" aria-modal="true" aria-label="Conferma ricalcolo accordi"><h2>Ricalcolare gli accordi?</h2><p>La partitura verrà ricalcolata dalla fotografia originale con le coordinate OCR. Le modifiche manuali fatte sulle sillabe e sugli accordi saranno sostituite. La fotografia originale resterà disponibile.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button type="button" class="primary-btn" data-action="reparse-photo">Ricalcola accordi</button></div></div></div>`;
  }
- if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (16)</h2><p>Importa brano, Scatta una foto e Scegli una foto riuniti in Acquisisci. In Biblioteca: ricerca per titolo o autore, filtro autore e ordine alfabetico A–Z/Z–A.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
+ if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (18)</h2><p>Card dei brani: titolo in evidenza e autore tra parentesi, centrato sotto. La modifica vale per Biblioteca e scalette delle Messe.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
 
 
  if(m.type==='key-analysis'){

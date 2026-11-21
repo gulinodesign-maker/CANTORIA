@@ -1,11 +1,11 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const html=fs.readFileSync('index.html','utf8'),js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(js);new vm.Script(js);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:17});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:18});
 const escape=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const song={id:'s1',title:'Ti esalto Dio mio re',sections:[]};
+const song={id:'s1',title:'Ti esalto Dio mio re',author:'Francesco Buttazzo',sections:[]};
 const planned={id:'m1',name:'Messa 1',date:'',items:[{id:'i1',songId:'s1',shift:0,label:'Ingresso'}]};
-const celebrated={id:'m2',name:'Messa celebrata',date:'2026-11-22',celebratedAt:'2026-11-22T10:00:00Z',items:[{id:'i2',songId:'s1',shift:0,archiveTitle:song.title}]};
+const celebrated={id:'m2',name:'Messa celebrata',date:'2026-11-22',celebratedAt:'2026-11-22T10:00:00Z',items:[{id:'i2',songId:'s1',shift:0,archiveTitle:song.title,archiveAuthor:'Autore archiviato'}]};
 const ctx={store:{songs:[song],masses:[planned,celebrated]},state:{massId:null},escape,escapeAttr:escape,
  CATHOLIC_CORNER:'<svg class="corner-ornament"></svg>',massDateDisplay:d=>!d?'Data da definire':/^\d{4}-\d{2}-\d{2}$/.test(d)?d.slice(8)+'/'+d.slice(5,7)+'/'+d.slice(0,4):d,
  massSongSummary:m=>m.items.map(x=>x.archiveTitle||song.title).join(', '),currentMass(){return ctx.store.masses.find(x=>x.id===ctx.state.massId)}};
@@ -21,6 +21,8 @@ const detail=ctx.detail();
 assert.ok(!detail.includes('mass-detail-title-row'));
 assert.ok(!detail.includes('1 canto'));
 assert.ok(detail.includes('mass-detail-tools'));
+assert.ok(detail.includes('class="cover-author">(Francesco Buttazzo)</div>'));
+assert.ok(detail.indexOf('Ti esalto Dio mio re')<detail.indexOf('(Francesco Buttazzo)'));
 for(const action of ['add-to-mass','finish-mass','rename-mass'])assert.ok(detail.includes('data-action="'+action+'"'),action);
 assert.equal((detail.match(/class="(?:primary-btn|outline-btn) mass-tool"/g)||[]).length,3);
 assert.equal((detail.match(/class="song-card mass-song-card/g)||[]).length,1);
@@ -38,6 +40,7 @@ assert.equal((used.match(/data-action="read-mass-song"/g)||[]).length,1);
 ctx.state.massId='m2';
 const historical=ctx.detail();
 assert.ok(historical.includes('mass-song-archived'));
+assert.ok(historical.includes('class="cover-author">(Autore archiviato)</div>'));
 assert.ok(!historical.includes('data-action="reset-mass-item-used"'));
 assert.ok(!historical.includes('data-action="ask-remove-mass-item"'),'Celebrated Mass is read-only');
 assert.ok(historical.includes('data-action="read-mass-song"'));

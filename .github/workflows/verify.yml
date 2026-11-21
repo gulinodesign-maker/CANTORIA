@@ -26,6 +26,7 @@ jobs:
           node scripts/test-mass-cards.js
           node scripts/test-release-info.js
           node scripts/test-topbar-layout.js
+          node scripts/test-card-authors.js
       - name: Check inline JS and generate a sample PDF
         run: |
           node - <<'NODE'

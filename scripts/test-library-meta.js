@@ -5,7 +5,7 @@ const html=fs.readFileSync('index.html','utf8');
 const js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(js,'App script missing');
 new vm.Script(js);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:17});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:18});
 
 function pick(begin,end){
  const a=js.indexOf(begin),b=js.indexOf(end,a+begin.length);
@@ -18,6 +18,7 @@ const libraryContext={store:{songs:[song]},state:{filter:''},escape,escapeAttr:e
 vm.runInNewContext(pick('function libraryHTML(){','function massDateDisplay(')+'this.makeLibrary=libraryHTML;',libraryContext);
 const library=libraryContext.makeLibrary();
 assert.ok(library.includes('Benedetto sei Signore'));
+assert.ok(library.includes('class="cover-author">(Autore originale)</div>'), 'Library credit should follow title in parentheses');
 assert.ok(library.includes('library-card-actions-only'));
 for(const label of ['Alla messa','Esporta','Crea PDF'])assert.ok(library.includes(label));
 for(const missing of ['<div class="meta-row">','<span class="pill">','Da verificare','Canto di lode ·','Autore originale ·'])assert.ok(!library.includes(missing),'Unexpected card metadata: '+missing);
@@ -57,7 +58,7 @@ const failed={modal:{type:'song-options'}};
 save('save-song',()=>song,failed,{querySelector:sel=>({value:sel==='#songTitleEdit'?'Different':'Different Author'})},()=>false,{},()=>{});
 assert.deepEqual({title:song.title,author:song.author,savedAt:song.savedAt},original);
 assert.equal(failed.modal.type,'song-options');
-assert.ok(fs.readFileSync('sw.js','utf8').includes('cantoria-shell-v1.1-build17'));
+assert.ok(fs.readFileSync('sw.js','utf8').includes('cantoria-shell-v1.1-build18'));
 assert.ok(html.includes('/* Cantoria 1.1 (6) — compact library cards'));
 console.log('Cantoria build 6 library compactness and song metadata tests passed');
 
