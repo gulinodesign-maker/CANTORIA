@@ -27,7 +27,7 @@ assert.ok(css.includes('grid-template-columns:repeat(3,minmax(0,1fr))!important'
 assert.ok(css.includes('.library-find-row .library-filter-bar{display:contents!important}'));
 assert.ok(css.includes('height:48px!important'));
 assert.ok(css.includes('@media screen and (orientation:landscape)'));
-assert.ok(css.includes('.section-workspace{padding-top:5px!important}'));
+assert.ok(css.includes('.section-workspace{padding-top:5px!important;'),'Landscape workspace must have compact padding');
 const cap=js.slice(js.indexOf('function captureHTML()'),js.indexOf('function settingsHTML()'));
 assert.ok(!html.includes('📷'),'No skeuomorphic camera emoji anywhere');
 assert.equal((cap.match(/<svg class="flat-ui-icon"/g)||[]).length,3);
