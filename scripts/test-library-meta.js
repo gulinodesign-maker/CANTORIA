@@ -5,7 +5,7 @@ const html=fs.readFileSync('index.html','utf8');
 const js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(js,'App script missing');
 new vm.Script(js);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:8});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:9});
 
 function pick(begin,end){
  const a=js.indexOf(begin),b=js.indexOf(end,a+begin.length);
@@ -57,12 +57,20 @@ const failed={modal:{type:'song-options'}};
 save('save-song',()=>song,failed,{querySelector:sel=>({value:sel==='#songTitleEdit'?'Different':'Different Author'})},()=>false,{},()=>{});
 assert.deepEqual({title:song.title,author:song.author,savedAt:song.savedAt},original);
 assert.equal(failed.modal.type,'song-options');
-assert.ok(fs.readFileSync('sw.js','utf8').includes('cantoria-shell-v1.1-build8'));
+assert.ok(fs.readFileSync('sw.js','utf8').includes('cantoria-shell-v1.1-build9'));
 assert.ok(html.includes('/* Cantoria 1.1 (6) — compact library cards'));
 console.log('Cantoria build 6 library compactness and song metadata tests passed');
 
-assert.ok(html.includes('/* Cantoria 1.1 (8): centered song-settings title */'));
+assert.ok(html.includes('/* Cantoria 1.1 (9): centered song-settings title */'));
 assert.ok(html.includes('grid-template-columns:40px minmax(0,1fr) 40px!important'));
 assert.ok(html.includes('.song-options-compact .song-options-header>h2{grid-column:2'));
 assert.ok(html.includes('text-align:center!important'));
 console.log('Centered modal header validated.');
+
+const cleaned=html.slice(html.indexOf("if(m.type==='song-options')"),html.indexOf("if(m.type==='photo-source')"));
+assert.ok(cleaned.includes('aria-label="Titolo del brano"'));
+assert.ok(cleaned.includes('aria-label="Autore o compositore"'));
+assert.ok(!cleaned.includes('<span>Titolo</span>'));
+assert.ok(!cleaned.includes('<span>Autore</span>'));
+assert.equal((cleaned.match(/class="song-option-tile"/g)||[]).length,6);
+console.log('Visible title/author labels removed, accessible editable fields retained.');
