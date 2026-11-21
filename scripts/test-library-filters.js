@@ -2,7 +2,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
 const html=fs.readFileSync('index.html','utf8');
 const js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(js);new vm.Script(js);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:14});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:15});
 const escape=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const songs=[
  {id:'2',title:'Zefiro',author:'Zara'},
@@ -41,8 +41,12 @@ assert.ok(capture.includes('id="songImportCaptureInput"'));
 assert.ok(capture.includes('for="songImportCaptureInput"'));
 assert.ok(capture.includes('for="photoCameraInput"'));
 assert.ok(capture.includes('for="photoLibraryInput"'));
-assert.ok(js.includes("e.target.id==='songImportInput'||e.target.id==='songImportCaptureInput'"));
+assert.ok(js.includes("if(e.target.id==='songImportCaptureInput')"),'Only Capture may import song files');
+assert.ok(!library.includes('id="songImportInput"'),'No hidden file import in Library');
+assert.ok(!library.includes('class="library-import"'),'No Import/Add action strip in Library');
+assert.ok(!library.includes('data-nav="capture"'),'No Add Song button in Library');
+assert.ok(capture.includes('Scatta una foto')&&capture.includes('Scegli una foto')&&capture.includes('Importa brano'),'Exactly the three Capture choices');
 assert.ok(js.includes("if(e.target.id==='libraryAuthorFilter')"));
 assert.ok(js.includes("if(e.target.id==='librarySort')"));
 assert.ok(html.includes('grid-template-columns:repeat(3,minmax(0,1fr))!important'));
-console.log('OK: title/author alphabetical filters and capture-file import');
+console.log('OK: alphabetic title/author sorting, author filter, and Capture-only import');

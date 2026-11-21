@@ -1113,7 +1113,7 @@ function libraryHTML(){
   return collator.compare(String(a[secondary]||''),String(b[secondary]||''))||
    collator.compare(String(a.id||''),String(b.id||''));
  });
- return `<div class="page-heading"><div><h1>Biblioteca</h1></div><div class="library-import"><label class="outline-btn" for="songImportInput" style="cursor:pointer"><span class="library-action-icon" aria-hidden="true">⇩</span><span>Importa brano</span></label><input type="file" id="songImportInput" accept=".cantoria.json,.json,application/json" style="position:absolute;width:1px;height:1px;opacity:0" aria-label="Scegli un file brano Cantoria"><button type="button" class="primary-btn" data-nav="capture"><span class="library-action-icon" aria-hidden="true">⊕</span><span>Aggiungi canto</span></button></div></div>
+ return `<div class="page-heading"><div><h1>Biblioteca</h1></div></div>
   <label class="search-bar">⌕ <input id="search" type="search" placeholder="Cerca titolo o autore…" value="${escapeAttr(state.filter||'')}" autocomplete="off" aria-label="Cerca per titolo o autore"></label>
   <div class="library-filter-bar" role="group" aria-label="Filtri della Biblioteca">
    <select id="libraryAuthorFilter" aria-label="Filtra per autore"><option value="">Tutti gli autori</option>${authors.map(name=>`<option value="${escapeAttr(name)}" ${collator.compare(name,author)===0?'selected':''}>${escape(name)}</option>`).join('')}</select>
@@ -1300,7 +1300,7 @@ function captureHTML(){
      </form>`:`<p class="photo-capture-hint">Fotografa lo spartito per iniziare.</p>`}
   </section>`;
 }
-function settingsHTML(){return `<div class="page-heading"><div><div class="eyebrow">Versione 1.1 (14)</div><h1>Impostazioni</h1></div></div><div class="form-wrap"><div class="panel"><h3>Dati e salvataggi</h3><p>I canti e le scalette sono attualmente memorizzati <strong>solo nel browser di questo dispositivo</strong>. Non sono ancora sincronizzati su iCloud o GitHub.</p><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px"><button class="outline-btn" data-action="backup">Scarica backup JSON</button><label class="outline-btn" style="cursor:pointer">Ripristina backup<input type="file" id="backupInput" accept="application/json" style="display:none"></label></div></div><div class="panel"><h3>Ultimo aggiornamento</h3><p>Scopri le modifiche e le migliorie introdotte con la versione più recente.</p><button type="button" class="outline-btn" data-action="show-release-notes">Novità dell'ultima versione</button></div><div class="panel"><h3>Modello musicale</h3><p>Gli accordi delle fotografie conservano anche coordinate OCR, indice del carattere e livello di affidabilità. La disposizione grafica non cambia il loro ancoraggio musicale.</p><div class="alert" style="margin-top:15px">OCR geometrico sperimentale: dove sono disponibili soltanto i riquadri delle parole gli ancoraggi ai caratteri sono stimati e sempre da verificare. Se mancano le coordinate, l'app non inventa una posizione. Le note sul pentagramma non sono ancora riconosciute.</div></div></div>`;}
+function settingsHTML(){return `<div class="page-heading"><div><div class="eyebrow">Versione 1.1 (15)</div><h1>Impostazioni</h1></div></div><div class="form-wrap"><div class="panel"><h3>Dati e salvataggi</h3><p>I canti e le scalette sono attualmente memorizzati <strong>solo nel browser di questo dispositivo</strong>. Non sono ancora sincronizzati su iCloud o GitHub.</p><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:20px"><button class="outline-btn" data-action="backup">Scarica backup JSON</button><label class="outline-btn" style="cursor:pointer">Ripristina backup<input type="file" id="backupInput" accept="application/json" style="display:none"></label></div></div><div class="panel"><h3>Ultimo aggiornamento</h3><p>Scopri le modifiche e le migliorie introdotte con la versione più recente.</p><button type="button" class="outline-btn" data-action="show-release-notes">Novità dell'ultima versione</button></div><div class="panel"><h3>Modello musicale</h3><p>Gli accordi delle fotografie conservano anche coordinate OCR, indice del carattere e livello di affidabilità. La disposizione grafica non cambia il loro ancoraggio musicale.</p><div class="alert" style="margin-top:15px">OCR geometrico sperimentale: dove sono disponibili soltanto i riquadri delle parole gli ancoraggi ai caratteri sono stimati e sempre da verificare. Se mancano le coordinate, l'app non inventa una posizione. Le note sul pentagramma non sono ancora riconosciute.</div></div></div>`;}
 function appHTML(){
  const views={home:homeHTML,library:libraryHTML,masses:massesHTML,capture:captureHTML,settings:settingsHTML};
  const builder=views[state.view]||homeHTML;
@@ -1427,7 +1427,7 @@ function modalHTML(){const m=state.modal;
   const song=currentSong();if(!song?.photoData)return '';
   return `<div class="modal-shade"><div class="modal-card" role="alertdialog" aria-modal="true" aria-label="Conferma ricalcolo accordi"><h2>Ricalcolare gli accordi?</h2><p>La partitura verrà ricalcolata dalla fotografia originale con le coordinate OCR. Le modifiche manuali fatte sulle sillabe e sugli accordi saranno sostituite. La fotografia originale resterà disponibile.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button type="button" class="primary-btn" data-action="reparse-photo">Ricalcola accordi</button></div></div></div>`;
  }
- if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (14)</h2><p>Messe e brani con card cliccabili e tasto × di eliminazione con conferma. Scaletta con card uniformi alla Biblioteca e comandi compatti; home adattata all’orientamento orizzontale.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
+ if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (15)</h2><p>Importa brano, Scatta una foto e Scegli una foto riuniti in Acquisisci. In Biblioteca: ricerca per titolo o autore, filtro autore e ordine alfabetico A–Z/Z–A.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
 
 
  if(m.type==='key-analysis'){
@@ -2155,12 +2155,12 @@ root.addEventListener('change',async e=>{
    preview.style.background=e.target.value;
   return;
  }
- if(e.target.id==='songKeyInline'){const song=currentSong();if(song){song.key=e.target.value;song.keySource='manual';persist();render();}return;}if(e.target.id==='songImportInput'||e.target.id==='songImportCaptureInput'){
+ if(e.target.id==='songKeyInline'){const song=currentSong();if(song){song.key=e.target.value;song.keySource='manual';persist();render();}return;}if(e.target.id==='songImportCaptureInput'){
  const file=e.target.files?.[0];if(!file)return;
  try{
   if(file.size>3000000)throw new Error('File troppo grande');
   const song=importSongFile(await file.text());
-  if(e.target.id==='songImportCaptureInput'){state.view='library';state.filter='';state.libraryAuthor='';}
+  state.view='library';state.filter='';state.libraryAuthor='';
   notify('Brano importato: '+song.title);
  }catch(err){notify('Importazione non riuscita: '+err.message);}
  return;

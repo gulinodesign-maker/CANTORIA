@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const html=fs.readFileSync('index.html','utf8'),js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(js);new vm.Script(js);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:14});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:15});
 const escape=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const song={id:'s1',title:'Ti esalto Dio mio re',sections:[]};
 const planned={id:'m1',name:'Messa 1',date:'',items:[{id:'i1',songId:'s1',shift:0,label:'Ingresso'}]};
@@ -51,7 +51,7 @@ assert.ok(modal.includes("m.type==='delete-mass-confirm'"));
 assert.ok(modal.includes("m.type==='remove-mass-item-confirm'"));
 assert.ok(modal.includes("const song=store.songs.find(x=>x.id===m.songId)"),'Library delete works outside song reader');
 const css=html.slice(html.indexOf('/* Cantoria 1.1 (12):'));
-const next=html.slice(html.indexOf('/* Cantoria 1.1 (14)'));
+const next=html.slice(html.indexOf('/* Cantoria 1.1 (13) — one-tap Mass song cards'));
 assert.ok(css.includes('grid-template-columns:repeat(3,minmax(0,1fr))'),'Mass toolbar still three equal columns');
 assert.ok(css.includes('grid-template-columns:repeat(4,minmax(0,1fr))!important'),'All four Home buttons on one row');
 assert.ok(next.includes('.mass-song-card.mass-song-used{opacity:.5!important}'));
