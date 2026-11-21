@@ -10,7 +10,7 @@ for(const phase of ['source','staged','archive','ipa']){
 }
 assert.ok(pipeline.indexOf('verify-release-payload.sh ipa')<pipeline.indexOf('Upload signed IPA to TestFlight'));
 const shell=fs.readFileSync('scripts/verify-release-payload.sh','utf8');
-for(const token of ['git ls-remote origin refs/heads/main','CFBundleShortVersionString','CFBundleVersion','cmp -s index.html','cmp -s web/build-info.json','sourceSha256'])
+for(const token of ['git ls-remote origin refs/heads/main','CFBundleShortVersionString','CFBundleVersion','cmp -s "$name" "web/$name"','cmp -s web/build-info.json','sourceSha256'])
  assert.ok(shell.includes(token),'Missing safeguard '+token);
 const prep=fs.readFileSync('scripts/prepare-ios.sh','utf8');
 assert.ok(prep.includes("fs.writeFileSync('web/build-info.json'"));
