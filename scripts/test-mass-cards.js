@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const html=fs.readFileSync('index.html','utf8'),js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(js);new vm.Script(js);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:15});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:16});
 const escape=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const song={id:'s1',title:'Ti esalto Dio mio re',sections:[]};
 const planned={id:'m1',name:'Messa 1',date:'',items:[{id:'i1',songId:'s1',shift:0,label:'Ingresso'}]};
@@ -18,8 +18,8 @@ assert.equal((list.match(/data-action="open-mass"/g)||[]).length,2);
 assert.ok(!list.includes('Apri scaletta'),'Opening must work from whole mass card');
 ctx.state.massId='m1';
 const detail=ctx.detail();
-assert.ok(detail.includes('mass-detail-title-row'));
-assert.ok(detail.includes('1 canto'));
+assert.ok(!detail.includes('mass-detail-title-row'));
+assert.ok(!detail.includes('1 canto'));
 assert.ok(detail.includes('mass-detail-tools'));
 for(const action of ['add-to-mass','finish-mass','rename-mass'])assert.ok(detail.includes('data-action="'+action+'"'),action);
 assert.equal((detail.match(/class="(?:primary-btn|outline-btn) mass-tool"/g)||[]).length,3);
@@ -78,3 +78,18 @@ ctx2.saveStore=()=>false;
 assert.equal(ctx2.markUsed(),false);
 assert.equal(planned.items[0].usedAt,undefined,'Failed persistence must roll back used state');
 console.log('OK: home portrait/landscape icon shape, used Mass song opacity, card reset and automatic close marking');
+
+const headA=js.indexOf('function headerHTML()'),headB=js.indexOf('function navHTML()',headA);
+assert.ok(headA>=0&&headB>headA);
+ctx.state.view='masses';ctx.state.massId='m1';
+vm.runInNewContext(js.slice(headA,headB)+'this.makeHeader=headerHTML;',ctx);
+const titlebar=ctx.makeHeader();
+for(const token of ['topbar-mass-detail','mass-topbar-back','mass-topbar-overline','mass-topbar-name','mass-topbar-count','mass-topbar-date','Messa 1','1 canto','Data da definire'])
+ assert.ok(titlebar.includes(token),token);
+assert.equal((titlebar.match(/data-action="back-masses"/g)||[]).length,1);
+ctx.state.massId='m2';const historyBar=ctx.makeHeader();
+assert.ok(historyBar.includes('CELEBRATA')&&historyBar.includes('22/11/2026'));
+const detailSource=js.slice(js.indexOf('function massDetailHTML()'),js.indexOf('const OCR_JS_URL='));
+for(const duplicate of ['mass-collection-header','mass-detail-title-row','mass-overline','data-action="back-masses"'])
+ assert.ok(!detailSource.includes(duplicate),'Duplicate Mass information '+duplicate);
+console.log('Mass topbar retains title, date, count and return without duplicates');
