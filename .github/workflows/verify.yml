@@ -31,6 +31,7 @@ jobs:
           node scripts/test-library-filters.js
           node scripts/test-mass-cards.js
           node scripts/test-mass-reorder.js
+          node scripts/test-mass-landscape.js
           node scripts/test-release-info.js
           node scripts/test-settings-backup-nav.js
           node scripts/test-topbar-layout.js

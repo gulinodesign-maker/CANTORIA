@@ -1204,6 +1204,66 @@
 .syllable-confirm-actions .syllable-delete-confirm{background:#8f352b;color:#fff;border:1px solid #8f352b;font-weight:750}
 @media(max-width:390px){.syllable-delete-actions .outline-btn{font-size:12px}.syllable-confirm-actions button{flex:1;min-width:0}}
 
+/* CANTORIA 1.1 (32): one full-width Mass song per row in landscape. */
+@media screen and (orientation:landscape){
+ .tiles.mass-song-tiles{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr)!important;
+  column-gap:0!important;
+  row-gap:9px!important;
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+ }
+ .tiles.mass-song-tiles>.mass-song-card{
+  grid-column:1/-1!important;
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+  min-height:0!important;
+  box-sizing:border-box!important;
+ }
+ .tiles.mass-song-tiles>.mass-song-card .song-cover{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr)!important;
+  place-items:center!important;
+  height:auto!important;
+  min-height:72px!important;
+  padding:9px clamp(64px,9vw,90px)!important;
+ }
+ .tiles.mass-song-tiles>.mass-song-card .song-cover .corner-ornament{
+  width:76px!important;
+  height:63px!important;
+ }
+ .tiles.mass-song-tiles>.mass-song-card .song-cover .cover-content,
+ .tiles.mass-song-tiles>.mass-song-card .song-cover:has(.mass-song-remove) .cover-content,
+ .tiles.mass-song-tiles>.mass-song-card .song-cover:has(.mass-song-remove):has(.mass-song-reset) .cover-content{
+  padding:0!important;
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+  gap:3px!important;
+ }
+ .tiles.mass-song-tiles>.mass-song-card .song-cover .cover-content .cover-label{
+  padding:0!important;
+  width:100%!important;
+  font:normal clamp(18px,2.5vw,24px)/1.14 Georgia,serif!important;
+  overflow-wrap:break-word!important;
+  word-break:normal!important;
+  text-wrap:balance;
+ }
+ .tiles.mass-song-tiles>.mass-song-card .song-cover .cover-content .cover-author{
+  padding:0!important;
+  font-size:clamp(11px,1.6vw,14px)!important;
+  line-height:1.2!important;
+ }
+ .tiles.mass-song-tiles .mass-song-remove,
+ .tiles.mass-song-tiles .mass-song-reset{
+  top:50%!important;
+  transform:translateY(-50%)!important;
+ }
+}
+
 </style>
   <title>Cantoria — Canti per la liturgia cattolica</title>
 </head>
@@ -2011,7 +2071,7 @@ function modalHTML(){const m=state.modal;
   const song=currentSong();if(!song?.photoData)return '';
   return `<div class="modal-shade"><div class="modal-card" role="alertdialog" aria-modal="true" aria-label="Conferma ricalcolo accordi"><h2>Ricalcolare gli accordi?</h2><p>La partitura verrà ricalcolata dalla fotografia originale con le coordinate OCR. Le modifiche manuali fatte sulle sillabe e sugli accordi saranno sostituite. La fotografia originale resterà disponibile.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button type="button" class="primary-btn" data-action="reparse-photo">Ricalcola accordi</button></div></div></div>`;
  }
- if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (31)</h2><p>Corretto il riconoscimento degli accordi nei brani importati, con supporto alle sigle internazionali (C, G, Am), agli accordi sospesi SOL2/RE4 e alla trasposizione. In Impostazioni il test microfono riconosce anche segnali più deboli e mostra gli accordi senza un filtro eccessivamente rigido.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
+ if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (32)</h2><p>La scaletta di una Messa in landscape mostra un solo canto per riga, a tutta larghezza e con titoli più leggibili, come nella Biblioteca. Le card rimangono compatte; il riordino tramite pressione prolungata e i comandi di rimozione e ripristino continuano a funzionare. Il layout in portrait resta invariato.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
 
 
  if(m.type==='key-analysis'){

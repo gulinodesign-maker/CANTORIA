@@ -1,3 +1,14 @@
+## Cantoria 1.1 (32) — elenco canti Messa a tutta larghezza in landscape (21 novembre 2026)
+
+- Nella scaletta della Messa la visualizzazione landscape ora presenta una singola card per riga, larga quanto lo schermo disponibile, esattamente come nella Biblioteca.
+- Card più compatte in orizzontale: titolo e autore centrati, ornamento verde/oro proporzionato, tasti rimozione e ripristino disponibili sul lato destro senza sovrapporsi al testo.
+- In portrait non viene alterata l'impaginazione preesistente.
+- La pressione prolungata di circa mezzo secondo continua a permettere il trascinamento per cambiare l'ordine dei canti; l'ordine rimane salvato dopo il rilascio.
+- Test automatici specifici per layout landscape, stile portrait invariato, pulsanti, card trascinabili e lista Biblioteca non modificata.
+- Versione 1.1 build 32. Nessuna modifica al riconoscimento degli accordi della build 31.
+
+---
+
 ## Cantoria 1.1 (31) — brani importati e diagnosi microfono (21 novembre 2026)
 
 - Il riconoscimento dei brani importati supporta accordi italiani e internazionali (DO/C, SOL/G, LA-/Am, FA#-/F#m). La trasposizione comprende le sigle internazionali e i bassi in accordi slash.
