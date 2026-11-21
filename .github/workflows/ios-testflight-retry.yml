@@ -61,14 +61,16 @@ jobs:
               return;
             }
 
-            // Do not run duplicate uploads while GitHub is working.
-            // If a job remains pending indefinitely, renew the attempt
-            // after 90 minutes so the queue cannot stall the release.
+            // Never start a second TestFlight publish while another attempt
+            // is queued or running. A duplicate publication can cancel a
+            // healthy simulator/archive build before the Apple upload begins.
+            // A genuinely stuck run is restarted explicitly by a new main
+            // commit (which replaces the previous run via auto workflow
+            // concurrency) rather than overlapping the existing upload.
             const active = attempts.filter(run => run.status !== 'completed');
-            const recentActive = active.some(run =>
-              Date.now() - Date.parse(run.created_at) < 90 * 60 * 1000);
-            if (recentActive) {
-              core.info('TestFlight publication is already pending or running');
+            if (active.length > 0) {
+              core.info('Existing TestFlight publication is queued or running; ' +
+                        'will not launch a concurrent retry');
               return;
             }
 
