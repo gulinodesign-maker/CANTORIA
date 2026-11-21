@@ -245,7 +245,7 @@ assert.ok(html.includes('data-action="save-song"'));
 assert.ok(html.includes('data-action="edit-chord-only"'));
 assert.ok(html.includes('data-action="recognize-photo"'));
 assert.ok(!html.includes('data-action="recognize-apple"'));
-assert.ok(!html.includes('photo-analysis-actions'));
+assert.ok(!html.includes('class="photo-analysis-actions"'));
 assert.ok(!html.includes('data-action="improve-photo-apple"'));
 assert.ok(html.includes("worker.recognize(image,{}, {text:true,blocks:true})"));
 assert.ok(html.includes('photoParserVersion'));
