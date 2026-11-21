@@ -1178,6 +1178,24 @@
  .reader-layer:not(.reader-photo) .reader-chord-nav{position:absolute!important;left:50%!important;bottom:7px!important;transform:translateX(-50%)!important;margin-left:0!important}
 }
 
+/* CANTORIA 1.1 (28): long-press to reorder an editable Mass's song cards. */
+.mass-reorder-help{font:600 13px/1.45 ui-sans-serif,-apple-system,sans-serif;color:#61796e;margin:4px 0 12px;padding:0 3px}
+.mass-song-tiles[data-mass-reorder]>.mass-song-card{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.mass-song-tiles.mass-song-reordering{position:relative}
+.mass-song-tiles .mass-song-card.mass-song-placeholder,
+.mass-song-tiles .mass-song-card.mass-song-placeholder.mass-song-used{
+ opacity:.28!important;border:2px dashed #bb913b!important;box-shadow:inset 0 0 0 2px #f0cb75!important;
+ transform:none!important;transition:none!important
+}
+.mass-song-ghost,.mass-song-ghost.mass-song-used{
+ position:fixed!important;z-index:9999!important;pointer-events:none!important;
+ margin:0!important;opacity:.97!important;transform:scale(1.035)!important;
+ transform-origin:center center!important;box-shadow:0 18px 34px #143f3450,0 2px 7px #143f3424!important;
+ border:2px solid #c59742!important;border-radius:18px!important;
+ background:#fffcf3!important;overflow:hidden!important
+}
+@media (prefers-reduced-motion:reduce){.mass-song-ghost{transform:none!important}}
+
 </style>
   <title>Cantoria — Canti per la liturgia cattolica</title>
 </head>
@@ -1637,12 +1655,13 @@ function massDetailHTML(){
   `<button class="outline-btn mass-tool" type="button" disabled><span aria-hidden="true">⊕</span><span>Aggiungi canto</span></button><button class="outline-btn mass-tool" type="button" disabled><span aria-hidden="true">✓</span><span>Celebrata</span></button><button class="outline-btn mass-tool" type="button" disabled><span aria-hidden="true">✎</span><span>Rinomina Messa</span></button>`:
   `<button class="primary-btn mass-tool" type="button" data-action="add-to-mass"><span aria-hidden="true">⊕</span><span>Aggiungi canto</span></button><button class="outline-btn mass-tool" type="button" data-action="finish-mass"><span aria-hidden="true">✓</span><span>Segna celebrata</span></button><button class="outline-btn mass-tool" type="button" data-action="rename-mass"><span aria-hidden="true">✎</span><span>Rinomina Messa</span></button>`;
  return `<div class="mass-detail-tools" role="group" aria-label="Gestione Messa">${buttons}</div>
- <div class="tiles mass-song-tiles">${(mass.items||[]).map((item,i)=>{
+ ${!done&&count>1?'<p class="mass-reorder-help">Tieni premuto un canto e trascinalo per cambiare l’ordine della Messa.</p>':''}
+ <div class="tiles mass-song-tiles" ${!done?`data-mass-reorder="${escapeAttr(mass.id)}" aria-label="Scaletta riordinabile tramite pressione prolungata"`:''}>${(mass.items||[]).map((item,i)=>{
   const song=store.songs.find(x=>x.id===item.songId);
   const title=done?(item.archiveTitle||song?.title||'Canto non disponibile'):(song?.title||'Canto non disponibile');
   const used=!!item.usedAt;
   const author=String((done?(item.archiveAuthor||song?.author):song?.author)||'').trim();
-  return `<article class="song-card mass-song-card ${done?'mass-song-archived':used?'mass-song-used':''}" role="button" tabindex="0" data-action="read-mass-song" data-item="${escapeAttr(item.id)}" aria-label="Apri ${escapeAttr(title)}">
+  return `<article class="song-card mass-song-card ${done?'mass-song-archived':used?'mass-song-used':''}" role="button" tabindex="0" data-action="read-mass-song" data-item="${escapeAttr(item.id)}" ${!done?`data-reorder-item="${escapeAttr(item.id)}"`:''} aria-label="Apri ${escapeAttr(title)}">
     <div class="song-cover">${CATHOLIC_CORNER}<div class="cover-content"><div class="cover-label">${escape(title)}</div>${author?`<div class="cover-author">(${escape(author)})</div>`:''}</div>
     ${!done&&used?`<button type="button" class="mass-song-reset" data-action="reset-mass-item-used" data-item="${escapeAttr(item.id)}" title="Rendi di nuovo disponibile" aria-label="Rendi di nuovo disponibile ${escapeAttr(title)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10a8 8 0 1 1 0 6"/><path d="M4 4v6h6"/></svg></button>`:''}
     ${!done?`<button type="button" class="mass-song-remove" data-action="ask-remove-mass-item" data-item="${escapeAttr(item.id)}" title="Rimuovi dalla Messa" aria-label="Rimuovi ${escapeAttr(title)} dalla Messa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>`:''}
@@ -1950,7 +1969,7 @@ function modalHTML(){const m=state.modal;
   const song=currentSong();if(!song?.photoData)return '';
   return `<div class="modal-shade"><div class="modal-card" role="alertdialog" aria-modal="true" aria-label="Conferma ricalcolo accordi"><h2>Ricalcolare gli accordi?</h2><p>La partitura verrà ricalcolata dalla fotografia originale con le coordinate OCR. Le modifiche manuali fatte sulle sillabe e sugli accordi saranno sostituite. La fotografia originale resterà disponibile.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button type="button" class="primary-btn" data-action="reparse-photo">Ricalcola accordi</button></div></div></div>`;
  }
- if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (27)</h2><p>Nuovo test del microfono nelle Impostazioni: avvia/ferma, accordo riconosciuto in tempo reale, segnale, note e corrispondenza. In landscape le frecce degli accordi sono immediatamente a destra di Play/Stop, senza coprire il titolo.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
+ if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (28)</h2><p>Nelle Messe da preparare puoi tenere premuto un canto per mezzo secondo e trascinarlo nella nuova posizione. La sequenza si aggiorna durante il trascinamento e viene salvata al rilascio, anche in landscape; la Biblioteca e le Messe già celebrate restano invariate.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
 
 
  if(m.type==='key-analysis'){
@@ -2200,6 +2219,16 @@ function compressScorePhoto(file){
   img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('Impossibile leggere la fotografia'));};
   img.src=url;
  });
+}
+// Keep the original song/item objects intact; only the order of this Mass changes.
+function reorderedMassItems(items,itemId,targetIndex){
+ if(!Array.isArray(items)||!items.length||!Number.isInteger(targetIndex))return null;
+ const from=items.findIndex(item=>item.id===itemId);
+ if(from<0||targetIndex<0||targetIndex>=items.length)return null;
+ const result=items.slice();
+ const [moved]=result.splice(from,1);
+ result.splice(targetIndex,0,moved);
+ return result;
 }
 function markCurrentMassSongUsed(){
  const mass=currentMass(),item=mass?.items?.find(x=>x.id===state.massItemId);
@@ -2727,6 +2756,165 @@ root.addEventListener('change',async e=>{
  catch(err){console.error(err);notify('Impossibile aprire la foto. Prova un file JPEG o PNG.');}
  return;
 }if(e.target.id==='backupInput'){const file=e.target.files?.[0];if(!file)return;try{const data=importJSON(await file.text());store.songs=data.songs.map(s=>{const song=normalizedSong(s);refreshDetectedKey(song);return song;});store.masses=data.masses;persist();state.view='library';notify('Backup ripristinato.');}catch(err){notify('Impossibile leggere il backup.');}}});
+// Press-and-hold drag reorder for the selected, editable Mass only.
+function setupMassSongReorder(){
+ const HOLD_MS=520,MOVE_CANCEL_PX=12,EDGE_PX=76;
+ let pending=null,drag=null,skipClickUntil=0,autoScrollFrame=0;
+ const validMass=()=>state.view==='masses'&&!state.songId&&!state.modal&&
+  !!currentMass()&&!currentMass().celebratedAt&&currentMass().items.length>1;
+ const eligible=target=>{
+  if(!validMass()||!target?.closest)return null;
+  if(target.closest('button,input,textarea,select,a,[contenteditable="true"]'))return null;
+  const card=target.closest('.mass-song-tiles[data-mass-reorder] > .mass-song-card[data-reorder-item]');
+  return card&&card.parentElement?.dataset.massReorder===state.massId?card:null;
+ };
+ const clearPending=()=>{
+  if(pending?.timer)clearTimeout(pending.timer);
+  pending=null;
+ };
+ const stopAutoscroll=()=>{if(autoScrollFrame)cancelAnimationFrame(autoScrollFrame);autoScrollFrame=0;};
+ const closeGhost=()=>{
+  stopAutoscroll();
+  if(!drag)return;
+  drag.ghost.remove();
+  drag.card.classList.remove('mass-song-placeholder');
+  drag.card.removeAttribute('aria-grabbed');
+  drag.list.classList.remove('mass-song-reordering');
+  drag=null;
+ };
+ const cancel=()=>{
+  clearPending();
+  if(!drag)return;
+  skipClickUntil=Date.now()+650;
+  closeGhost();
+  render();
+ };
+ function pointerPosition(x,y){
+  if(!drag)return;
+  drag.x=x;drag.y=y;
+  drag.ghost.style.left=(x-drag.offsetX)+'px';
+  drag.ghost.style.top=(y-drag.offsetY)+'px';
+  const cards=Array.from(drag.list.querySelectorAll('.mass-song-card[data-reorder-item]')).filter(el=>el!==drag.card);
+  if(!cards.length)return;
+  // DOM order is row-major for grid layouts, making this work in both orientations.
+  let before=null;
+  for(const other of cards){
+   const r=other.getBoundingClientRect();
+   const sameRow=Math.abs(y-(r.top+r.height/2))<r.height*.47;
+   if(y<r.top+r.height/2-3||(sameRow&&x<r.left+r.width/2)){before=other;break;}
+  }
+  if(before){
+   if(drag.card.nextElementSibling!==before)drag.list.insertBefore(drag.card,before);
+  }else if(drag.card!==drag.list.lastElementChild)drag.list.appendChild(drag.card);
+ }
+ const autoScroll=()=>{
+  autoScrollFrame=0;
+  if(!drag)return;
+  const y=drag.y,height=window.innerHeight||document.documentElement.clientHeight;
+  const delta=y<EDGE_PX?-Math.min(20,(EDGE_PX-y)*.38):
+   y>height-EDGE_PX?Math.min(20,(y-(height-EDGE_PX))*.38):0;
+  if(delta){
+   let node=drag.list,scrollNode=null;
+   while(node&&node!==document.body){
+    if(node.scrollHeight>node.clientHeight+4&&
+      window.getComputedStyle(node).overflowY!=='visible'){scrollNode=node;break;}
+    node=node.parentElement;
+   }
+   if(scrollNode)scrollNode.scrollTop+=delta;
+   else window.scrollBy(0,delta);
+   pointerPosition(drag.x,drag.y);
+  }
+  autoScrollFrame=requestAnimationFrame(autoScroll);
+ };
+ const activate=()=>{
+  if(!pending||!validMass())return;
+  const p=pending;clearPending();
+  if(!p.card.isConnected||p.card.parentElement?.dataset.massReorder!==state.massId)return;
+  const rect=p.card.getBoundingClientRect();
+  const ghost=p.card.cloneNode(true);
+  ghost.classList.add('mass-song-ghost');
+  ghost.removeAttribute('data-action');ghost.removeAttribute('tabindex');
+  ghost.setAttribute('aria-hidden','true');
+  ghost.style.width=rect.width+'px';ghost.style.height=rect.height+'px';
+  ghost.style.left=rect.left+'px';ghost.style.top=rect.top+'px';
+  document.body.appendChild(ghost);
+  const list=p.card.parentElement;
+  list.classList.add('mass-song-reordering');
+  p.card.classList.add('mass-song-placeholder');
+  p.card.setAttribute('aria-grabbed','true');
+  drag={card:p.card,ghost,list,pointerId:p.pointerId,massId:state.massId,
+   itemId:p.card.dataset.reorderItem,offsetX:p.x-rect.left,offsetY:p.y-rect.top,x:p.x,y:p.y};
+  skipClickUntil=Date.now()+900;
+  pointerPosition(p.x,p.y);
+  autoScrollFrame=requestAnimationFrame(autoScroll);
+  if(navigator.vibrate)try{navigator.vibrate(15)}catch(_){}
+ };
+ root.addEventListener('pointerdown',e=>{
+  if(drag||pending||!e.isPrimary||(e.pointerType==='mouse'&&e.button!==0))return;
+  const card=eligible(e.target);if(!card)return;
+  pending={card,pointerId:e.pointerId,x:e.clientX,y:e.clientY};
+  pending.timer=setTimeout(activate,HOLD_MS);
+ });
+ window.addEventListener('pointermove',e=>{
+  if(pending&&e.pointerId===pending.pointerId){
+   if(Math.hypot(e.clientX-pending.x,e.clientY-pending.y)>MOVE_CANCEL_PX)clearPending();
+  }
+  if(!drag||e.pointerId!==drag.pointerId)return;
+  if(e.cancelable)e.preventDefault();
+  pointerPosition(e.clientX,e.clientY);
+ },{passive:false});
+ // On iOS prevent the native scrolling gesture *after* the long-press activates.
+ root.addEventListener('touchmove',e=>{
+  if(!drag)return;
+  const touch=Array.from(e.changedTouches||[])[0];if(!touch)return;
+  if(e.cancelable)e.preventDefault();
+  pointerPosition(touch.clientX,touch.clientY);
+ },{passive:false});
+ const finish=(pointerId)=>{
+  if(pending&&pointerId===pending.pointerId){clearPending();return;}
+  if(!drag||pointerId!==drag.pointerId)return;
+  const active=drag;
+  const mass=currentMass();
+  const ids=Array.from(active.list.querySelectorAll('.mass-song-card[data-reorder-item]')).map(el=>el.dataset.reorderItem);
+  const target=ids.indexOf(active.itemId);
+  const allowed=mass&&mass.id===active.massId&&!mass.celebratedAt&&ids.length===mass.items.length;
+  const previous=allowed?mass.items.slice():null;
+  const updated=allowed?reorderedMassItems(mass.items,active.itemId,target):null;
+  const changed=updated&&updated.some((item,i)=>item!==mass.items[i]);
+  skipClickUntil=Date.now()+850;
+  closeGhost();
+  if(!changed){render();return;}
+  mass.items=updated;
+  if(!saveStore(store)){
+   mass.items=previous;
+   render();
+   notify('Impossibile salvare il nuovo ordine della Messa.');
+   return;
+  }
+  render();
+ };
+ window.addEventListener('pointerup',e=>finish(e.pointerId));
+ // Some Safari versions cancel Pointer Events when touch scrolling starts.
+ // Keep the active drag until its native touchend in that case.
+ root.addEventListener('touchend',e=>{
+  if(drag)finish(drag.pointerId);
+ },{passive:true});
+ window.addEventListener('pointercancel',e=>{
+  if(pending&&e.pointerId===pending.pointerId)clearPending();
+  if(drag&&e.pointerId===drag.pointerId&&e.pointerType!=='touch')cancel();
+ });
+ root.addEventListener('touchcancel',()=>cancel(),{passive:true});
+ root.addEventListener('contextmenu',e=>{
+  if(!eligible(e.target)&&!drag)return;
+  if(e.cancelable)e.preventDefault();
+ });
+ root.addEventListener('click',e=>{
+  if(Date.now()>skipClickUntil)return;
+  if(!e.target.closest('.mass-song-tiles,.mass-song-ghost'))return;
+  e.preventDefault();e.stopImmediatePropagation();
+ },true);
+ window.addEventListener('pagehide',()=>{clearPending();closeGhost();});
+}
 function setupLongPress(){
  let timer=null,x=0,y=0,pending=null;
  const cancel=()=>{if(timer){clearTimeout(timer);timer=null;}pending=null;};
@@ -2827,6 +3015,7 @@ function setupLongPress(){
  },true);
 }
 setupLongPress();
+setupMassSongReorder();
 let startX=0,startY=0;root.addEventListener('touchstart',e=>{if(!e.target.closest('#readerPaper')||e.target.closest('.modal-card'))return;const t=e.changedTouches[0];startX=t.clientX;startY=t.clientY;},{passive:true});
 root.addEventListener('touchend',e=>{if(!e.target.closest('#readerPaper'))return;const t=e.changedTouches[0],dx=t.clientX-startX,dy=t.clientY-startY;if(window.innerWidth>window.innerHeight&&Math.abs(dx)>65&&Math.abs(dx)>Math.abs(dy)*1.4){state.page+=dx<0?1:-1;state.page=Math.max(0,Math.min(pageList(currentSong()).length-1,state.page));render();}},{passive:true});
 window.addEventListener('resize',()=>{if(state.songId){state.page=0;render();}});

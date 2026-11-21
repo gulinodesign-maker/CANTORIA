@@ -1,3 +1,14 @@
+## Cantoria 1.1 (28) — riordino brani tramite long press (21 novembre 2026)
+
+- In una **Messa da celebrare**, tieni premuta una card per circa mezzo secondo e trascinala sopra o sotto gli altri brani. Un'anteprima segue il dito; le altre card cambiano posizione durante il trascinamento.
+- Al rilascio il nuovo ordine viene salvato. Se il salvataggio fallisce viene ripristinato l'ordine precedente. Biblioteca, altre Messe e dati dei brani non vengono modificati.
+- Scorrimento automatico vicino ai bordi, supporto portrait/landscape e griglie a più colonne.
+- Il tocco breve continua ad aprire il brano; i pulsanti interni non attivano il trascinamento. Le Messe già celebrate non si possono riordinare.
+- Test di regressione per hold, drag, salvataggio, annullamento, blocco Messe archiviate e mantenimento dei dati.
+- Versione 1.1, build 28.
+
+---
+
 ## Cantoria 1.1 (27) — diagnosi microfono in Impostazioni (21 novembre 2026)
 
 - Nuovo pannello **Diagnosi riconoscimento accordi** nella schermata Impostazioni, utilizzabile anche senza aprire un canto. Pulsanti **Avvia test** e **Ferma test**, con accesso diretto al microfono e rilascio delle risorse allo stop.
