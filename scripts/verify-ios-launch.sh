@@ -17,21 +17,44 @@ if ! xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Releas
   tail -n 120 "$log"
   exit 1
 fi
+
+# GitHub-hosted macOS may pause indefinitely while CoreSimulator runs
+# LaunchServicesMigrator. Bound every simulator command, recover the simulator
+# once on failure, and NEVER bypass the screenshot/black-screen gate.
+run_bounded() {
+  local seconds="$1"; shift
+  python3 - "$seconds" "$@" <<'PY'
+import os, signal, subprocess, sys
+seconds = int(sys.argv[1])
+command = sys.argv[2:]
+print("Simulator check (max %ss): %s" % (seconds, " ".join(command)), flush=True)
+process = subprocess.Popen(command, start_new_session=True)
+try:
+    rc = process.wait(timeout=seconds)
+except subprocess.TimeoutExpired:
+    print("::warning::Simulator command exceeded %ss: %s" %
+          (seconds, " ".join(command)), flush=True)
+    try:
+        os.killpg(process.pid, signal.SIGTERM)
+    except ProcessLookupError:
+        pass
+    try:
+        process.wait(timeout=8)
+    except subprocess.TimeoutExpired:
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        process.wait()
+    rc = 124
+sys.exit(rc)
+PY
+}
 device="$(xcrun simctl list devices available -j | python3 -c 'import json,sys;j=json.load(sys.stdin);print(next((d["udid"] for group in j["devices"].values() for d in group if "iPhone" in d["name"] and d.get("isAvailable",True)),""))')"
 if [[ -z "$device" ]]; then
-  echo "No available iPhone simulator; cannot publish an unverified app." >&2
+  echo "::error::No available iPhone simulator; cannot publish an unverified app."
   exit 1
 fi
-echo "Starting iPhone simulator: $device"
-xcrun simctl boot "$device"
-xcrun simctl bootstatus "$device" -b
-xcrun simctl install "$device" "$data/Build/Products/Release-iphonesimulator/App.app"
-xcrun simctl launch "$device" "$IOS_BUNDLE_ID"
-sleep 12
-xcrun simctl io "$device" screenshot "$screens"
-xcrun simctl spawn "$device" log show --last 90s --style compact \
-  --predicate 'process == "App" OR process == "WebKit.WebContent"' \
-  > "$simlog" 2>&1 || true
 cat > "$RUNNER_TEMP/check-cantoria-screen.swift" <<'SWIFT'
 import AppKit
 import Foundation
@@ -60,4 +83,47 @@ if fraction < 0.15 {
 }
 print("PASS: iOS app startup is visibly nonblack.")
 SWIFT
-swift "$RUNNER_TEMP/check-cantoria-screen.swift" "$screens"
+passed=false
+for attempt in 1 2; do
+  echo "Cantoria iOS launch verification attempt $attempt of 2, simulator $device"
+  rm -f "$screens" "$simlog"
+  if [[ "$attempt" -gt 1 ]]; then
+    echo "::warning::Simulator startup stalled. Shutting down and erasing simulator before retry."
+    run_bounded 45 xcrun simctl shutdown "$device" || true
+    run_bounded 90 xcrun simctl erase "$device" || true
+  fi
+  if ! run_bounded 75 xcrun simctl boot "$device"; then
+    echo "::warning::Simulator boot command failed (attempt $attempt)."
+    continue
+  fi
+  if ! run_bounded 240 xcrun simctl bootstatus "$device" -b; then
+    echo "::warning::Simulator bootstatus did not finish (attempt $attempt)."
+    continue
+  fi
+  if ! run_bounded 75 xcrun simctl install "$device" "$data/Build/Products/Release-iphonesimulator/App.app"; then
+    echo "::warning::Simulator installation failed (attempt $attempt)."
+    continue
+  fi
+  if ! run_bounded 60 xcrun simctl launch "$device" "$IOS_BUNDLE_ID"; then
+    echo "::warning::Cantoria failed to launch (attempt $attempt)."
+    continue
+  fi
+  sleep 12
+  if ! run_bounded 45 xcrun simctl io "$device" screenshot "$screens"; then
+    echo "::warning::Simulator screenshot failed (attempt $attempt)."
+    continue
+  fi
+  run_bounded 35 xcrun simctl spawn "$device" log show --last 90s --style compact \
+    --predicate 'process == "App" OR process == "WebKit.WebContent"' \
+    > "$simlog" 2>&1 || true
+  if run_bounded 90 swift "$RUNNER_TEMP/check-cantoria-screen.swift" "$screens"; then
+    passed=true
+    break
+  fi
+  echo "::warning::App launch failed the visible-screen test; retrying the simulator once."
+done
+if [[ "$passed" != true ]]; then
+  echo "::error::Cantoria launch was not verified after two bounded simulator attempts. Refusing TestFlight upload."
+  exit 1
+fi
+echo "PASS: Verified nonblack iOS startup after bounded simulator launch."

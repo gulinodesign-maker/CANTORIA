@@ -39,6 +39,7 @@ jobs:
           node scripts/test-library-accordion.js
           node scripts/test-library-landscape.js
           node scripts/test-release-pipeline.js
+          node scripts/test-ios-launch-retry.js
       - name: Check inline JS and generate a sample PDF
         run: |
           node - <<'NODE'

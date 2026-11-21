@@ -1,3 +1,14 @@
+## Cantoria 1.1 (33) — nuova pubblicazione TestFlight con ripristino simulatore (21 novembre 2026)
+
+- Nuovo archivio iOS, numero di build 33, stesse funzionalità della build 32.
+- Il controllo obbligatorio contro l'avvio con schermo nero usa comandi del simulatore con un tempo massimo e terminazione dei processi bloccati.
+- Se la prima prova fallisce, il simulatore viene spento e inizializzato nuovamente e il controllo viene ripetuto una sola volta.
+- La firma e il caricamento su Apple rimangono vietati finché l'avvio visibile nel simulatore non viene confermato; non si salta il controllo per velocizzare il rilascio.
+- Il nuovo commit attiva automaticamente la pubblicazione e la regola di concorrenza annulla il vecchio tentativo. Il sistema watchdog non crea tentativi mentre un rilascio è in esecuzione.
+- Test automatico dedicato alla politica di timeout/ripristino e ai controlli di sicurezza.
+
+---
+
 ## Cantoria 1.1 (32) — elenco canti Messa a tutta larghezza in landscape (21 novembre 2026)
 
 - Nella scaletta della Messa la visualizzazione landscape ora presenta una singola card per riga, larga quanto lo schermo disponibile, esattamente come nella Biblioteca.
