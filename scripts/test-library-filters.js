@@ -2,7 +2,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
 const html=fs.readFileSync('index.html','utf8');
 const js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(js);new vm.Script(js);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:19});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:20});
 const escape=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const songs=[
  {id:'2',title:'Zefiro',author:'Zara'},
@@ -16,7 +16,7 @@ const start=js.indexOf('function libraryHTML(){'),end=js.indexOf('function massD
 assert.ok(start>=0&&end>start);
 vm.runInNewContext(js.slice(start,end)+'this.makeLibrary=libraryHTML;',ctx);
 function titles(html){
- return [...html.matchAll(/data-action="read-song" data-song="([^"]+)"/g)].map(x=>x[1]);
+ return [...html.matchAll(/data-action="toggle-library-card" data-song="([^"]+)"/g)].map(x=>x[1]);
 }
 assert.deepEqual(titles(ctx.makeLibrary()),['1','5','4','3','2']);
 ctx.state.librarySort='title-desc';

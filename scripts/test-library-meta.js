@@ -5,7 +5,7 @@ const html=fs.readFileSync('index.html','utf8');
 const js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(js,'App script missing');
 new vm.Script(js);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:19});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:20});
 
 function pick(begin,end){
  const a=js.indexOf(begin),b=js.indexOf(end,a+begin.length);
@@ -16,11 +16,16 @@ const escape=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>'
 const song={id:'song1',title:'Benedetto sei Signore',author:'Autore originale',key:'SOL',subtitle:'Canto di lode',verified:false,sections:[{name:'STROFA'}]};
 const libraryContext={store:{songs:[song]},state:{filter:''},escape,escapeAttr:escape,CATHOLIC_CORNER:'<svg></svg>',inferSongKey:()=> 'SOL'};
 vm.runInNewContext(pick('function libraryHTML(){','function massDateDisplay(')+'this.makeLibrary=libraryHTML;',libraryContext);
+const libraryCollapsed=libraryContext.makeLibrary();
+assert.ok(!libraryCollapsed.includes('data-action="add-to-mass"'),'Collapsed cards hide all actions');
+assert.ok(!libraryCollapsed.includes('data-action="ask-delete-song"'),'Collapsed cards hide delete');
+assert.ok(libraryCollapsed.includes('data-action="toggle-library-card"'));
+libraryContext.state.libraryOpenId=song.id;
 const library=libraryContext.makeLibrary();
 assert.ok(library.includes('Benedetto sei Signore'));
 assert.ok(library.includes('class="cover-author">(Autore originale)</div>'), 'Library credit should follow title in parentheses');
 assert.ok(library.includes('library-card-actions-only'));
-for(const label of ['Alla messa','Esporta','Crea PDF'])assert.ok(library.includes(label));
+for(const label of ['Alla messa','Esporta','Crea PDF','Apri brano'])assert.ok(library.includes(label));
 for(const missing of ['<div class="meta-row">','<span class="pill">','Da verificare','Canto di lode ·','Autore originale ·'])assert.ok(!library.includes(missing),'Unexpected card metadata: '+missing);
 assert.equal((library.match(/data-action="(?:add-to-mass|export-song|card-pdf)"/g)||[]).length,3);
 
@@ -58,7 +63,7 @@ const failed={modal:{type:'song-options'}};
 save('save-song',()=>song,failed,{querySelector:sel=>({value:sel==='#songTitleEdit'?'Different':'Different Author'})},()=>false,{},()=>{});
 assert.deepEqual({title:song.title,author:song.author,savedAt:song.savedAt},original);
 assert.equal(failed.modal.type,'song-options');
-assert.ok(fs.readFileSync('sw.js','utf8').includes('cantoria-shell-v1.1-build19'));
+assert.ok(fs.readFileSync('sw.js','utf8').includes('cantoria-shell-v1.1-build20'));
 assert.ok(html.includes('/* Cantoria 1.1 (6) — compact library cards'));
 console.log('Cantoria build 6 library compactness and song metadata tests passed');
 
