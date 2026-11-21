@@ -1,9 +1,9 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const html=fs.readFileSync('index.html','utf8'),inline=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(inline);new vm.Script(inline);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:11});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:12});
 assert.equal(require('../package.json').version,'1.1.0');
-for(const text of ['Versione 1.1 (11)','data-action="follow-source"','data-action="choose-section-text"','data-action="recognize-photo"','data-action="follow-play"','data-action="follow-rewind"','data-follow-chord=','audio-follow.js','library-action-icon','song-options-grid'])assert.ok(html.includes(text),text);
+for(const text of ['Versione 1.1 (12)','data-action="follow-source"','data-action="choose-section-text"','data-action="recognize-photo"','data-action="follow-play"','data-action="follow-rewind"','data-follow-chord=','audio-follow.js','library-action-icon','song-options-grid'])assert.ok(html.includes(text),text);
 for(const text of ['Apple Intelligence','recognize-apple','cantoriaAI'])assert.ok(!html.includes(text),text);
 const prep=fs.readFileSync('scripts/prepare-ios.sh','utf8');
 assert.ok(!prep.includes('FoundationModels'));
@@ -18,7 +18,7 @@ assert.equal(audio.recognizeChord(chroma,['DO','SOL','LA-','RE7']).chord,'SOL');
 const wf=fs.readFileSync('.github/workflows/ios-testflight-auto.yml','utf8');
 assert.ok(wf.includes("require('./release.json').build"));
 assert.ok(wf.indexOf('Block TestFlight release if iOS starts black')<wf.indexOf('Upload signed IPA to TestFlight'));
-console.log('CANTORIA 1.1 (11): UI, audio, OCR and version validated.');
+console.log('CANTORIA 1.1 (12): UI, audio, OCR and version validated.');
 
 // 1.1 (5): precisely two audio buttons in reader topbar; follow before settings.
 const bar=html.slice(html.indexOf('function readerHTML()'),html.indexOf('const CATHOLIC_CORNER ='));
