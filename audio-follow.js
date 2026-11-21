@@ -126,7 +126,9 @@
   // detectable without requiring every note to peak in the same FFT frame.
   const average=Array(12).fill(0);
   for(const frame of chromaHistory)for(let i=0;i<12;i++)average[i]+=frame[i]/chromaHistory.length;
-  return average;
+  // Give the live spectrum more weight so a new chord is recognized in
+  // ~3 frames, not after the old seven-frame window has fully expired.
+  return average.map((v,i)=>.45*v+.55*chroma[i]);
  }
  function sequence(){return scoreItems;}
  function setScore(songId,items,onPage){
@@ -228,7 +230,8 @@
   for(let i=0;i<wave.length;i+=16){const sample=(wave[i]-128)/128;sum+=sample*sample;count++;}
   const rms=Math.sqrt(sum/Math.max(1,count)),now=Date.now();
   if(rms<.009)silentFrames++;else silentFrames=0;
-  if(silentFrames>=2)releasedSinceLast=true;
+  // Do not flag a release here: some devices give near-zero PCM samples
+  // even when the frequency analyser contains audible notes.
   if(rms>.012&&rms>previousRms*1.55&&rms-previousRms>.010&&now-lastAttackAt>280){
    attackCount++;lastAttackAt=now;
   }
@@ -240,7 +243,9 @@
   if(ctx.state==="suspended"){timer=root.setTimeout(detect,250);return;}
   analyser.getByteFrequencyData(bins);
   updateDynamics();
-  const chroma=accumulatedChroma(chromaFromFFT(bins,ctx.sampleRate,analyser.fftSize));
+  const rawChroma=chromaFromFFT(bins,ctx.sampleRate,analyser.fftSize);
+  if(silentFrames>=2&&!rawChroma.some(v=>v>.001))releasedSinceLast=true;
+  const chroma=accumulatedChroma(rawChroma);
   const expected=sequence()[activeIndex+1]?.label;
   const prediction=recognizeExpectedChord(chroma,expected,sequence().map(x=>x.label));
   const name=prediction?prediction.chord:"";
