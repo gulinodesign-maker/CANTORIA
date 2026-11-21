@@ -23,6 +23,8 @@ jobs:
           node scripts/test-syllable-delete.js
           node scripts/test-reader-fit.js
           node scripts/test-audio-follow.js
+          node scripts/test-imported-audio.js
+          node scripts/test-real-microphone.js
           node scripts/test-fast-chords.js
           node scripts/test-audio-diagnostic.js
           node scripts/test-library-meta.js

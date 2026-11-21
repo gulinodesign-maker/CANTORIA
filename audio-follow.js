@@ -7,34 +7,54 @@
  const NOTE={DO:0,RE:2,MI:4,FA:5,SOL:7,LA:9,SI:11};
  const clampPitch=n=>(n%12+12)%12;
  function parseChord(raw){
-  const s=String(raw||"").trim().replace(/♯/g,"#").replace(/♭/g,"b");
-  const match=s.match(/^(SOL|DO|RE|MI|FA|LA|SI)(#|b)?(.*)$/i);
+  const source=String(raw||"").trim().replace(/♯/g,"#").replace(/♭/g,"b").replace(/⁰/g,"0").replace(/¹/g,"1").replace(/²/g,"2").replace(/³/g,"3").replace(/⁴/g,"4").replace(/⁵/g,"5").replace(/⁶/g,"6").replace(/⁷/g,"7");
+  // Imported songs may use C, D, E, F, G, A, B rather than DO..SI.
+  // Keep the original chord label for display, but use its actual pitch.
+  const italian=source.match(/^(SOL|DO|RE|MI|FA|LA|SI)(#|b)?(.*)$/i);
+  const english=italian?null:source.match(/^([A-G])(#|b)?(.*)$/i);
+  const match=italian||english;
   if(!match)return null;
-  const rootPc=clampPitch(NOTE[match[1].toUpperCase()]+(match[2]==="#"?1:match[2]==="b"?-1:0));
+  const basic=italian?NOTE[match[1].toUpperCase()]:({C:0,D:2,E:4,F:5,G:7,A:9,B:11})[match[1].toUpperCase()];
+  const rootPc=clampPitch(basic+(match[2]==="#"?1:match[2]==="b"?-1:0));
   const suffix=(match[3]||"").split("/")[0];
-  const minor=/^(?:-|m(?!aj)|min)/i.test(suffix);
-  const sus=/(?:sus2|sus4)/i.exec(suffix)?.[0]?.toLowerCase();
+  // Refuse arbitrary text such as 'CANTO', 'DONA' or 'Gloria' as chords.
+  if(suffix&&!/^(?:-|m(?!aj)|min|maj|M|dim|aug|sus|add|ø|°|[0-9+#()/-])[\da-zA-Z+#°()/-]*$/.test(suffix))return null;
+  const minor=/^(?:-|min|m(?!aj))/i.test(suffix)&&!/^M(?:$|7|9|11|13)/.test(suffix);
+  const sus=/(?:sus2|sus4)/i.exec(suffix)?.[0]?.toLowerCase()||
+    (/^2(?:$|\/)/.test(suffix)?"sus2":/^4(?:$|\/)/.test(suffix)?"sus4":null);
   const diminished=/dim|°/i.test(suffix);
-  let intervals= diminished?[0,3,6]:sus==="sus2"?[0,2,7]:sus==="sus4"?[0,5,7]:minor?[0,3,7]:[0,4,7];
+  let intervals=diminished?[0,3,6]:sus==="sus2"?[0,2,7]:sus==="sus4"?[0,5,7]:minor?[0,3,7]:[0,4,7];
   if(/7/.test(suffix))intervals=[...intervals,(/maj7|M7|7\+/.test(suffix)?11:10)];
-  return {root:rootPc,minor,intervals,label:s};
+  return {root:rootPc,minor,intervals,label:source};
  }
  function chromaFromFFT(bins,sampleRate,fftSize){
   const profile=new Float64Array(12);
-  for(let i=Math.ceil(83*fftSize/sampleRate);i<bins.length;i++){
+  if(!bins?.length||!sampleRate||!fftSize)return Array.from(profile);
+  const start=Math.ceil(67*fftSize/sampleRate);
+  const last=Math.min(bins.length-1,Math.floor(1600*fftSize/sampleRate));
+  // The previous bin gate was >77/255 while the settings meter reported
+  // a sound as soon as it reached 65. Quieter real devices appeared deaf.
+  // Estimate per-frame noise floor, then retain peaks above it.
+  const samples=[];
+  for(let i=start;i<=last;i+=5)samples.push(bins[i]||0);
+  samples.sort((a,b)=>a-b);
+  const floor=samples[Math.floor(samples.length*.4)]||0;
+  const cutoff=Math.max(42,floor+11);
+  for(let i=start;i<=last;i++){
+   const level=bins[i]||0;
+   if(level<cutoff)continue;
+   if(i>start&&i<last&&level<bins[i-1]&&level<bins[i+1])continue;
    const freq=i*sampleRate/fftSize;
-   if(freq>1800)break;
-   const level=Math.max(0,(bins[i]-48)/207);
-   if(level<.14)continue;
    const nearest=Math.round(69+12*Math.log2(freq/440));
    const ideal=440*Math.pow(2,(nearest-69)/12);
    const cents=1200*Math.log2(freq/ideal);
-   if(Math.abs(cents)>42)continue;
-   const pc=clampPitch(nearest);
-   profile[pc]+=level*level/Math.sqrt(freq/150);
+   if(Math.abs(cents)>56)continue;
+   const strength=Math.max(0,(level-floor)/Math.max(1,255-floor));
+   if(strength<.035)continue;
+   profile[clampPitch(nearest)]+=strength*strength/Math.sqrt(Math.max(.45,freq/150));
   }
-  const sum=profile.reduce((a,b)=>a+b,0);
-  if(sum>0)for(let i=0;i<12;i++)profile[i]/=sum;
+  const total=profile.reduce((sum,v)=>sum+v,0);
+  if(total>0)for(let i=0;i<12;i++)profile[i]/=total;
   return Array.from(profile);
  }
  function recognizeChord(chroma,allowed){
@@ -90,12 +110,20 @@
   const chord=parseChord(hit.chord),sum=chroma.reduce((a,v)=>a+Math.max(0,Number(v)||0),0);
   if(!chord||sum<.005)return null;
   const weights=chord.intervals.slice(0,3).map(v=>Math.max(0,chroma[clampPitch(chord.root+v)]||0)/sum);
-  if(weights.filter(v=>v>=.10).length<2||weights.reduce((a,b)=>a+b,0)<.62||
-    hit.confidence<.58||hit.margin<.085)return null;
+  const present=weights.filter(v=>v>=.075).length;
+  const coverage=weights.reduce((a,b)=>a+b,0);
+  if(present<2||coverage<.54||hit.confidence<.54)return null;
+  // A low margin is often normal for inversions and guitar harmonics.
+  // Expose the lower confidence instead of blocking the chord entirely.
+  const reliable=present>=3||hit.margin>=.025;
+  if(!reliable)return null;
   return {chord:hit.chord,match:Math.min(100,Math.round(hit.confidence*100)),margin:hit.margin};
  }
  // Positions are immutable events in the full score, not a search window in the visible page.
- function chordIdentity(label){return String(label||"").trim().toUpperCase().replace(/♯/g,"#").replace(/♭/g,"B").replace(/\s+/g,"");}
+ function chordIdentity(label){
+  const chord=parseChord(label);
+  return chord?chord.root+":"+chord.intervals.join(","):String(label||"").trim().toUpperCase().replace(/\s+/g,"");
+ }
  function stepChordIndex(items,index,direction){
   if(!Array.isArray(items)||!items.length||!direction)return index;
   if(index<0)return direction>0?0:-1;
@@ -170,16 +198,19 @@
    rms=Math.sqrt(rms/Math.max(1,samples));
   }
   const raw=chromaFromFFT(bins,ctx.sampleRate,analyser.fftSize);
-  const guess=(spectralPeak>=65||rms>=.008)?diagnoseChroma(accumulatedChroma(raw)):null;
+  // Frequency evidence is the deciding factor: do not require a second,
+  // stricter signal threshold than the chord detector itself.
+  const sound=raw.some(v=>v>.001);
+  const guess=sound?diagnoseChroma(accumulatedChroma(raw)):null;
   if(guess?.chord&&guess.chord===diagStable)diagFrames++;
   else{diagStable=guess?.chord||"";diagFrames=guess?1:0;}
-  if(guess&&diagFrames>=3)diagLast=guess.chord;
-  const level=Math.max(0,Math.min(100,Math.round(Math.max(rms*520,Math.max(0,spectralPeak-45)*.7))));
+  if(guess&&diagFrames>=2)diagLast=guess.chord;
+  const level=Math.max(0,Math.min(100,Math.round(Math.max(rms*520,Math.max(0,spectralPeak-38)*.7))));
   diagNotify({phase:"listening",level,chord:diagLast,guess:guess?.chord||"",
    match:guess?.match||0,notes:diagNotes(raw),
-   message:level<3?"Nessun segnale audio: suona vicino al microfono.":
-    diagLast&&guess?.chord===diagLast&&diagFrames>=3?"Accordo riconosciuto.":
-    "Segnale presente: analisi dell’accordo in corso."});
+   message:level<3&&!sound?"Nessun segnale audio: suona vicino al microfono.":
+    diagLast&&guess?.chord===diagLast&&diagFrames>=2?"Accordo riconosciuto.":
+    sound?"Note ricevute; attendi un accordo completo.":"Segnale presente ma note non individuate."});
   timer=root.setTimeout(diagDetect,180);
  }
  async function startDiagnostic(onUpdate){
@@ -191,6 +222,7 @@
   diagNotify({phase:"requesting",message:"Autorizza l’accesso al microfono.",level:0,chord:""});
   try{
    await ensureContext();
+   analyser.smoothingTimeConstant=.64;
    if(token!==diagSerial)return;
    const mic=await root.navigator.mediaDevices.getUserMedia({audio:{
      echoCancellation:false,noiseSuppression:false,autoGainControl:false},video:false});
@@ -374,8 +406,9 @@
  }
  async function microphone(){
   if(!root.navigator?.mediaDevices?.getUserMedia)throw new Error("Il microfono non è disponibile.");
-  if(!scoreItems.length)throw new Error("Questo brano non contiene accordi da seguire.");
+  if(!scoreItems.length)throw new Error("Questo brano non contiene accordi riconoscibili. Se è importato, verifica che le sigle siano presenti (DO o C, SOL o G) e crea prima la partitura se contiene solo una foto.");
   stop();await ensureContext();
+  analyser.smoothingTimeConstant=.34;
   // Arming always begins at the very first chord; the score does not start
   // until a stable live match marks position zero.
   activeIndex=-1;activeName="";lastAdvance=0;resetListeningWindow();markedChroma=null;refresh();

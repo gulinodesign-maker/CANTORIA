@@ -2,7 +2,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
 const html=fs.readFileSync('index.html','utf8');
 const code=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(code);new vm.Script(code);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:30});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:31});
 const detail=code.slice(code.indexOf('function massDetailHTML(){'),code.indexOf('const OCR_JS_URL=',code.indexOf('function massDetailHTML(){')));
 for(const token of ['data-mass-reorder=','data-reorder-item=','mass-reorder-help'])
  assert.ok(detail.includes(token),'Missing Mass drag markup '+token);

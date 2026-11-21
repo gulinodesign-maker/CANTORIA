@@ -1,3 +1,15 @@
+## Cantoria 1.1 (31) — brani importati e diagnosi microfono (21 novembre 2026)
+
+- Il riconoscimento dei brani importati supporta accordi italiani e internazionali (DO/C, SOL/G, LA-/Am, FA#-/F#m). La trasposizione comprende le sigle internazionali e i bassi in accordi slash.
+- SOL2 e RE4 (anche RE⁴) sono riconosciuti come accordi sospesi. Il confronto fra simboli equivalenti usa le reali note dell'accordo, non la grafia.
+- Riparato il filtro del test microfono: prima ignorava note sotto circa 77/255 anche quando segnalava un ingresso audio. Ora usa soglie spettrali adattive, due conferme e messaggi distinti per assenza di audio e note insufficienti.
+- Il rilevatore dello spartito conserva il ciclo rapido della build 30, con controllo dei passaggi cronologici. Il test di Impostazioni ha una diversa smussatura del segnale, più adatta alla diagnosi.
+- I brani importati privi di accordi riconoscibili segnalano come procedere; le fotografie senza partitura vanno prima convertite in accordi e testo.
+- Test automatici su importazione e riproduzione con microfono, DO maggiore debole, armonici, accordi sospesi e permessi.
+- Versione 1.1 build 31; da verificare sul dispositivo reale.
+
+---
+
 ## Cantoria 1.1 (30) — riconoscimento audio più rapido e accordi attaccati separati (21 novembre 2026)
 
 - Il riconoscimento microfono durante il canto verifica i nuovi accordi ogni 80 ms anziché 155 ms, usa due conferme consecutive anziché tre e riduce il ritardo fra accordi diversi da 450 a 130 ms, senza mai saltare in avanti nella partitura. Accordi consecutivi identici richiedono un nuovo attacco udibile o una pausa.

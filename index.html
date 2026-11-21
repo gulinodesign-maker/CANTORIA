@@ -1233,18 +1233,21 @@ function parseSyllables(marked) {
 function transposeChord(chord, semitones) {
   if (!semitones || !chord) return chord;
   const normalized = String(chord).replace(/♯/g, '#').replace(/♭/g, 'b');
-  const m = normalized.match(/^(SOL|DO|RE|MI|FA|LA|SI)(#|b)?(.*)$/i);
-  if (!m) return chord; // Never silently rewrite an unsupported symbol.
+  const italian = normalized.match(/^(SOL|DO|RE|MI|FA|LA|SI)(#|b)?(.*)$/i);
+  const english = italian ? null : normalized.match(/^([A-G])(#|b)?(.*)$/i);
+  const m = italian || english;
+  if (!m || !window.CantoriaAudioFollow?.parseChord?.(chord)) return chord;
   const root = m[1].toUpperCase();
-  let note = SEMITONE[root];
+  let note = italian ? SEMITONE[root] : ({C:0,D:2,E:4,F:5,G:7,A:9,B:11})[root];
   if (m[2] === '#') note += 1;
   if (m[2] === 'b') note -= 1;
   const next = ((note + semitones) % 12 + 12) % 12;
   // Keep original chord qualities/suffixes intact, including -, 2, 4, 7 and slash bass.
   let suffix = m[3] || '';
-  const bass = suffix.match(/\/(SOL|DO|RE|MI|FA|LA|SI)(#|b)?$/i);
+  const bass = suffix.match(/\/(SOL|DO|RE|MI|FA|LA|SI|[A-G])(#|b)?$/i);
   if (bass) {
-    const bRoot = SEMITONE[bass[1].toUpperCase()] + (bass[2] === '#' ? 1 : bass[2] === 'b' ? -1 : 0);
+    const bassName=bass[1].toUpperCase();
+    const bRoot = (SEMITONE[bassName] ?? ({C:0,D:2,E:4,F:5,G:7,A:9,B:11})[bassName]) + (bass[2] === '#' ? 1 : bass[2] === 'b' ? -1 : 0);
     const bNext = ((bRoot + semitones) % 12 + 12) % 12;
     suffix = suffix.slice(0, -bass[0].length) + '/' + NOTE_NAMES[bNext];
   }
@@ -2004,7 +2007,7 @@ function modalHTML(){const m=state.modal;
   const song=currentSong();if(!song?.photoData)return '';
   return `<div class="modal-shade"><div class="modal-card" role="alertdialog" aria-modal="true" aria-label="Conferma ricalcolo accordi"><h2>Ricalcolare gli accordi?</h2><p>La partitura verrà ricalcolata dalla fotografia originale con le coordinate OCR. Le modifiche manuali fatte sulle sillabe e sugli accordi saranno sostituite. La fotografia originale resterà disponibile.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button type="button" class="primary-btn" data-action="reparse-photo">Ricalcola accordi</button></div></div></div>`;
  }
- if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (30)</h2><p>Riconoscimento degli accordi dal microfono più rapido durante la riproduzione: conferma su due campioni, analisi più frequente e minore inerzia fra accordi diversi, mantenendo l’ordine musicale. L’acquisizione fotografica separa anche sigle di accordi attaccate, conservando le posizioni OCR e segnalando quelle incerte da verificare.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
+ if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (31)</h2><p>Corretto il riconoscimento degli accordi nei brani importati, con supporto alle sigle internazionali (C, G, Am), agli accordi sospesi SOL2/RE4 e alla trasposizione. In Impostazioni il test microfono riconosce anche segnali più deboli e mostra gli accordi senza un filtro eccessivamente rigido.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
 
 
  if(m.type==='key-analysis'){
