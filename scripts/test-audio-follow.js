@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const html=fs.readFileSync('index.html','utf8'),inline=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(inline);new vm.Script(inline);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:22});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:23});
 assert.equal(require('../package.json').version,'1.1.0');
 for(const text of ['releaseInfo.build','data-action="follow-source"','data-action="choose-section-text"','data-action="recognize-photo"','data-action="follow-play"','data-action="follow-rewind"','data-follow-chord=','audio-follow.js','library-action-icon','song-options-grid'])assert.ok(html.includes(text),text);
 for(const text of ['Apple Intelligence','recognize-apple','cantoriaAI'])assert.ok(!html.includes(text),text);
@@ -31,3 +31,34 @@ const menu=html.slice(html.indexOf("if(m.type==='song-options')"),html.indexOf("
 assert.ok(!menu.includes('Apri PDF')&&!menu.includes('song-options-open-pdf'));
 for(const required of ['async function toggle()','function rewind()','function syncControls()'])assert.ok(fs.readFileSync('audio-follow.js','utf8').includes(required));
 console.log('OK: compact toolbar and centered song settings.');
+
+/* Build 23: chronological progression, no jumping and no double-counted sustained chords. */
+const seq=[{id:'s0-l0-0',label:'SOL',page:0},{id:'s0-l0-1',label:'DO',page:0},
+ {id:'s1-l0-0',label:'SOL',page:1},{id:'s1-l0-1',label:'SOL',page:1},
+ {id:'s1-l0-2',label:'RE7',page:1}];
+assert.equal(audio.nextChordIndex(seq,-1,'DO',true),-1,'First position cannot be skipped');
+assert.equal(audio.nextChordIndex(seq,-1,'SOL',false),0);
+assert.equal(audio.nextChordIndex(seq,0,'RE7',true),-1,'No jumping to a future page');
+assert.equal(audio.nextChordIndex(seq,0,'DO',false),1);
+assert.equal(audio.nextChordIndex(seq,1,'SOL',false),2);
+assert.equal(audio.nextChordIndex(seq,2,'SOL',false),-1,'Sustained identical chord cannot advance');
+assert.equal(audio.nextChordIndex(seq,2,'SOL',true),3,'New attack can advance identical chord');
+assert.equal(audio.nextChordIndex(seq,3,'RE7',false),4);
+assert.equal(audio.nextChordIndex([{label:'RE'},{label:'RE7'}],0,'RE',true),-1,'Extensions differ');
+assert.ok(inline.includes('data-follow-id="s${si}-l${li}-${ai}"'));
+assert.ok(inline.includes('followScoreSequence(song,state.shift)'));
+const begin=inline.indexOf('function flatEntries(song)'),end=inline.indexOf('function photoReaderHTML(',begin);
+assert.ok(begin>=0&&end>begin);
+const layout={window:{innerWidth:950,innerHeight:470,CantoriaAudioFollow:{parseChord:audio.parseChord}},
+ transposeChord:chord=>chord,Math};
+vm.runInNewContext(inline.slice(begin,end)+'\nthis.follow=followScoreSequence;',layout);
+const song={sections:[{name:'STROFA',kind:'verse',lines:Array.from({length:20},(_,i)=>({
+ marked:'Canto',anchors:[{slot:0,chord:i%2?'DO':'SOL'}]}))},
+ {name:'RITORNELLO',kind:'chorus',lines:[{marked:'Finale',anchors:[{slot:0,chord:'RE7'}]}]}]};
+const full=layout.follow(song);
+assert.equal(full.length,21);
+assert.equal(new Set(full.map(x=>x.id)).size,21);
+assert.ok(full.some(x=>x.page>0),'Landscape includes off-screen chords');
+assert.equal(full[20].label,'RE7','Refrain after entire verse');
+assert.ok(full.every((x,i)=>i===0||x.page>=full[i-1].page));
+console.log('PASS: strict chronological audio follow, repeat attacks and cross-page sequence');

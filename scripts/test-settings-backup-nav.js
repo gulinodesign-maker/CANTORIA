@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const html=fs.readFileSync('index.html','utf8'),js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(js);new vm.Script(js);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:22});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:23});
 const pkg=require('../package.json');
 assert.equal(pkg.dependencies['@capacitor/filesystem'],'8.0.0');
 assert.equal(pkg.dependencies['@capacitor/share'],'8.0.0');
@@ -13,14 +13,14 @@ vm.runInNewContext(js.slice(settingsA,settingsB)+'this.settings=settingsHTML;',s
 const settings=sc.settings();
 for(const marker of ['settings-backup-actions','data-action="backup"','for="backupInput"'])assert.ok(settings.includes(marker));
 assert.ok(!settings.includes('Modello musicale'));
-const css=html.slice(html.indexOf('/* CANTORIA 1.1 (22):'));
+const css=html.slice(html.indexOf('/* CANTORIA 1.1 (23):'));
 assert.ok(css.includes('grid-template-columns:repeat(2,minmax(0,1fr))!important'));
 assert.ok(css.includes('width:100%!important'));
 assert.ok(css.includes('.topbar-standard>.app-back-btn'));
 assert.ok(css.includes('.topbar-create-mass'));
 const sourceHeader=js.slice(js.indexOf('function headerHTML()'),js.indexOf('function navHTML()'));
 const ctx={
- state:{view:'masses',massId:null},releaseInfo:{version:'1.1',build:22},
+ state:{view:'masses',massId:null},releaseInfo:{version:'1.1',build:23},
  CATHOLIC_CORNER:'<svg class="corner-ornament"></svg>',escape:s=>s,massDateDisplay:()=>'',currentMass(){return null}
 };
 vm.runInNewContext(sourceHeader+'this.head=headerHTML;',ctx);
@@ -29,7 +29,7 @@ assert.ok(top.includes('data-action="create-mass"'),'Messa creation must be in t
 assert.ok(top.includes('data-nav="home"'),'Back to home must be in the top left');
 assert.ok(top.indexOf('class="app-back-btn"')<top.indexOf('class="header-section-title"'));
 ctx.state.view='settings';top=ctx.head();
-assert.ok(top.includes('Versione 1.1 (22)'));
+assert.ok(top.includes('Versione 1.1 (23)'));
 assert.ok(!top.includes('create-mass'));
 ctx.state.view='masses';ctx.state.massId='m1';ctx.currentMass=()=>({name:'Messa 1',items:[],date:'',celebratedAt:null});
 top=ctx.head();

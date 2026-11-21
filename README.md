@@ -1,3 +1,12 @@
+## Cantoria 1.1 (23) — riconoscimento cronologico degli accordi (21 novembre 2026)
+
+- Il riconoscimento tramite microfono e audio segue esclusivamente l'accordo successivo nella sequenza della partitura, senza saltare a una strofa o pagina più avanti.
+- Ripetizioni consecutive dello stesso accordo richiedono un nuovo attacco rilevabile o una pausa, senza avanzamenti sul solo accordo sostenuto.
+- La sequenza include tutto il canto anche in landscape, con cambio automatico alla pagina dell'accordo raggiunto.
+- La versione rimane 1.1, il numero di build diventa 23 perché la 22 è già assegnata alle correzioni dei backup e della navigazione.
+
+---
+
 ## Cantoria 1.1 (6) — schede compatte e metadati del brano (21 novembre 2026)
 
 - **Biblioteca:** la card mostra solo intestazione con titolo e azioni («Alla messa», «Esporta», «Crea PDF»). Rimossi pill tonalità/stato e descrizione/sezioni, ridotta l'altezza mantenendo l'angolo liturgico.
