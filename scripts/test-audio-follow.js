@@ -1,9 +1,9 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const html=fs.readFileSync('index.html','utf8'),inline=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(inline);new vm.Script(inline);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:3});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:4});
 assert.equal(require('../package.json').version,'1.1.0');
-for(const text of ['Versione 1.1 (3)','data-action="toggle-follow-controls"','data-action="review-chords"','data-action="recognize-photo"','data-action="follow-play"','data-action="follow-mic"','data-follow-chord=','audio-follow.js','library-action-icon','song-options-grid'])assert.ok(html.includes(text),text);
+for(const text of ['Versione 1.1 (4)','data-action="follow-source"','data-action="review-chords"','data-action="recognize-photo"','data-action="follow-play"','data-action="follow-rewind"','data-follow-chord=','audio-follow.js','library-action-icon','song-options-grid'])assert.ok(html.includes(text),text);
 for(const text of ['Apple Intelligence','recognize-apple','cantoriaAI'])assert.ok(!html.includes(text),text);
 const prep=fs.readFileSync('scripts/prepare-ios.sh','utf8');
 assert.ok(!prep.includes('FoundationModels'));
@@ -19,3 +19,15 @@ const wf=fs.readFileSync('.github/workflows/ios-testflight-auto.yml','utf8');
 assert.ok(wf.includes("require('./release.json').build"));
 assert.ok(wf.indexOf('Block TestFlight release if iOS starts black')<wf.indexOf('Upload signed IPA to TestFlight'));
 console.log('CANTORIA 1.1 (1): UI, audio, OCR and version validated.');
+
+// 1.1 (4): precisely two audio buttons in reader topbar; follow before settings.
+const bar=html.slice(html.indexOf('function readerHTML()'),html.indexOf('const CATHOLIC_CORNER ='));
+assert.ok(bar.includes('reader-toolbar-left')&&bar.includes('reader-toolbar-right'));
+assert.equal((bar.match(/data-action="follow-play"/g)||[]).length,1);
+assert.equal((bar.match(/data-action="follow-rewind"/g)||[]).length,1);
+assert.ok(bar.indexOf('data-action="follow-source"')<bar.indexOf('data-action="song-options"'));
+assert.ok(!bar.includes('audio-follow-bar'));
+const menu=html.slice(html.indexOf("if(m.type==='song-options')"),html.indexOf("if(m.type==='photo-source')"));
+assert.ok(!menu.includes('Apri PDF')&&!menu.includes('song-options-open-pdf'));
+for(const required of ['async function toggle()','function rewind()','function syncControls()'])assert.ok(fs.readFileSync('audio-follow.js','utf8').includes(required));
+console.log('OK: compact toolbar and centered song settings.');

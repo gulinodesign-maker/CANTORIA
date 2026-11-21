@@ -57,17 +57,27 @@
  }
  const player=typeof root.Audio==="function"?new root.Audio():null;
  let ctx=null,analyser=null,mediaNode=null,micNode=null,stream=null,trackURL=null;
- let mode="idle",timer=0,bins=null,activeIndex=-1,activeName="",stableName="",stableCount=0,lastAdvance=0,seenAt=0,currentSongId="";
+ let preferredSource="none",mode="idle",timer=0,bins=null,activeIndex=-1,activeName="",stableName="",stableCount=0,lastAdvance=0,seenAt=0,currentSongId="";
  const $=selector=>root.document?.querySelector(selector);
  function status(message){
   const element=$("#audioFollowStatus");
   if(element)element.textContent=message;
  }
  function sequence(){return Array.from(root.document?.querySelectorAll("#readerLayer .chord-label[data-follow-chord]")||[]).filter(el=>parseChord(el.dataset.followChord));}
+ function syncControls(){
+  const play=$("#readerLayer .reader-play-toggle");
+  if(play&&!play.disabled){
+   const running=mode!=="idle";
+   play.textContent=running?"■":"▶";
+   play.setAttribute("aria-label",running?"Stop":"Play");
+   play.setAttribute("title",running?"Stop":"Play");
+   play.dataset.playing=String(running);
+  }
+ }
  function refresh(){
   const rows=sequence();
   rows.forEach((el,i)=>{el.classList.toggle("audio-chord-active",i===activeIndex);el.closest(".music-row")?.classList.toggle("audio-row-active",i===activeIndex);});
-  if(mode==="idle")status("Carica un audio oppure ascolta dal microfono.");
+  if(mode==="idle")status("Carica un audio oppure ascolta dal microfono.");syncControls();
  }
  function reset(songId=""){
   stop();currentSongId=songId;activeIndex=-1;activeName="";stableName="";stableCount=0;lastAdvance=0;refresh();
@@ -127,14 +137,14 @@
   micNode=null;
   if(player&&!player.paused)player.pause();
   mode="idle";stableName="";stableCount=0;
-  status("Rilevamento fermato.");
+  status("Rilevamento fermato.");syncControls();
  }
  async function loadTrack(file){
   if(!file||(!file.type.startsWith("audio/")&&!/\.(mp3|wav|m4a|aac|ogg)$/i.test(file.name)))throw new Error("Scegli un file audio supportato.");
   if(file.size>150*1024*1024)throw new Error("File audio troppo grande.");
   if(!player)throw new Error("Player audio non disponibile.");
   stop();if(trackURL)URL.revokeObjectURL(trackURL);
-  trackURL=URL.createObjectURL(file);player.src=trackURL;player.load();
+  trackURL=URL.createObjectURL(file);player.src=trackURL;player.load();preferredSource="file";syncControls();
   status("Pronto: "+file.name+" · premi ▶");
  }
  async function play(){
@@ -142,17 +152,27 @@
   if(mode==="player"&&!player.paused){player.pause();status("Audio in pausa");return;}
   stop();await ensureContext();
   if(!mediaNode){mediaNode=ctx.createMediaElementSource(player);mediaNode.connect(analyser);mediaNode.connect(ctx.destination);}
-  await player.play();mode="player";status("Riproduzione e riconoscimento…");detect();
+  await player.play();mode="player";preferredSource="file";status("Riproduzione e riconoscimento…");syncControls();detect();
  }
  async function microphone(){
   if(!root.navigator?.mediaDevices?.getUserMedia)throw new Error("Il microfono non è disponibile.");
   stop();await ensureContext();
   stream=await root.navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false},video:false});
   micNode=ctx.createMediaStreamSource(stream);micNode.connect(analyser);
-  mode="mic";status("Ascolto dal microfono…");detect();
+  mode="mic";preferredSource="mic";status("Ascolto dal microfono…");syncControls();detect();
+ }
+ async function toggle(){
+  if(mode!=="idle"){stop();return;}
+  if(preferredSource==="mic")return microphone();
+  if(player?.src)return play();
+  throw new Error("Seleziona audio o microfono dal tasto Segui.");
+ }
+ function rewind(){
+  if(player?.src)try{player.currentTime=0;}catch(_){}
+  activeIndex=-1;activeName="";stableName="";stableCount=0;lastAdvance=0;refresh();
  }
  if(player)player.addEventListener("ended",()=>stop());
- const api={parseChord,chromaFromFFT,recognizeChord,loadTrack,play,microphone,stop,reset,refresh,get mode(){return mode;}};
+ const api={parseChord,chromaFromFFT,recognizeChord,loadTrack,play,microphone,toggle,rewind,stop,reset,refresh,syncControls,get mode(){return mode;},get hasSource(){return preferredSource==="mic"||!!player?.src;}};
  root.CantoriaAudioFollow=api;
  if(typeof module!=="undefined"&&module.exports)module.exports={parseChord,chromaFromFFT,recognizeChord};
 })(typeof window!=="undefined"?window:globalThis);
