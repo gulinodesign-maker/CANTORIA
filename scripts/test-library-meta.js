@@ -61,7 +61,7 @@ assert.ok(fs.readFileSync('sw.js','utf8').includes('cantoria-shell-v1.1-build9')
 assert.ok(html.includes('/* Cantoria 1.1 (6) — compact library cards'));
 console.log('Cantoria build 6 library compactness and song metadata tests passed');
 
-assert.ok(html.includes('/* Cantoria 1.1 (9): centered song-settings title */'));
+assert.ok(html.includes('/* Cantoria 1.1 (8): centered song-settings title */'));
 assert.ok(html.includes('grid-template-columns:40px minmax(0,1fr) 40px!important'));
 assert.ok(html.includes('.song-options-compact .song-options-header>h2{grid-column:2'));
 assert.ok(html.includes('text-align:center!important'));
