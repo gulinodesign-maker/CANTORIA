@@ -1,3 +1,15 @@
+## Cantoria 1.1 (29) — elimina sillaba o parola (21 novembre 2026)
+
+- Nella finestra **Modifica sillaba** sono stati aggiunti due pulsanti: **Elimina sillaba** ed **Elimina parola**. Il secondo rimuove l'intera parola, comprese le sillabe separate da |, anche quando è selezionata una sillaba centrale.
+- Entrambe le eliminazioni chiedono conferma; Annulla torna all'editor senza perdere né modificare lo spartito.
+- Gli accordi legati alle sillabe cancellate vengono eliminati; gli altri mantengono la rispettiva sillaba, grazie al ricalcolo degli indici. Le posizioni rispetto alla fotografia sono contrassegnate per verifica.
+- Gli spazi rimanenti vengono normalizzati. Se la cancellazione elimina tutto il testo di una riga, si rimuove anche la riga vuota.
+- Il nuovo testo viene salvato soltanto dopo la conferma, e in caso di impossibilità di salvataggio l'operazione viene annullata con ripristino della riga originale.
+- Test di regressione per sillabe, parole monosillabiche e multisillabiche, accordi prima/dopo la selezione, ultima parola e conferma.
+- Versione 1.1 build 29, con tutte le funzioni precedenti.
+
+---
+
 ## Cantoria 1.1 (28) — riordino brani tramite long press (21 novembre 2026)
 
 - In una **Messa da celebrare**, tieni premuta una card per circa mezzo secondo e trascinala sopra o sotto gli altri brani. Un'anteprima segue il dito; le altre card cambiano posizione durante il trascinamento.

@@ -19,6 +19,7 @@ jobs:
           node scripts/test-photo-metadata.js
           node --check score-metadata.js
           node scripts/test-editor.js
+          node scripts/test-syllable-delete.js
           node scripts/test-reader-fit.js
           node scripts/test-audio-follow.js
           node scripts/test-audio-diagnostic.js

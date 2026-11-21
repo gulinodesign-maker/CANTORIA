@@ -1196,6 +1196,14 @@
 }
 @media (prefers-reduced-motion:reduce){.mass-song-ghost{transform:none!important}}
 
+/* CANTORIA 1.1 (29) — deletion of a syllable or an entire word. */
+.syllable-delete-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:14px 0 12px}
+.syllable-delete-actions .outline-btn{min-width:0;width:100%;min-height:45px;padding:10px 7px;border:1px solid #cda6a0;color:#923c32;background:#fff7f2;border-radius:11px;font-weight:750}
+.syllable-delete-actions .outline-btn:focus-visible{outline:3px solid #b96d58;outline-offset:2px}
+.syllable-confirm-actions{flex-wrap:wrap}
+.syllable-confirm-actions .syllable-delete-confirm{background:#8f352b;color:#fff;border:1px solid #8f352b;font-weight:750}
+@media(max-width:390px){.syllable-delete-actions .outline-btn{font-size:12px}.syllable-confirm-actions button{flex:1;min-width:0}}
+
 </style>
   <title>Cantoria — Canti per la liturgia cattolica</title>
 </head>
@@ -1861,13 +1869,39 @@ function replaceSyllable(marked,slot,newText){
   }).join('|');
  }).join('');
 }
+// Remove exactly the selected sung syllable or its entire word while remapping
+// anchor slots by identity, never by their old absolute positions.
+function removeLyricSelection(line,slot,kind){
+ if(!line||!Number.isInteger(slot)||!['syllable','word'].includes(kind))
+  throw new Error('Selezione da eliminare non valida.');
+ let cursor=0,targetWord=-1;
+ const groups=String(line.marked||'').trim().split(/\s+/).filter(Boolean).map((word,wordIndex)=>{
+  const cells=word.split('|').filter(Boolean).map(text=>({text,slot:cursor++}));
+  if(cells.some(cell=>cell.slot===slot))targetWord=wordIndex;
+  return cells;
+ });
+ if(targetWord<0)throw new Error('Sillaba non trovata.');
+ const selected=groups[targetWord].find(cell=>cell.slot===slot);
+ const removed=new Set(kind==='word'?groups[targetWord].map(cell=>cell.slot):[slot]);
+ const slotMap=new Map();let nextSlot=0;
+ const words=groups.map(cells=>cells.filter(cell=>!removed.has(cell.slot)).map(cell=>{
+  slotMap.set(cell.slot,nextSlot++);return cell.text;
+ }).join('|')).filter(Boolean);
+ const anchors=(line.anchors||[]).filter(anchor=>slotMap.has(anchor.slot)).map(anchor=>({
+  ...anchor,slot:slotMap.get(anchor.slot),
+  // The original character offsets no longer refer to this edited lyric.
+  anchorCharacterIndex:null,offsetX:0,needsReview:true,verified:false
+ })).sort((a,b)=>a.slot-b.slot);
+ return {marked:words.join(' '),anchors,removeLine:words.length===0,
+  removedText:kind==='word'?groups[targetWord].map(cell=>cell.text).join(''):selected.text};
+}
 function syllableModalHTML(m){
  const line=currentSong()?.sections[m.si]?.lines[m.li];
  if(!line)return '';
  const tokens=parseSyllables(line.marked).filter(t=>!t.space),syllable=tokens[m.slot];
  if(!syllable)return '';
  const a=line.anchors.find(a=>a.slot===m.slot);
- return `<div class="modal-shade"><form class="modal-card" id="syllableEditForm"><h2>Modifica sillaba</h2><p>La cella musicale resta nella stessa posizione. L'accordo rimarrà associato alla sillaba anche dopo la modifica.</p><div class="field"><label>Sillaba</label><input name="syllable" value="${escapeAttr(syllable.text)}" required autocapitalize="off" autocomplete="off" autofocus></div><div class="field"><label>Accordo su questa sillaba (facoltativo)</label><input name="chord" value="${escapeAttr(a?.chord||'')}" placeholder="Es. SOL#7" autocapitalize="characters" autocomplete="off"></div><p class="editor-note">Per dividere una parola in sillabe usa | (esempio: Be|ne|det|to). Gli accordi sulle parole successive conserveranno il proprio ancoraggio.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button class="primary-btn">Conferma e salva</button></div></form></div>`;
+ return `<div class="modal-shade"><form class="modal-card" id="syllableEditForm"><h2>Modifica sillaba</h2><p>Puoi correggere il testo, eliminare una singola sillaba oppure cancellare l'intera parola.</p><div class="field"><label>Sillaba</label><input name="syllable" value="${escapeAttr(syllable.text)}" required autocapitalize="off" autocomplete="off" autofocus></div><div class="field"><label>Accordo su questa sillaba (facoltativo)</label><input name="chord" value="${escapeAttr(a?.chord||'')}" placeholder="Es. SOL#7" autocapitalize="characters" autocomplete="off"></div><div class="syllable-delete-actions" role="group" aria-label="Cancella testo selezionato"><button type="button" class="outline-btn" data-action="delete-lyric-syllable">Elimina sillaba</button><button type="button" class="outline-btn" data-action="delete-lyric-word">Elimina parola</button></div><p class="editor-note">Per dividere una parola in sillabe usa | (esempio: Be|ne|det|to). Se elimini testo, gli accordi rimasti conservano la sillaba corretta e le posizioni saranno da verificare.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button class="primary-btn">Conferma e salva</button></div></form></div>`;
 }
 function songInfoEditor(song){return `<details class="compact-details"><summary>Modifica titolo e autore</summary><form id="songInfoForm" class="song-info-form"><div class="field"><label for="editSongTitle">Titolo</label><input id="editSongTitle" name="title" maxlength="160" required value="${escapeAttr(song.title)}"></div><div class="field"><label for="editSongAuthor">Autore</label><input id="editSongAuthor" name="author" maxlength="160" placeholder="Nome dell'autore" value="${escapeAttr(song.author||'')}"></div><button type="submit" class="primary-btn">Salva</button></form></details>`;}
 
@@ -1969,7 +2003,7 @@ function modalHTML(){const m=state.modal;
   const song=currentSong();if(!song?.photoData)return '';
   return `<div class="modal-shade"><div class="modal-card" role="alertdialog" aria-modal="true" aria-label="Conferma ricalcolo accordi"><h2>Ricalcolare gli accordi?</h2><p>La partitura verrà ricalcolata dalla fotografia originale con le coordinate OCR. Le modifiche manuali fatte sulle sillabe e sugli accordi saranno sostituite. La fotografia originale resterà disponibile.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button type="button" class="primary-btn" data-action="reparse-photo">Ricalcola accordi</button></div></div></div>`;
  }
- if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (28)</h2><p>Nelle Messe da preparare puoi tenere premuto un canto per mezzo secondo e trascinarlo nella nuova posizione. La sequenza si aggiorna durante il trascinamento e viene salvata al rilascio, anche in landscape; la Biblioteca e le Messe già celebrate restano invariate.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
+ if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (29)</h2><p>Nella finestra Modifica sillaba sono disponibili Elimina sillaba ed Elimina parola, con conferma. Le cancellazioni aggiornano i collegamenti tra gli accordi e il testo e salvano automaticamente il risultato. Rimane disponibile il riordino dei canti della Messa.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
 
 
  if(m.type==='key-analysis'){
@@ -2052,6 +2086,14 @@ if(m.type==='new-mass')return `<div class="modal-shade"><form class="modal-card"
    </div></div>`;
  }
  if(m.type==='syllable-edit')return syllableModalHTML(m);
+ if(m.type==='delete-lyric-confirm'){
+  const line=currentSong()?.sections?.[m.si]?.lines?.[m.li];
+  if(!line)return '';
+  let selected;
+  try{selected=removeLyricSelection(line,m.slot,m.kind);}catch(_){return '';}
+  const word=m.kind==='word',label=word?'parola':'sillaba';
+  return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Conferma eliminazione ${label}"><h2>Eliminare la ${label}?</h2><p>Vuoi cancellare definitivamente <strong>“${escape(selected.removedText)}”</strong>? Saranno eliminati anche gli accordi associati al testo cancellato. Gli altri accordi rimarranno sulle rispettive sillabe.</p><div class="modal-actions syllable-confirm-actions"><button type="button" class="outline-btn" data-action="cancel-delete-lyric">Annulla</button><button type="button" class="outline-btn syllable-delete-confirm" data-action="confirm-delete-lyric">Elimina ${label}</button></div></div></div>`;
+ }
  if(m.type==='chord-only-edit'){
   const sec=currentSong()?.sections[m.si];
   const list=m.rowIndex<0?sec?.chordsOnly:sec?.chordRows?.[m.rowIndex];
@@ -2467,6 +2509,32 @@ root.addEventListener('click',e=>{
  const el=e.target.closest('[data-nav],[data-action]');if(!el)return;
  if(el.dataset.nav){state.massId=null;go(el.dataset.nav);return;}
  const action=el.dataset.action;
+ if(action==='delete-lyric-syllable'||action==='delete-lyric-word'){
+  const m=state.modal;
+  if(m?.type!=='syllable-edit')return;
+  state.modal={...m,type:'delete-lyric-confirm',kind:action==='delete-lyric-word'?'word':'syllable'};
+  render();return;
+ }
+ if(action==='cancel-delete-lyric'){
+  const m=state.modal;if(m?.type!=='delete-lyric-confirm')return;
+  state.modal={type:'syllable-edit',si:m.si,li:m.li,slot:m.slot};
+  render();return;
+ }
+ if(action==='confirm-delete-lyric'){
+  const m=state.modal;
+  if(m?.type!=='delete-lyric-confirm')return;
+  const sec=currentSong()?.sections?.[m.si],line=sec?.lines?.[m.li];
+  if(!line)return;
+  let result;
+  try{result=removeLyricSelection(line,m.slot,m.kind);}
+  catch(err){alert(err.message);return;}
+  const previous=structuredClone(sec.lines);
+  if(result.removeLine)sec.lines.splice(m.li,1);
+  else{line.marked=result.marked;line.anchors=result.anchors;}
+  if(!saveStore(store)){sec.lines=previous;alert('Impossibile salvare la cancellazione.');return;}
+  state.modal=null;
+  notify((m.kind==='word'?'Parola':'Sillaba')+' eliminata.');return;
+ }
  if(action==='diagnostic-start'){
   const follower=window.CantoriaAudioFollow;
   if(!follower?.startDiagnostic){updateDiagnosticPanel({phase:'error',message:'Strumento di diagnosi non disponibile.'});return;}
