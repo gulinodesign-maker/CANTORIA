@@ -43,7 +43,8 @@ assert.equal(harmony.parseChord('SOLAMENTE'),null);
 
 const html=fs.readFileSync(require('node:path').join(__dirname,'..','index.html'),'utf8');
 assert.ok(html.includes('<script src="./harmony-analysis.js"></script>'));
-assert.ok(html.includes('data-action="show-key-analysis"'));
+const songOptions=html.slice(html.indexOf("if(m.type==='song-options')"),html.indexOf("if(m.type==='photo-source')"));
+assert.ok(!songOptions.includes('data-action="show-key-analysis"'),'Remove redundant tonal-analysis banner from settings');
 assert.ok(!html.includes('>⏮</button>'),'Rewind must use vector artwork');
 const start=html.indexOf('function inferSongKey(song){'),end=html.indexOf('function describeTonality(song,shift=0){',start);
 assert.ok(start>0&&end>start);

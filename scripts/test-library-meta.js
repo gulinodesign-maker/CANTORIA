@@ -5,7 +5,7 @@ const html=fs.readFileSync('index.html','utf8');
 const js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(js,'App script missing');
 new vm.Script(js);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:6});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:7});
 
 function pick(begin,end){
  const a=js.indexOf(begin),b=js.indexOf(end,a+begin.length);
@@ -26,8 +26,11 @@ assert.equal((library.match(/data-action="(?:add-to-mass|export-song|card-pdf)"/
 const modalContext={state:{modal:{type:'song-options'},shift:0,songMetaDraft:{songId:song.id,title:'Nuovo & titolo',author:'Autore modificato'}},currentSong:()=>song,escape,escapeAttr:escape,describeTonality:()=> 'SOL maggiore'};
 vm.runInNewContext(pick('function modalHTML(){','function readerCharRect(')+'this.makeModal=modalHTML;',modalContext);
 const menu=modalContext.makeModal();
-const a=menu.indexOf('class="song-transport"'),b=menu.indexOf('class="song-meta-edit"'),c=menu.indexOf('class="song-key-analysis-trigger"');
+const a=menu.indexOf('class="song-transport"'),b=menu.indexOf('class="song-meta-edit"'),c=menu.indexOf('class="song-options-grid"');
 assert.ok(a>=0&&b>a&&c>b,'Title and author must immediately follow tonal controls');
+assert.ok(!menu.includes('song-key-analysis-trigger'),'Obsolete tonality-analysis button should be absent');
+assert.ok(!menu.includes('song-review-notice'),'Obsolete chord-review banner should be absent');
+assert.equal((menu.match(/class="song-option-tile"/g)||[]).length,6,'Keep the 2x3 settings grid');
 assert.ok(menu.includes('id="songTitleEdit"')&&menu.includes('id="songAuthorEdit"'));
 assert.ok(menu.includes('value="Nuovo &amp; titolo"'));
 assert.ok(menu.includes('value="Autore modificato"'));
@@ -54,6 +57,6 @@ const failed={modal:{type:'song-options'}};
 save('save-song',()=>song,failed,{querySelector:sel=>({value:sel==='#songTitleEdit'?'Different':'Different Author'})},()=>false,{},()=>{});
 assert.deepEqual({title:song.title,author:song.author,savedAt:song.savedAt},original);
 assert.equal(failed.modal.type,'song-options');
-assert.ok(fs.readFileSync('sw.js','utf8').includes('cantoria-shell-v1.1-build6'));
+assert.ok(fs.readFileSync('sw.js','utf8').includes('cantoria-shell-v1.1-build7'));
 assert.ok(html.includes('/* Cantoria 1.1 (6) — compact library cards'));
 console.log('Cantoria build 6 library compactness and song metadata tests passed');
