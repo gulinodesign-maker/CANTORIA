@@ -1141,6 +1141,43 @@
  .reader-layer:not(.reader-photo) .reader-chord-step{height:35px!important}
 }
 
+/* CANTORIA 1.1 (27) — independent Settings microphone diagnostics. */
+.diagnostic-panel{overflow:hidden}
+.diagnostic-panel>p{line-height:1.45}
+.diagnostic-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:17px 0}
+.diagnostic-actions button{width:100%;min-width:0;min-height:49px;padding:9px 7px;border-radius:12px;font-size:clamp(12px,2.7vw,15px);font-weight:750}
+.diagnostic-actions button:disabled{opacity:.45}
+.diagnostic-result{border:1px solid #cfccb8;border-radius:15px;background:#faf7f0;padding:18px 16px}
+.diagnostic-overline{display:block;color:#63796d;text-transform:uppercase;letter-spacing:.09em;font-weight:800;font-size:11px}
+.diagnostic-chord{display:block;color:#174636;font:bold clamp(44px,11vw,64px)/1.25 ui-sans-serif,-apple-system,sans-serif;margin:3px 0}
+.diagnostic-message{color:#34594a;font-weight:700;min-height:1.5em;line-height:1.35}
+.diagnostic-result[data-phase="listening"] .diagnostic-chord{color:#134d35}
+.diagnostic-level-row{display:flex;justify-content:space-between;gap:8px;margin:18px 0 7px;font-weight:700;color:#2c5544;font-size:13px}
+#diagnosticLevel{display:block;width:100%;height:12px;accent-color:#287b52}
+.diagnostic-meta{margin:9px 0 0;color:#64766b;font-size:13px;line-height:1.3}
+.diagnostic-help{font-size:12px;line-height:1.5;color:#718077;margin-top:11px}
+#audioDiagnostic[data-phase="error"] .diagnostic-message{color:#a43d31}
+#audioDiagnostic[data-phase="listening"] .diagnostic-result{border-color:#b6c8ac}
+@media(orientation:landscape){
+ .reader-layer:not(.reader-photo) .reader-toolbar-left{position:relative!important;gap:5px!important}
+ .reader-layer:not(.reader-photo) .reader-chord-nav{
+  position:relative!important;left:auto!important;bottom:auto!important;
+  transform:none!important;display:flex!important;gap:7px!important;margin-left:2px!important
+ }
+ .reader-layer:not(.reader-photo) .reader-toolbar{height:calc(56px + env(safe-area-inset-top,0px))!important;align-items:center!important;padding-top:env(safe-area-inset-top,0px)!important}
+ .reader-layer:not(.reader-photo) .reader-title{left:50%!important;width:calc(100% - 505px)!important}
+}
+@media(orientation:landscape) and (max-width:900px){
+ .reader-layer:not(.reader-photo) .reader-audio-btn{flex-basis:35px!important;width:35px!important;min-width:35px!important;height:38px!important}
+ .reader-layer:not(.reader-photo) .reader-chord-step{flex-basis:34px!important;width:34px!important;min-width:34px!important;height:38px!important}
+ .reader-layer:not(.reader-photo) .reader-toolbar-left>.reader-back.app-back-btn{flex-basis:38px!important;width:38px!important;min-width:38px!important;height:38px!important}
+ .reader-layer:not(.reader-photo) .reader-title{width:calc(100% - 430px)!important}
+}
+@media(orientation:portrait) and (max-width:739px){
+ .reader-layer:not(.reader-photo) .reader-toolbar-left{position:static!important}
+ .reader-layer:not(.reader-photo) .reader-chord-nav{position:absolute!important;left:50%!important;bottom:7px!important;transform:translateX(-50%)!important;margin-left:0!important}
+}
+
 </style>
   <title>Cantoria — Canti per la liturgia cattolica</title>
 </head>
@@ -1474,11 +1511,12 @@ function readerHTML(){
  <button class="reader-back app-back-btn" type="button" data-action="close-reader" aria-label="Indietro"><svg class="app-back-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m15 19-7-7 7-7"/></svg></button>
  <button class="reader-audio-btn" type="button" data-action="follow-rewind" title="Torna all’inizio" aria-label="Torna all’inizio del brano"><svg class="reader-transport-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3.5 5v14" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" fill="none"/><path d="M12 6v12L5 12zM21 6v12l-7-6z" fill="currentColor"/></svg></button>
  <button class="reader-audio-btn reader-play-toggle" type="button" data-action="follow-play" title="Play / Stop" aria-label="Play"><svg class="reader-transport-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 4v16l13-8z" fill="currentColor"/></svg></button>
- </div>
  <div class="reader-chord-nav" role="group" aria-label="Navigazione manuale degli accordi">
  <button class="reader-chord-step" type="button" data-action="follow-prev-chord" title="Accordo precedente" aria-label="Accordo precedente"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5 7.5 12l7 7" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
  <button class="reader-chord-step" type="button" data-action="follow-next-chord" title="Accordo successivo" aria-label="Accordo successivo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 5 7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
- </div> <div class="reader-title" title="${escapeAttr(song.title)}"><div class="reader-title-line"><strong>${escape(song.title)}</strong></div><small id="readerVerification">${horizontal?(state.page+1)+' / '+pages.length:''}${song.verified?'':' · DA VERIFICARE'}</small><small id="audioFollowStatus" class="reader-follow-status" hidden></small></div>
+ </div>
+ </div>
+ <div class="reader-title" title="${escapeAttr(song.title)}"><div class="reader-title-line"><strong>${escape(song.title)}</strong></div><small id="readerVerification">${horizontal?(state.page+1)+' / '+pages.length:''}${song.verified?'':' · DA VERIFICARE'}</small><small id="audioFollowStatus" class="reader-follow-status" hidden></small></div>
  <div class="reader-toolbar-right">
  <button class="reader-follow-btn" type="button" data-action="follow-source" title="Segui accordi" aria-label="Segui accordi">♫</button>
  <button class="reader-menu-btn" type="button" data-action="song-options" title="Impostazioni brano" aria-label="Impostazioni brano">☰</button>
@@ -1744,7 +1782,50 @@ function captureHTML(){
      </form>`:`<p class="photo-capture-hint">Fotografa lo spartito per iniziare.</p>`}
   </section>`;
 }
-function settingsHTML(){return `<div class="form-wrap"><div class="panel"><h3>Dati e salvataggi</h3><p>Conserva una copia dei brani e delle Messe nell’app File. I dati restano sul dispositivo finché non ripristini un backup.</p><div class="settings-backup-actions"><button type="button" class="outline-btn" data-action="backup">Esporta backup</button><label class="outline-btn settings-restore-btn" for="backupInput">Ripristina backup<input type="file" id="backupInput" accept=".json,application/json" class="visually-hidden-file" aria-label="Seleziona il backup JSON"></label></div></div><div class="panel"><h3>Ultimo aggiornamento</h3><button type="button" class="outline-btn" data-action="show-release-notes">Novità dell'ultima versione</button></div></div>`;}
+function updateDiagnosticPanel(data){
+ const root=document.getElementById('audioDiagnostic');if(!root)return;
+ const phase=data?.phase||'stopped',active=phase==='requesting'||phase==='listening';
+ const start=document.getElementById('diagnosticStart'),stop=document.getElementById('diagnosticStop');
+ if(start)start.disabled=active;
+ if(stop)stop.disabled=!active;
+ root.dataset.phase=phase;
+ const set=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value;};
+ if(data?.chord)set('diagnosticChord',data.chord);
+ else if(phase==='requesting')set('diagnosticChord','—');
+ if(phase==='error')set('diagnosticChord','—');
+ set('diagnosticMessage',String(data?.message||'Microfono inattivo.'));
+ const level=Math.max(0,Math.min(100,Math.round(Number(data?.level)||0)));
+ const meter=document.getElementById('diagnosticLevel');
+ if(meter)meter.value=level;
+ set('diagnosticLevelValue',level+'%');
+ set('diagnosticNotes','Note rilevate: '+(data?.notes?.length?data.notes.join(' · '):'—'));
+ set('diagnosticMatch','Corrispondenza: '+(data?.match?data.match+'%':'—'));
+ if(data?.guess&&!data?.chord)set('diagnosticCandidate','Possibile accordo: '+data.guess);
+ else set('diagnosticCandidate',phase==='requesting'?'Autorizzazione in corso':'');
+}
+function settingsHTML(){return `<div class="form-wrap">
+ <div class="panel diagnostic-panel" id="audioDiagnostic" data-phase="stopped">
+  <h3>Diagnosi riconoscimento accordi</h3>
+  <p>Verifica se il microfono riceve e riconosce gli accordi senza aprire un canto. Premi Avvia test e suona, ad esempio, un DO maggiore: deve comparire DO.</p>
+  <div class="diagnostic-actions">
+   <button type="button" class="primary-btn" id="diagnosticStart" data-action="diagnostic-start">Avvia test</button>
+   <button type="button" class="outline-btn" id="diagnosticStop" data-action="diagnostic-stop" disabled>Ferma test</button>
+  </div>
+  <div class="diagnostic-result" aria-label="Risultato della diagnosi">
+   <span class="diagnostic-overline">Accordo rilevato</span>
+   <strong id="diagnosticChord" class="diagnostic-chord" aria-live="polite">—</strong>
+   <p id="diagnosticMessage" class="diagnostic-message" role="status">Microfono inattivo.</p>
+   <div class="diagnostic-level-row"><label for="diagnosticLevel">Segnale microfono</label><span id="diagnosticLevelValue">0%</span></div>
+   <progress id="diagnosticLevel" max="100" value="0" aria-label="Livello audio ricevuto"></progress>
+   <p id="diagnosticNotes" class="diagnostic-meta">Note rilevate: —</p>
+   <p id="diagnosticMatch" class="diagnostic-meta">Corrispondenza: —</p>
+   <p id="diagnosticCandidate" class="diagnostic-meta"></p>
+  </div>
+  <p class="diagnostic-help">Se la barra non si muove, controlla il permesso Microfono nelle impostazioni di iOS. Se la barra si muove ma non appare l’accordo, il problema è nel riconoscimento delle note.</p>
+ </div>
+ <div class="panel"><h3>Dati e salvataggi</h3><p>Conserva una copia dei brani e delle Messe nell’app File. I dati restano sul dispositivo finché non ripristini un backup.</p><div class="settings-backup-actions"><button type="button" class="outline-btn" data-action="backup">Esporta backup</button><label class="outline-btn settings-restore-btn" for="backupInput">Ripristina backup<input type="file" id="backupInput" accept=".json,application/json" class="visually-hidden-file" aria-label="Seleziona il backup JSON"></label></div></div>
+ <div class="panel"><h3>Ultimo aggiornamento</h3><button type="button" class="outline-btn" data-action="show-release-notes">Novità dell'ultima versione</button></div>
+ </div>`;}
 function appHTML(){
  const views={home:homeHTML,library:libraryHTML,masses:massesHTML,capture:captureHTML,settings:settingsHTML};
  const builder=views[state.view]||homeHTML;
@@ -1869,7 +1950,7 @@ function modalHTML(){const m=state.modal;
   const song=currentSong();if(!song?.photoData)return '';
   return `<div class="modal-shade"><div class="modal-card" role="alertdialog" aria-modal="true" aria-label="Conferma ricalcolo accordi"><h2>Ricalcolare gli accordi?</h2><p>La partitura verrà ricalcolata dalla fotografia originale con le coordinate OCR. Le modifiche manuali fatte sulle sillabe e sugli accordi saranno sostituite. La fotografia originale resterà disponibile.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button type="button" class="primary-btn" data-action="reparse-photo">Ricalcola accordi</button></div></div></div>`;
  }
- if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (26)</h2><p>Il microfono cerca il primo accordo e avvia il seguito del brano solo quando lo riconosce. Rimossa la scelta di caricare file audio e corretta la sovrapposizione dei pulsanti nella barra superiore.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
+ if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (27)</h2><p>Nuovo test del microfono nelle Impostazioni: avvia/ferma, accordo riconosciuto in tempo reale, segnale, note e corrispondenza. In landscape le frecce degli accordi sono immediatamente a destra di Play/Stop, senza coprire il titolo.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
 
 
  if(m.type==='key-analysis'){
@@ -2357,6 +2438,14 @@ root.addEventListener('click',e=>{
  const el=e.target.closest('[data-nav],[data-action]');if(!el)return;
  if(el.dataset.nav){state.massId=null;go(el.dataset.nav);return;}
  const action=el.dataset.action;
+ if(action==='diagnostic-start'){
+  const follower=window.CantoriaAudioFollow;
+  if(!follower?.startDiagnostic){updateDiagnosticPanel({phase:'error',message:'Strumento di diagnosi non disponibile.'});return;}
+  follower.startDiagnostic(updateDiagnosticPanel).catch(err=>{
+   updateDiagnosticPanel({phase:'error',message:'Impossibile usare il microfono: '+err.message,level:0});
+  });return;
+ }
+ if(action==='diagnostic-stop'){window.CantoriaAudioFollow?.stopDiagnostic();return;}
  if(action==='show-release-notes'){state.modal={type:'release-notes'};render();return;}
  if(action==='ask-delete-song'){const song=store.songs.find(x=>x.id===(el.dataset.song||currentSong()?.id));if(song){state.modal={type:'delete-song-confirm',songId:song.id};render();}return;}
  if(action==='delete-song'){

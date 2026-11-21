@@ -21,6 +21,7 @@ jobs:
           node scripts/test-editor.js
           node scripts/test-reader-fit.js
           node scripts/test-audio-follow.js
+          node scripts/test-audio-diagnostic.js
           node scripts/test-library-meta.js
           node scripts/test-library-filters.js
           node scripts/test-mass-cards.js

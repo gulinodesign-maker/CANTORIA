@@ -82,6 +82,18 @@
   if(present<3&&!twoTone)return null;
   return {chord:chord.label,confidence:Math.min(1,coverage+.10*strengths[0]),coverage};
  }
+ const DIAG_NOTES=['DO','DO#','RE','MIb','MI','FA','FA#','SOL','LAb','LA','SIb','SI'];
+ const DIAG_CHORDS=DIAG_NOTES.flatMap(n=>[n,n+'-']);
+ function diagnoseChroma(chroma){
+  const hit=recognizeChord(chroma,DIAG_CHORDS);
+  if(!hit)return null;
+  const chord=parseChord(hit.chord),sum=chroma.reduce((a,v)=>a+Math.max(0,Number(v)||0),0);
+  if(!chord||sum<.005)return null;
+  const weights=chord.intervals.slice(0,3).map(v=>Math.max(0,chroma[clampPitch(chord.root+v)]||0)/sum);
+  if(weights.filter(v=>v>=.10).length<2||weights.reduce((a,b)=>a+b,0)<.62||
+    hit.confidence<.58||hit.margin<.085)return null;
+  return {chord:hit.chord,match:Math.min(100,Math.round(hit.confidence*100)),margin:hit.margin};
+ }
  // Positions are immutable events in the full score, not a search window in the visible page.
  function chordIdentity(label){return String(label||"").trim().toUpperCase().replace(/♯/g,"#").replace(/♭/g,"B").replace(/\s+/g,"");}
  function stepChordIndex(items,index,direction){
@@ -102,6 +114,7 @@
  let preferredSource="none",mode="idle",timer=0,bins=null,wave=null,activeIndex=-1,activeName="",stableName="",stableCount=0,lastAdvance=0,seenAt=0,currentSongId="";
  let scoreItems=[],showPage=null,previousRms=0,silentFrames=0,releasedSinceLast=false,attackCount=0,lastMarkAttackCount=0,lastAttackAt=0;
  let chromaHistory=[];
+ let diagSerial=0,diagCallback=null,diagLast="",diagStable="",diagFrames=0;
  const $=selector=>root.document?.querySelector(selector);
  function status(message){
   const element=$("#audioFollowStatus");
@@ -130,6 +143,60 @@
   // ~3 frames, not after the old seven-frame window has fully expired.
   return average.map((v,i)=>.45*v+.55*chroma[i]);
  }
+ function diagNotify(data){
+  if(typeof diagCallback==="function")try{diagCallback(data);}catch(err){root.console?.warn?.("Cantoria diagnosi:",err);}
+ }
+ function diagNotes(chroma){
+  return chroma.map((v,i)=>({label:DIAG_NOTES[i],level:Number(v)||0}))
+    .filter(x=>x.level>=.08).sort((a,b)=>b.level-a.level).slice(0,5).map(x=>x.label);
+ }
+ function diagDetect(){
+  if(mode!=="diagnostic"||!analyser)return;
+  if(ctx.state==="suspended"){diagNotify({phase:"listening",message:"Audio sospeso: riprova il test.",chord:diagLast});timer=root.setTimeout(diagDetect,250);return;}
+  analyser.getByteFrequencyData(bins);
+  const low=Math.ceil(85*analyser.fftSize/ctx.sampleRate);
+  const high=Math.min(bins.length-1,Math.floor(1400*analyser.fftSize/ctx.sampleRate));
+  let spectralPeak=0;
+  for(let i=low;i<=high;i++)spectralPeak=Math.max(spectralPeak,bins[i]);
+  let rms=0,samples=0;
+  if(wave&&typeof analyser.getByteTimeDomainData==="function"){
+   analyser.getByteTimeDomainData(wave);
+   for(let i=0;i<wave.length;i+=16){const v=(wave[i]-128)/128;rms+=v*v;samples++;}
+   rms=Math.sqrt(rms/Math.max(1,samples));
+  }
+  const raw=chromaFromFFT(bins,ctx.sampleRate,analyser.fftSize);
+  const guess=(spectralPeak>=65||rms>=.008)?diagnoseChroma(accumulatedChroma(raw)):null;
+  if(guess?.chord&&guess.chord===diagStable)diagFrames++;
+  else{diagStable=guess?.chord||"";diagFrames=guess?1:0;}
+  if(guess&&diagFrames>=3)diagLast=guess.chord;
+  const level=Math.max(0,Math.min(100,Math.round(Math.max(rms*520,Math.max(0,spectralPeak-45)*.7))));
+  diagNotify({phase:"listening",level,chord:diagLast,guess:guess?.chord||"",
+   match:guess?.match||0,notes:diagNotes(raw),
+   message:level<3?"Nessun segnale audio: suona vicino al microfono.":
+    diagLast&&guess?.chord===diagLast&&diagFrames>=3?"Accordo riconosciuto.":
+    "Segnale presente: analisi dell’accordo in corso."});
+  timer=root.setTimeout(diagDetect,180);
+ }
+ async function startDiagnostic(onUpdate){
+  if(!root.navigator?.mediaDevices?.getUserMedia)throw new Error("Microfono non disponibile.");
+  stop();
+  const token=++diagSerial;
+  diagCallback=typeof onUpdate==="function"?onUpdate:null;
+  diagLast="";diagStable="";diagFrames=0;resetListeningWindow();mode="diagnostic";
+  diagNotify({phase:"requesting",message:"Autorizza l’accesso al microfono.",level:0,chord:""});
+  try{
+   await ensureContext();
+   if(token!==diagSerial)return;
+   const mic=await root.navigator.mediaDevices.getUserMedia({audio:{
+     echoCancellation:false,noiseSuppression:false,autoGainControl:false},video:false});
+   if(token!==diagSerial){mic.getTracks().forEach(t=>t.stop());return;}
+   stream=mic;
+   micNode=ctx.createMediaStreamSource(stream);micNode.connect(analyser);
+   diagNotify({phase:"listening",message:"Microfono attivo: suona un accordo (es. DO).",level:0,chord:""});
+   diagDetect();
+  }catch(err){if(token===diagSerial){stop();throw err;}}
+ }
+ function stopDiagnostic(){if(mode==="diagnostic")stop();}
  function sequence(){return scoreItems;}
  function setScore(songId,items,onPage){
   if(currentSongId&&currentSongId!==songId){activeIndex=-1;activeName="";lastAdvance=0;}
@@ -263,6 +330,8 @@
   await ctx.resume();
  }
  function stop(){
+  const wasDiag=mode==="diagnostic";
+  diagSerial++;
   if(timer)root.clearTimeout(timer);timer=0;
   if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
   try{micNode?.disconnect();}catch(_){}
@@ -270,6 +339,8 @@
   if(player&&!player.paused)player.pause();
   mode="idle";resetListeningWindow();previousRms=0;silentFrames=0;releasedSinceLast=false;lastMarkAttackCount=attackCount;
   status("Rilevamento fermato.");syncControls();
+  if(wasDiag)diagNotify({phase:"stopped",message:"Test interrotto.",level:0,chord:diagLast});
+  diagCallback=null;
  }
  async function loadTrack(file){
   if(!file||(!file.type.startsWith("audio/")&&!/\.(mp3|wav|m4a|aac|ogg)$/i.test(file.name)))throw new Error("Scegli un file audio supportato.");
@@ -311,7 +382,7 @@
   if(mode==="mic")status("In attesa del primo accordo: "+(scoreItems[0]?.label||"—"));
  }
  if(player)player.addEventListener("ended",()=>stop());
- const api={parseChord,chromaFromFFT,recognizeChord,recognizeExpectedChord,nextChordIndex,stepChordIndex,setScore,step,loadTrack,play,microphone,toggle,rewind,stop,reset,refresh,syncControls,get mode(){return mode;},get activeIndex(){return activeIndex;},get hasSource(){return preferredSource==="mic"||!!player?.src;}};
+ const api={parseChord,chromaFromFFT,recognizeChord,recognizeExpectedChord,diagnoseChroma,startDiagnostic,stopDiagnostic,nextChordIndex,stepChordIndex,setScore,step,loadTrack,play,microphone,toggle,rewind,stop,reset,refresh,syncControls,get mode(){return mode;},get activeIndex(){return activeIndex;},get hasSource(){return preferredSource==="mic"||!!player?.src;}};
  root.CantoriaAudioFollow=api;
- if(typeof module!=="undefined"&&module.exports)module.exports={parseChord,chromaFromFFT,recognizeChord,recognizeExpectedChord,nextChordIndex,stepChordIndex};
+ if(typeof module!=="undefined"&&module.exports)module.exports={parseChord,chromaFromFFT,recognizeChord,recognizeExpectedChord,diagnoseChroma,nextChordIndex,stepChordIndex};
 })(typeof window!=="undefined"?window:globalThis);

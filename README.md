@@ -1,3 +1,15 @@
+## Cantoria 1.1 (27) — diagnosi microfono in Impostazioni (21 novembre 2026)
+
+- Nuovo pannello **Diagnosi riconoscimento accordi** nella schermata Impostazioni, utilizzabile anche senza aprire un canto. Pulsanti **Avvia test** e **Ferma test**, con accesso diretto al microfono e rilascio delle risorse allo stop.
+- L'accordo maggior/minore riconosciuto compare in grande (es. DO quando vengono suonate le note DO–MI–SOL); sono mostrati in diretta il livello del segnale, le note rilevate e la corrispondenza musicale. L'assenza del segnale e i problemi di autorizzazione sono mostrati separatamente.
+- La diagnosi utilizza il medesimo estrattore delle frequenze del lettore, ma valuta tutti gli accordi maggiori e minori senza dipendere dalla sequenza dello spartito: permette di capire se il guasto è nel microfono o nel riconoscimento.
+- Il microfono si spegne al termine del test, cambiando schermata e chiudendo l'app. Nessuna registrazione viene salvata o inviata in rete.
+- In landscape i pulsanti precedente/successivo accordo sono realmente inseriti nel gruppo di sinistra, subito dopo Play/Stop; in portrait stretto restano su una riga inferiore. Corretto il rischio di sovrapposizione con il titolo.
+- Test automatici dedicati all'analisi di DO, SOL, LA- e RE-, al ciclo di vita del microfono e alla gestione degli errori.
+- Versione applicazione 1.1, build iOS/PWA 27. La sensibilità reale richiede ancora una prova con strumento musicale su iPhone.
+
+---
+
 ## Cantoria 1.1 (26) — attesa del primo accordo e microfono diretto (21 novembre 2026)
 
 - Toccando il pulsante ♫ si attiva direttamente il microfono senza una finestra di scelta della sorgente. La funzione «Carica audio» è rimossa dall’interfaccia.

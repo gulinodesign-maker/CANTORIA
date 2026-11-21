@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const html=fs.readFileSync('index.html','utf8'),inline=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(inline);new vm.Script(inline);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:26});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:27});
 assert.equal(require('../package.json').version,'1.1.0');
 for(const text of ['releaseInfo.build','data-action="follow-source"','data-action="choose-section-text"','data-action="recognize-photo"','data-action="follow-play"','data-action="follow-rewind"','data-follow-chord=','audio-follow.js','library-action-icon','song-options-grid'])assert.ok(html.includes(text),text);
 for(const text of ['Apple Intelligence','recognize-apple','cantoriaAI'])assert.ok(!html.includes(text),text);
@@ -197,8 +197,8 @@ assert.ok(!html.includes("if(m.type==='follow-source')"),'Do not show a source-s
 assert.ok(inline.includes("if(follower.mode==='mic'){follower.stop();return;}"));
 assert.ok(inline.includes("follower.microphone().catch(err=>notify(err.message))"));
 const reader26=inline.slice(inline.indexOf('function readerHTML()'),inline.indexOf('const CATHOLIC_CORNER ='));
-const leftEnd=reader26.indexOf(' </div>\\n <div class="reader-chord-nav"'.replace('\\n','\n'));
-assert.ok(leftEnd>=0,'Chord navigation must be a separate toolbar sibling, not nested over transport');
+const leftEnd=reader26.indexOf(' </div>\\n </div>\\n <div class="reader-title"'.replaceAll('\\n','\n'));
+assert.ok(leftEnd>=0,'Chord nav must be nested in the left group and separated from the title');
 assert.ok(reader26.includes('id="readerVerification"')&&reader26.includes('id="audioFollowStatus"'));
 assert.ok(html.includes('/* CANTORIA 1.1 (26)'),'Responsive toolbar correction required');
 assert.ok(audioSource.includes('accumulatedChroma('));
