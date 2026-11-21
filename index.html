@@ -1627,7 +1627,7 @@ function modalHTML(){const m=state.modal;
   const song=currentSong();if(!song?.photoData)return '';
   return `<div class="modal-shade"><div class="modal-card" role="alertdialog" aria-modal="true" aria-label="Conferma ricalcolo accordi"><h2>Ricalcolare gli accordi?</h2><p>La partitura verrà ricalcolata dalla fotografia originale con le coordinate OCR. Le modifiche manuali fatte sulle sillabe e sugli accordi saranno sostituite. La fotografia originale resterà disponibile.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button type="button" class="primary-btn" data-action="reparse-photo">Ricalcola accordi</button></div></div></div>`;
  }
- if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (18)</h2><p>Card dei brani: titolo in evidenza e autore tra parentesi, centrato sotto. La modifica vale per Biblioteca e scalette delle Messe.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
+ if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (19)</h2><p>La build installata viene verificata rispetto al commit e alle risorse web prima dell’invio a TestFlight. L’autore resta sotto il titolo nelle card.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
 
 
  if(m.type==='key-analysis'){

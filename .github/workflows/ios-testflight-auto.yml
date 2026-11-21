@@ -8,10 +8,10 @@ on:
       - main
   workflow_dispatch:
 
-# Evita pubblicazioni concorrenti senza interrompere i tentativi già avviati.
+# Annulla vecchie build: non caricare un commit precedente a main.
 concurrency:
   group: cantoria-testflight-main
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -27,6 +27,9 @@ jobs:
       APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: true
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -48,6 +51,9 @@ jobs:
             exit 1
           fi
 
+      - name: Reject stale or mismatched checkout
+        run: bash scripts/verify-release-payload.sh source
+
       - name: Prepare Apple API authentication
         env:
           ASC_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
@@ -64,6 +70,9 @@ jobs:
         run: |
           npm install --no-audit --no-fund
           bash scripts/prepare-ios.sh
+
+      - name: Verify Capacitor staged this exact source
+        run: bash scripts/verify-release-payload.sh staged
 
       # This is a hard gate, not advisory. A compiled app with a custom bridge
       # shipped an all-black screen in 0.7.0; do not release that again.
@@ -95,6 +104,9 @@ jobs:
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
             MARKETING_VERSION="$MARKETING_VERSION" CURRENT_PROJECT_VERSION="$(node -p "require('./release.json').build")" \
             archive
+
+      - name: Verify exact build and web sources in iOS archive
+        run: bash scripts/verify-release-payload.sh archive
 
       - name: Verify archived export compliance declaration
         shell: bash
@@ -129,6 +141,9 @@ jobs:
             -authenticationKeyPath "$ASC_AUTH_KEY_PATH" \
             -authenticationKeyID "$APP_STORE_CONNECT_KEY_ID" \
             -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID"
+
+      - name: Reject stale upload and verify the signed IPA byte-for-byte
+        run: bash scripts/verify-release-payload.sh ipa
 
       - name: Retain signed IPA as a short-lived artifact
         uses: actions/upload-artifact@v4

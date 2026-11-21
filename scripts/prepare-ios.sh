@@ -10,6 +10,16 @@ fi
 mkdir -p web
 cp index.html release.json audio-follow.js harmony-analysis.js score-ocr.js score-geometry.js score-metadata.js score-editor.js manifest.webmanifest sw.js web/
 cp -R assets web/assets
+# Stamp the exact commit and HTML hash into the bundled web application.
+node - <<'NODE'
+const fs=require('node:fs'),cp=require('node:child_process'),crypto=require('node:crypto');
+const release=require('./release.json');
+const commit=cp.execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
+const sourceSha256=crypto.createHash('sha256').update(fs.readFileSync('index.html')).digest('hex');
+fs.writeFileSync('web/build-info.json',JSON.stringify({
+ version:release.version,build:release.build,commit,sourceSha256
+},null,2)+'\n');
+NODE
 cat > capacitor.config.json <<EOF
 {
   "appId": "$IOS_BUNDLE_ID",
