@@ -113,7 +113,7 @@
  let ctx=null,analyser=null,mediaNode=null,micNode=null,stream=null,trackURL=null;
  let preferredSource="none",mode="idle",timer=0,bins=null,wave=null,activeIndex=-1,activeName="",stableName="",stableCount=0,lastAdvance=0,seenAt=0,currentSongId="";
  let scoreItems=[],showPage=null,previousRms=0,silentFrames=0,releasedSinceLast=false,attackCount=0,lastMarkAttackCount=0,lastAttackAt=0;
- let chromaHistory=[];
+ let chromaHistory=[],markedChroma=null;
  let diagSerial=0,diagCallback=null,diagLast="",diagStable="",diagFrames=0;
  const $=selector=>root.document?.querySelector(selector);
  function status(message){
@@ -121,6 +121,12 @@
   if(element)element.textContent=message;
  }
  function resetListeningWindow(){chromaHistory=[];stableName="";stableCount=0;}
+ function chordProfileChange(before,now){
+  if(!Array.isArray(before)||!Array.isArray(now)||before.length!==12||now.length!==12)return 1;
+  const a=before.reduce((sum,v)=>sum+Math.max(0,v||0),0)||1;
+  const b=now.reduce((sum,v)=>sum+Math.max(0,v||0),0)||1;
+  return now.reduce((sum,v,i)=>sum+Math.abs(Math.max(0,v||0)/b-Math.max(0,before[i]||0)/a),0)/2;
+ }
  function accumulatedChroma(chroma){
   // Silence must agree with the spectrum: some capture devices and AudioContext
   // configurations report near-zero time-domain samples while their FFT still
@@ -253,7 +259,7 @@
   stop();currentSongId=String(songId||"");scoreItems=[];showPage=null;
   activeIndex=-1;activeName="";stableName="";stableCount=0;lastAdvance=0;
   attackCount=0;lastMarkAttackCount=0;previousRms=0;silentFrames=0;releasedSinceLast=false;
-  resetListeningWindow();refresh();
+  resetListeningWindow();markedChroma=null;refresh();
  }
  function scrollToActive(){
   const el=activeLabel(),stage=$("#readerStage"),row=el?.closest(".music-row");
@@ -262,9 +268,10 @@
   const target=stage.scrollTop+(a.top-b.top)-stage.clientHeight*.35;
   if(Math.abs(target-stage.scrollTop)>24)stage.scrollTo({top:Math.max(0,target),behavior:"smooth"});
  }
- function mark(index){
+ function mark(index,chroma=null){
   const item=scoreItems[index];if(!item)return;
   activeIndex=index;activeName=item.label;lastAdvance=Date.now();
+  markedChroma=chroma?Array.from(chroma):null;
   lastMarkAttackCount=attackCount;releasedSinceLast=false;
   resetListeningWindow();
   if(typeof showPage==="function")showPage(item.page);
@@ -281,7 +288,7 @@
   mark(index);
   return true;
  }
- function match(chord){
+ function match(chord,chroma){
   if(!scoreItems.length)return;
   const freshAttack=releasedSinceLast||attackCount>lastMarkAttackCount;
   const next=nextChordIndex(scoreItems,activeIndex,chord,freshAttack);
@@ -290,7 +297,11 @@
   // chords retain a longer guard and still require a new onset/release.
   const repeated=activeIndex>=0&&chordIdentity(scoreItems[activeIndex]?.label)===chordIdentity(scoreItems[activeIndex+1]?.label);
   if(activeIndex>=0&&Date.now()-lastAdvance<(repeated?320:130))return;
-  mark(next);
+  // The previously played chord may already contain the next triad's notes.
+  // Require an actual change in pitch-class energy OR a fresh audible attack;
+  // do not advance twice on one sustained chord spectrum.
+  if(activeIndex>=0&&!repeated&&!freshAttack&&chordProfileChange(markedChroma,chroma)<.12)return;
+  mark(next,chroma);
  }
  function updateDynamics(){
   if(!wave||typeof analyser.getByteTimeDomainData!=="function")return;
@@ -322,7 +333,7 @@
   else{stableName=name;stableCount=1;}
   // Two consecutive FFT readings confirm a chord without the ~500ms
   // delay previously imposed by three 155ms polling intervals.
-  if(name&&stableCount>=2){match(name);seenAt=Date.now();}
+  if(name&&stableCount>=2){match(name,chroma);seenAt=Date.now();}
   if(!name&&Date.now()-seenAt>2000&&mode==="mic")
    status(activeIndex<0?"In attesa del primo accordo: "+(scoreItems[0]?.label||"—"):"In ascolto · prossimo: "+(expected||"fine"));
   timer=root.setTimeout(detect,80);
@@ -341,7 +352,7 @@
   try{micNode?.disconnect();}catch(_){}
   micNode=null;
   if(player&&!player.paused)player.pause();
-  mode="idle";resetListeningWindow();previousRms=0;silentFrames=0;releasedSinceLast=false;lastMarkAttackCount=attackCount;
+  mode="idle";resetListeningWindow();markedChroma=null;previousRms=0;silentFrames=0;releasedSinceLast=false;lastMarkAttackCount=attackCount;
   status("Rilevamento fermato.");syncControls();
   if(wasDiag)diagNotify({phase:"stopped",message:"Test interrotto.",level:0,chord:diagLast});
   diagCallback=null;
@@ -367,7 +378,7 @@
   stop();await ensureContext();
   // Arming always begins at the very first chord; the score does not start
   // until a stable live match marks position zero.
-  activeIndex=-1;activeName="";lastAdvance=0;resetListeningWindow();refresh();
+  activeIndex=-1;activeName="";lastAdvance=0;resetListeningWindow();markedChroma=null;refresh();
   stream=await root.navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false},video:false});
   micNode=ctx.createMediaStreamSource(stream);micNode.connect(analyser);
   mode="mic";preferredSource="mic";
@@ -382,7 +393,7 @@
  }
  function rewind(){
   if(player?.src)try{player.currentTime=0;}catch(_){}
-  activeIndex=-1;activeName="";lastAdvance=0;attackCount=0;lastMarkAttackCount=0;previousRms=0;silentFrames=0;releasedSinceLast=false;resetListeningWindow();refresh();
+  activeIndex=-1;activeName="";lastAdvance=0;attackCount=0;lastMarkAttackCount=0;previousRms=0;silentFrames=0;releasedSinceLast=false;resetListeningWindow();markedChroma=null;refresh();
   if(mode==="mic")status("In attesa del primo accordo: "+(scoreItems[0]?.label||"—"));
  }
  if(player)player.addEventListener("ended",()=>stop());
