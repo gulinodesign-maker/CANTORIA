@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const html=fs.readFileSync('index.html','utf8'),js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(js);new vm.Script(js);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:40});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:41});
 const escape=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const actual={id:'s1',title:'Signore pietà',author:'Francesco Buttazzo',sections:[{kind:'verse',lines:[]}]};
 const noAuthor={id:'s2',title:'Gloria',author:'',sections:[]};
@@ -18,7 +18,13 @@ const mass={id:'m1',name:'Messa',date:'',items:[{id:'i1',songId:'s1',shift:0},{i
 ctx.store.masses=[mass];ctx.state.massId='m1';ctx.currentMass=()=>mass;ctx.massDateDisplay=()=>'';ctx.massSongSummary=()=>'';ctx.state.view='masses';
 const mStart=js.indexOf('function massesHTML()'),mEnd=js.indexOf('const OCR_JS_URL=',mStart);
 vm.runInNewContext(js.slice(mStart,mEnd)+'this.massDetail=massDetailHTML;',ctx);
-actual.author='Francesco Buttazzo';let detail=ctx.massDetail();
+actual.author='Francesco Buttazzo';
+actual.liturgicalRole='Comunione';
+lib=ctx.lib();
+assert.ok(lib.includes('class="cover-liturgical">Comunione</div>'),'Library displays an explicit liturgical moment in green');
+mass.items[0].label='Ingresso';
+let detail=ctx.massDetail();
+assert.ok(detail.includes('class="cover-liturgical">Ingresso</div>'),'Mass slot moment overrides generic song classification');
 assert.ok(detail.includes('<div class="cover-label">Signore pietà</div><div class="cover-author">(Francesco Buttazzo)</div>'));
 assert.ok(!detail.includes('class="cover-author">()</div>'));
 mass.celebratedAt='2026-11-21T12:00:00Z';

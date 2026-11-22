@@ -1296,6 +1296,32 @@
  }
 }
 
+
+/* Build 41 — inset top-bar actions in landscape and portrait; keep Back left. */
+.reader-layer:not(.reader-photo) .reader-toolbar-right{margin-right:clamp(10px,3vw,40px)!important}
+@media(orientation:landscape){
+ .reader-layer:not(.reader-photo) .reader-chord-nav{margin-left:clamp(22px,4.5vw,44px)!important}
+ .reader-layer:not(.reader-photo) .reader-toolbar-right{margin-right:clamp(22px,4.5vw,44px)!important}
+}
+@media(orientation:portrait){
+ .reader-layer:not(.reader-photo) .reader-toolbar-left>.reader-audio-btn:first-of-type{margin-left:clamp(10px,3vw,18px)!important}
+ .reader-layer:not(.reader-photo) .reader-toolbar-right{margin-right:clamp(10px,3vw,18px)!important}
+ .reader-layer:not(.reader-photo) .reader-chord-nav{gap:4px!important}
+}
+.song-card .song-cover .cover-liturgical{
+ display:block!important;width:100%;margin:1px 0 0;padding:0 4px;
+ color:#217348!important;font:750 clamp(11px,2.6vw,14px)/1.2 ui-sans-serif,-apple-system,sans-serif;
+ text-align:center!important;white-space:normal;overflow-wrap:anywhere;
+}
+.song-card.library-song-card:has(.cover-liturgical) .song-cover{min-height:82px!important}
+@media(orientation:landscape){
+ .song-card.library-song-card:has(.cover-liturgical) .song-cover{min-height:73px!important}
+}
+.song-meta-liturgical{display:block;width:100%;margin:5px 0 0}
+.song-meta-liturgical select{
+ width:100%;min-height:40px;padding:8px 10px;border:1px solid #c8c5ae;
+ border-radius:10px;color:#174636;background:#fffdf7;font-size:13px;
+}
 </style>
   <title>Cantoria — Canti per la liturgia cattolica</title>
 </head>
@@ -1725,8 +1751,9 @@ function libraryHTML(){
   <div class="tiles library-song-list">${songs.map(song=>{
    const expanded=state.libraryOpenId===song.id;
    const hasAuthor=!!String(song.author||'').trim();
+   const moment=String(song.liturgicalRole||song.liturgicalFunction||'').trim().slice(0,90);
    return `<article class="song-card library-song-card ${expanded?'library-card-expanded':'library-card-collapsed'} ${hasAuthor?'library-has-author':''}" role="button" tabindex="0" data-action="toggle-library-card" data-song="${escapeAttr(song.id)}" aria-expanded="${expanded?'true':'false'}" aria-label="${expanded?'Chiudi':'Espandi'} le azioni per ${escapeAttr(song.title)}">
-     <div class="song-cover">${CATHOLIC_CORNER}<div class="cover-content"><div class="cover-label">${escape(song.title)}</div>${hasAuthor?`<div class="cover-author">(${escape(String(song.author).trim())})</div>`:''}</div>
+     <div class="song-cover">${CATHOLIC_CORNER}<div class="cover-content"><div class="cover-label">${escape(song.title)}</div>${hasAuthor?`<div class="cover-author">(${escape(String(song.author).trim())})</div>`:''}${moment?`<div class="cover-liturgical">${escape(moment)}</div>`:''}</div>
      ${expanded?`<button class="card-delete-btn" type="button" data-action="ask-delete-song" data-song="${escapeAttr(song.id)}" title="Elimina brano" aria-label="Elimina ${escapeAttr(song.title)}">×</button>`:`<svg class="library-disclosure" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>`}
      </div>
      ${expanded?`<div class="card-body library-card-actions-only"><div class="card-actions" role="group" aria-label="Azioni brano">
@@ -1768,8 +1795,9 @@ function massDetailHTML(){
   const title=done?(item.archiveTitle||song?.title||'Canto non disponibile'):(song?.title||'Canto non disponibile');
   const used=!!item.usedAt;
   const author=String((done?(item.archiveAuthor||song?.author):song?.author)||'').trim();
+  const moment=String((done?(item.archiveLiturgicalRole||item.label||song?.liturgicalRole):(item.label||song?.liturgicalRole||song?.liturgicalFunction))||'').trim().slice(0,90);
   return `<article class="song-card mass-song-card ${done?'mass-song-archived':used?'mass-song-used':''}" role="button" tabindex="0" data-action="read-mass-song" data-item="${escapeAttr(item.id)}" ${!done?`data-reorder-item="${escapeAttr(item.id)}"`:''} aria-label="Apri ${escapeAttr(title)}">
-    <div class="song-cover">${CATHOLIC_CORNER}<div class="cover-content"><div class="cover-label">${escape(title)}</div>${author?`<div class="cover-author">(${escape(author)})</div>`:''}</div>
+    <div class="song-cover">${CATHOLIC_CORNER}<div class="cover-content"><div class="cover-label">${escape(title)}</div>${author?`<div class="cover-author">(${escape(author)})</div>`:''}${moment?`<div class="cover-liturgical">${escape(moment)}</div>`:''}</div>
     ${!done&&used?`<button type="button" class="mass-song-reset" data-action="reset-mass-item-used" data-item="${escapeAttr(item.id)}" title="Rendi di nuovo disponibile" aria-label="Rendi di nuovo disponibile ${escapeAttr(title)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10a8 8 0 1 1 0 6"/><path d="M4 4v6h6"/></svg></button>`:''}
     ${!done?`<button type="button" class="mass-song-remove" data-action="ask-remove-mass-item" data-item="${escapeAttr(item.id)}" title="Rimuovi dalla Messa" aria-label="Rimuovi ${escapeAttr(title)} dalla Messa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>`:''}
     </div>
@@ -2103,7 +2131,7 @@ function modalHTML(){const m=state.modal;
   const song=currentSong();if(!song?.photoData)return '';
   return `<div class="modal-shade"><div class="modal-card" role="alertdialog" aria-modal="true" aria-label="Conferma ricalcolo accordi"><h2>Ricalcolare gli accordi?</h2><p>La partitura verrà ricalcolata dalla fotografia originale con le coordinate OCR. Le modifiche manuali fatte sulle sillabe e sugli accordi saranno sostituite. La fotografia originale resterà disponibile.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button type="button" class="primary-btn" data-action="reparse-photo">Ricalcola accordi</button></div></div></div>`;
  }
- if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (40)</h2><p>Motore microfono nativo iOS: l’ascolto continua mentre l’app è in background. Al ritorno, gli accordi rilevati riallineano lo spartito senza salvare registrazioni audio. Schermo sempre acceso mentre CANTORIA è attiva in primo piano su iPhone o iPad: lo spartito rimane visibile durante tutta la celebrazione, anche senza toccare il display. Quando si esce dall’app o si blocca il dispositivo, il risparmio energetico iOS torna normale.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
+ if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (41)</h2><p>Navigazione in top bar più centrale in portrait e landscape; momento liturgico verde sulle card di Biblioteca e Scaletta, modificabile nelle impostazioni del brano. Pubblicazione TestFlight senza avvio obbligatorio del simulatore, mantenendo i controlli di compilazione e integrità. Motore microfono nativo iOS: l’ascolto continua mentre l’app è in background. Al ritorno, gli accordi rilevati riallineano lo spartito senza salvare registrazioni audio. Schermo sempre acceso mentre CANTORIA è attiva in primo piano su iPhone o iPad: lo spartito rimane visibile durante tutta la celebrazione, anche senza toccare il display. Quando si esce dall’app o si blocca il dispositivo, il risparmio energetico iOS torna normale.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
 
 
  if(m.type==='key-analysis'){
@@ -2137,13 +2165,17 @@ function modalHTML(){const m=state.modal;
   const hasScore=!!song.sections?.length,hasPhoto=!!song.photoData;
   const noScore=hasScore?'':' disabled aria-disabled="true"';
   const noPhoto=hasPhoto?'':' disabled aria-disabled="true"';
-  const draft=state.songMetaDraft?.songId===song.id?state.songMetaDraft:{songId:song.id,title:song.title||'',author:song.author||''};
+  const draft=state.songMetaDraft?.songId===song.id?state.songMetaDraft:{songId:song.id,title:song.title||'',author:song.author||'',liturgicalRole:song.liturgicalRole||''};
   return `<div class="modal-shade"><div class="modal-card song-options song-options-compact" role="dialog" aria-modal="true" aria-label="Impostazioni brano">
     <div class="song-options-header"><h2>Impostazioni brano</h2><button type="button" class="song-close" data-action="close-modal" aria-label="Chiudi">×</button></div>
     <div class="song-transport" aria-label="Tonalità e trasporto"><button type="button" class="song-transport-btn" data-action="shift-down" aria-label="Abbassa di un semitono">−</button><button type="button" class="song-transport-key" data-action="reset-shift" aria-label="Tonalità attuale, tocca per azzerare il trasporto"><strong>${escape(describeTonality(song,state.shift))}</strong><small>${song.keySource==='manual'?'Impostata manualmente':song.keySource==='auto-harmony'?'Proposta · da verificare':'Da verificare'} · ${state.shift>0?'+':''}${state.shift}</small></button><button type="button" class="song-transport-btn" data-action="shift-up" aria-label="Alza di un semitono">+</button></div>
     <div class="song-meta-edit" role="group" aria-label="Titolo e autore del brano">
       <div class="song-meta-field"><input id="songTitleEdit" name="title" aria-label="Titolo del brano" type="text" maxlength="160" required autocomplete="off" value="${escapeAttr(draft.title)}" placeholder="Titolo del brano"></div>
       <div class="song-meta-field"><input id="songAuthorEdit" name="author" aria-label="Autore o compositore" type="text" maxlength="160" autocomplete="off" value="${escapeAttr(draft.author)}" placeholder="Autore / compositore"></div>
+      <label class="song-meta-liturgical" for="songLiturgicalRoleEdit"><select id="songLiturgicalRoleEdit" aria-label="Momento liturgico del brano">
+        <option value="">Momento liturgico non specificato</option>
+        ${['Ingresso','Atto penitenziale','Gloria','Salmo','Alleluia','Offertorio','Santo','Agnello di Dio','Comunione','Ringraziamento','Canto finale'].map(role=>`<option value="${escapeAttr(role)}" ${draft.liturgicalRole===role?'selected':''}>${escape(role)}</option>`).join('')}
+      </select></label>
     </div>
     <div class="song-options-grid">
       <button type="button" class="song-option-tile" data-action="choose-section-text"${noScore}><span aria-hidden="true">✎</span><span>Modifica testo delle strofe</span></button>
@@ -2703,7 +2735,7 @@ root.addEventListener('click',e=>{
  }
  if(action==='read-mass-song'){const x=currentMass()?.items.find(i=>i.id===el.dataset.item);if(x)openSong(x.songId,x.shift,x.id);return;}
  if(action==='next-page'||action==='prev-page'){state.page+=action==='next-page'?1:-1;render();return;}
- if(action==='song-options'){const song=currentSong();if(!song)return;state.songMetaDraft={songId:song.id,title:song.title||'',author:song.author||''};state.modal={type:'song-options'};render();return;}
+ if(action==='song-options'){const song=currentSong();if(!song)return;state.songMetaDraft={songId:song.id,title:song.title||'',author:song.author||'',liturgicalRole:song.liturgicalRole||''};state.modal={type:'song-options'};render();return;}
  if(action==='follow-source'){
   const follower=window.CantoriaAudioFollow;
   if(!follower)return;
@@ -2763,10 +2795,12 @@ root.addEventListener('click',e=>{
    const draft=state.songMetaDraft?.songId===song.id?state.songMetaDraft:null;
    const title=String(root.querySelector('#songTitleEdit')?.value??draft?.title??song.title??'').trim();
    const author=String(root.querySelector('#songAuthorEdit')?.value??draft?.author??song.author??'').trim();
+   const liturgicalRole=String(root.querySelector('#songLiturgicalRoleEdit')?.value??draft?.liturgicalRole??song.liturgicalRole??'').trim();
    if(!title){notify('Inserisci un titolo prima di salvare.');return;}
-   const previous={title:song.title,author:song.author,savedAt:song.savedAt};
+   const previous={title:song.title,author:song.author,liturgicalRole:song.liturgicalRole,savedAt:song.savedAt};
    song.title=title.slice(0,160);
    song.author=author.slice(0,160);
+   song.liturgicalRole=liturgicalRole.slice(0,90);
    song.savedAt=new Date().toISOString();
    if(!saveStore(store)){
     Object.assign(song,previous);
@@ -2774,7 +2808,7 @@ root.addEventListener('click',e=>{
    }
    state.songMetaDraft=null;
    state.modal=null;
-   notify('Titolo e autore salvati in Biblioteca.');return;
+   notify('Dati e momento liturgico salvati in Biblioteca.');return;
   }
  if(action==='show-key-analysis'){state.modal={type:'key-analysis'};render();return;}
  if(action==='edit-tonality'){state.modal={type:'tonality-edit'};render();return;}
@@ -2802,7 +2836,7 @@ root.addEventListener('click',e=>{
   return;
  }
  if(action==='reuse-mass'){state.modal={type:'reuse-mass',massId:el.dataset.mass||state.massId};render();return;}
- if(action==='finish-mass'){const m=currentMass();if(m&&!m.celebratedAt){m.celebratedAt=new Date().toISOString();if(!m.date)m.date=new Date().toLocaleDateString('sv-SE');m.items=(m.items||[]).map(item=>{const song=store.songs.find(x=>x.id===item.songId);return {...item,archiveTitle:song?.title||'Canto non disponibile',archiveAuthor:song?.author||''};});persist();render();}return;}
+ if(action==='finish-mass'){const m=currentMass();if(m&&!m.celebratedAt){m.celebratedAt=new Date().toISOString();if(!m.date)m.date=new Date().toLocaleDateString('sv-SE');m.items=(m.items||[]).map(item=>{const song=store.songs.find(x=>x.id===item.songId);return {...item,archiveTitle:song?.title||'Canto non disponibile',archiveAuthor:song?.author||'',archiveLiturgicalRole:song?.liturgicalRole||''};});persist();render();}return;}
  if(action==='reopen-mass'){const m=currentMass();if(m){delete m.celebratedAt;persist();render();}return;}
  if(action==='back-masses'){state.massId=null;render();return;}
  if(action==='add-to-mass'){const m=currentMass();if(m?.celebratedAt)return;state.modal={type:'add-to-mass',songId:el.dataset.song||null,massId:state.massId||null};render();return;}
@@ -2894,10 +2928,10 @@ root.addEventListener('submit',e=>{e.preventDefault();const form=e.target;const 
  }
 });
 root.addEventListener('keydown',e=>{const card=e.target.closest('.library-song-card[data-action="toggle-library-card"],.mass-record-card[data-action="open-mass"],.mass-song-card[data-action="read-mass-song"]');if(!card||e.target!==card||(e.key!=='Enter'&&e.key!==' '))return;e.preventDefault();if(card.dataset.action==='toggle-library-card'){state.libraryOpenId=state.libraryOpenId===card.dataset.song?null:card.dataset.song;render();}else if(card.dataset.action==='open-mass'){state.massId=card.dataset.mass;state.view='masses';render();}else {const item=currentMass()?.items.find(x=>x.id===card.dataset.item);if(item)openSong(item.songId,item.shift,item.id);}});
-root.addEventListener('input',e=>{if(e.target.id==='songTitleEdit'||e.target.id==='songAuthorEdit'){
+root.addEventListener('input',e=>{if(e.target.id==='songTitleEdit'||e.target.id==='songAuthorEdit'||e.target.id==='songLiturgicalRoleEdit'){
  const song=currentSong();if(!song)return;
- const draft=state.songMetaDraft?.songId===song.id?state.songMetaDraft:{songId:song.id,title:song.title||'',author:song.author||''};
- draft[e.target.id==='songTitleEdit'?'title':'author']=e.target.value;
+ const draft=state.songMetaDraft?.songId===song.id?state.songMetaDraft:{songId:song.id,title:song.title||'',author:song.author||'',liturgicalRole:song.liturgicalRole||''};
+ draft[e.target.id==='songTitleEdit'?'title':e.target.id==='songAuthorEdit'?'author':'liturgicalRole']=e.target.value;
  state.songMetaDraft=draft;return;
 }if(e.target.id==='photoSongTitle'){state.photoTitle=e.target.value;return;}if(e.target.id==='photoSongAuthor'){state.photoAuthor=e.target.value;return;}if(e.target.id==='photoOcrText'){state.ocrText=e.target.value.slice(0,20000);return;}if(e.target.id==='search'){state.filter=e.target.value;const pos=e.target.selectionStart;render();const s=root.querySelector('#search');s?.focus();if(s?.setSelectionRange)s.setSelectionRange(pos,pos);}});
 root.addEventListener('change',async e=>{

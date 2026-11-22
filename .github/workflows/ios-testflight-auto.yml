@@ -74,22 +74,9 @@ jobs:
       - name: Verify Capacitor staged this exact source
         run: bash scripts/verify-release-payload.sh staged
 
-      # This is a hard gate, not advisory. A compiled app with a custom bridge
-      # shipped an all-black screen in 0.7.0; do not release that again.
-      - name: Block TestFlight release if iOS starts black
-        run: bash scripts/verify-ios-launch.sh
-
-      - name: Save startup screenshot and simulator log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: Cantoria-Launch-Safety-${{ github.run_number }}
-          path: |
-            ${{ runner.temp }}/cantoria-launch.png
-            ${{ runner.temp }}/cantoria-launch.log
-          if-no-files-found: ignore
-          retention-days: 3
-
+      # Simulator launch test removed from the automatic release path at the
+      # maintainer's request. Source, archive, signing, and IPA integrity
+      # checks below remain mandatory; visual smoke checks are optional.
       # Prevent ephemeral runners from creating new Apple Development
       # certificates on each TestFlight release (the account reached its limit).
       # The existing export step requests cloud-managed distribution signing.

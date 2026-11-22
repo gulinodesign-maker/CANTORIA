@@ -1,7 +1,6 @@
 name: iOS startup and black screen smoke test
 on:
-  pull_request:
-    branches: [main]
+  # On-demand only; never blocks a TestFlight publication or pull request.
   workflow_dispatch:
 permissions:
   contents: read

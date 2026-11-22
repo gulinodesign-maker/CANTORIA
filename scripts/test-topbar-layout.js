@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const html=fs.readFileSync('index.html','utf8'),js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(js);new vm.Script(js);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:40});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:41});
 const sections=[
  ['homeHTML','headerHTML'],['libraryHTML','massDateDisplay'],
  ['massesHTML','massDetailHTML'],['captureHTML','settingsHTML'],
@@ -28,6 +28,11 @@ assert.ok(css.includes('.library-find-row .library-filter-bar{display:contents!i
 assert.ok(css.includes('height:48px!important'));
 assert.ok(css.includes('@media screen and (orientation:landscape)'));
 assert.ok(css.includes('.section-workspace{padding-top:5px!important;'),'Landscape workspace must have compact padding');
+assert.ok(css.includes('.reader-toolbar-right{margin-right:clamp(22px,4.5vw,44px)!important}'),'Landscape right controls should move inward');
+assert.ok(css.includes('.reader-chord-nav{margin-left:clamp(22px,4.5vw,44px)!important}'),'Landscape chord buttons should move toward centre');
+assert.ok(css.includes('.reader-toolbar-left>.reader-audio-btn:first-of-type{margin-left:clamp(10px,3vw,18px)!important}'),'Portrait left controls should move inward');
+assert.ok(css.includes('.cover-liturgical'),'Song card role styling is missing');
+
 const cap=js.slice(js.indexOf('function captureHTML()'),js.indexOf('function settingsHTML()'));
 assert.ok(!html.includes('📷'),'No skeuomorphic camera emoji anywhere');
 assert.equal((cap.match(/<svg class="flat-ui-icon"/g)||[]).length,3);

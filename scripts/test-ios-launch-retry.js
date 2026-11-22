@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs');
 const content=fs.readFileSync('scripts/verify-ios-launch.sh','utf8');
 const workflow=fs.readFileSync('.github/workflows/ios-testflight-auto.yml','utf8');
-assert.deepEqual(require('../release.json'),{version:'1.1',build:40});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:41});
 for(const fragment of [
  'Building launch-test iOS app (no Apple signing)',
  'run_bounded()',
@@ -25,10 +25,14 @@ for(const fragment of [
 ])assert.ok(content.includes(fragment),'Missing simulator safety: '+fragment);
 assert.ok(content.indexOf('run_bounded 150 xcrun swiftc')<content.indexOf('for attempt in 1 2; do') &&
  content.indexOf('run_bounded 30 "$RUNNER_TEMP/check-cantoria-screen"')<content.indexOf('if [[ "$passed" != true ]]'));
-assert.ok(workflow.includes('run: bash scripts/verify-ios-launch.sh'));
-assert.ok(workflow.indexOf('Block TestFlight release if iOS starts black')<
- workflow.indexOf('Archive unsigned for Apple cloud distribution signing'));
+// Keep a manual black-screen diagnostic, but never run an iPhone simulator
+// as part of the automatic TestFlight gate.
+assert.ok(!workflow.includes('run: bash scripts/verify-ios-launch.sh'));
+assert.ok(workflow.includes('Archive unsigned for Apple cloud distribution signing'));
+const smoke=fs.readFileSync('.github/workflows/ios-startup-smoke.yml','utf8');
+assert.ok(smoke.includes('workflow_dispatch:'));
+assert.ok(!smoke.includes('pull_request:'),'The visual smoke run must remain opt-in');
 assert.ok(workflow.includes('cancel-in-progress: true'),'New release must supersede old run');
 const watchdog=fs.readFileSync('.github/workflows/ios-testflight-retry.yml','utf8');
 assert.ok(watchdog.includes('if (active.length > 0)'),'Do not retry while a release is running');
-console.log('PASS: simulator boot is bounded, retries once, still blocks black-screen uploads and supersedes old runs');
+console.log('PASS: optional simulator diagnostic remains bounded; TestFlight no longer requires simulator boot');
