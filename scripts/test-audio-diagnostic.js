@@ -19,7 +19,7 @@ assert.ok(!reader.includes('reader-chord-nav'),'Manual chord arrows removed from
 assert.ok(reader.includes(' </div>\n <div class="reader-title"'),'Title follows compact transport controls');
 const css=html.slice(html.indexOf('/* CANTORIA 1.1 (27)'));
 assert.ok(css.includes('@media(orientation:landscape)'));
-assert.ok(css.includes('/* CANTORIA 1.1 (45) — back is the original cross ornament itself.'),'Reader layout protects corner decoration');
+assert.ok(css.includes('/* CANTORIA 1.1 (45): iPad touch-safe corner, transport layout, refined compact Mass cards.'),'Reader layout protects corner decoration');
 assert.ok(css.includes('left:clamp(115px,13vw,170px)!important'),'Mass back is moved right');
 assert.ok(css.includes('left:clamp(91px,24vw,135px)!important'),'Portrait reader back clears cross');
 

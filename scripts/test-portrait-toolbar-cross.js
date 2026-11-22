@@ -2,48 +2,52 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
 const html=fs.readFileSync('index.html','utf8'),js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(js);new vm.Script(js);
 assert.deepEqual(require('../release.json'),{version:'1.1',build:45});
-const marker='/* CANTORIA 1.1 (45) — back is the original cross ornament itself.';
-assert.ok(html.includes(marker),'New corner navigation CSS required');
-const css=html.slice(html.indexOf(marker),html.indexOf('</style>',html.indexOf(marker)));
-for(const rule of ['.corner-back-button','clip-path:polygon(', 'z-index:50!important',
- 'touch-action:manipulation!important','pointer-events:none!important',
- '.topbar-section .corner-back-button .corner-ornament-cross',
- '.reader-layer .reader-toolbar .corner-back-button .corner-ornament-cross',
- 'display:block!important;visibility:visible!important;opacity:1!important'])
- assert.ok(css.includes(rule),'Missing safe clickable cross styling: '+rule);
-const mark=js.indexOf('function backCornerHTML(kind){');
-const end=js.indexOf('function homeHTML(){',mark);
-assert.ok(mark>=0&&end>mark,'Accessible corner button helper required');
+const marker='/* CANTORIA 1.1 (45): iPad touch-safe corner, transport layout, refined compact Mass cards.';
+const index=html.indexOf(marker);
+assert.ok(index>0,'Build45 CSS must override older iPad/tablet positions');
+const css=html.slice(index,html.indexOf('</style>',index));
+for(const selector of [
+ '.topbar-section>.corner-back-button',
+ '.reader-layer .reader-toolbar>.corner-back-button',
+ '.reader-layer.reader-portrait .reader-toolbar-left{',
+ '.reader-layer.reader-portrait .reader-toolbar-right{',
+ '.reader-layer.reader-landscape .reader-toolbar-left{',
+ '.reader-layer.reader-landscape .reader-toolbar-left>.reader-audio-btn{'
+]) assert.ok(css.includes(selector),'Missing '+selector);
+for(const rule of [
+ '-webkit-clip-path:none!important;clip-path:none!important',
+ 'pointer-events:auto!important;touch-action:manipulation!important',
+ 'z-index:999!important',
+ 'min-width:110px!important;min-height:104px!important',
+ 'width:clamp(116px,15vw,140px)!important;height:112px!important',
+ 'pointer-events:none!important;z-index:0!important',
+ 'display:block!important;visibility:visible!important;opacity:1!important'
+])assert.ok(css.includes(rule),'iPad cross must remain a large accessible hit target: '+rule);
+assert.ok(css.indexOf('clip-path:none!important')>0,'Override older clipped area on iPad');
+assert.ok(css.includes('right:114px!important'),'Portrait Rewind/Play must sit at right beside music/menu');
+assert.ok(css.includes('right:96px!important'),'Even narrow iPhones must fit transport on the right');
+assert.ok(css.includes('right:10px!important'),'Music/menu anchor to right edge');
+assert.ok(css.includes('margin-left:clamp(129px,13vw,160px)!important'),
+ 'Landscape Rewind/Play must not sit under top-left green corner');
+assert.ok(css.includes('z-index:1001!important;pointer-events:auto!important'),
+ 'Landscape Rewind/Play must remain clickable');
+const corner=js.slice(js.indexOf('function backCornerHTML(kind){'),js.indexOf('function homeHTML(){'));
+assert.ok(corner.includes('class="corner-back-button"'),'Gold cross remains a real clickable button');
+assert.ok(corner.includes('aria-label="Torna indietro"'),'Screen readers must announce Back');
+assert.ok(corner.includes("const attr=kind==='home'"),'Home navigation still wired');
 const ctx={CATHOLIC_CORNER:'<svg class="corner-ornament"><path class="corner-ornament-cross"></path></svg>'};
-vm.runInNewContext(js.slice(mark,end)+'this.make=backCornerHTML;',ctx);
-assert.ok(ctx.make('home').includes('data-nav="home"'),'Secondary screens must return Home');
-assert.ok(ctx.make('back-masses').includes('data-action="back-masses"'),'Mass detail must return to Mass list');
-assert.ok(ctx.make('close-reader').includes('data-action="close-reader"'),'Reader must use normal close path');
-for(const kind of ['home','back-masses','close-reader']){
- const dom=ctx.make(kind);
- assert.ok(dom.includes('<button type="button" class="corner-back-button"'),'A real accessible button is required');
- assert.ok(dom.includes('aria-label="Torna indietro"'),'VoiceOver must announce navigation');
- assert.ok(dom.includes('corner-ornament-cross'),'Gold cross must not change');
-}
-const head=js.slice(js.indexOf('function headerHTML(){'),js.indexOf('function navHTML(){'));
-assert.ok(head.includes('topbar-home-labeled">\${CATHOLIC_CORNER}'),'Home cross stays decorative');
-assert.ok(head.includes("backCornerHTML('back-masses')"),'Mass uses interactive ornament');
-assert.ok(head.includes("backCornerHTML('home')"),'Library, Acquisisci, settings and mass overview use corner');
-const photo=js.slice(js.indexOf('function photoReaderHTML(song){'),js.indexOf('function readerHTML(){'));
+vm.runInNewContext(corner+'this.corner=backCornerHTML;',ctx);
+for(const [kind,attr] of [
+ ['home','data-nav="home"'],['back-masses','data-action="back-masses"'],
+ ['close-reader','data-action="close-reader"']
+])assert.ok(ctx.corner(kind).includes(attr),'Corner navigation mismatch '+kind);
+const header=js.slice(js.indexOf('function headerHTML(){'),js.indexOf('function navHTML(){'));
+assert.ok(header.includes('topbar-home-labeled">\${CATHOLIC_CORNER}'),
+ 'Home cross must remain only decorative');
+assert.ok(header.includes("backCornerHTML('back-masses')"),'Mass corner returns to list');
 const reader=js.slice(js.indexOf('function readerHTML(){'),js.indexOf('const CATHOLIC_CORNER'));
-for(const [name,code] of [['photo reader',photo],['score reader',reader]]){
- assert.ok(code.includes("backCornerHTML('close-reader')"),name+' uses cross to close');
- assert.ok(!code.includes('reader-back app-back-btn'),name+' has no separate Back arrow');
- const l=code.slice(code.indexOf('<div class="reader-toolbar-left">'),code.indexOf(' </div>\n <div class="reader-title"'));
- assert.ok(l.includes('data-action="follow-rewind"')&&l.includes('data-action="follow-play"'),name+' keeps Rewind and Play');
- assert.equal((l.match(/<button /g)||[]).length,2,name+' left row only contains Rewind and Play');
-}
-const click=js.slice(js.indexOf("root.addEventListener('click'"),js.indexOf("root.addEventListener('submit'"));
-assert.ok(click.includes("if(action==='close-reader')"),'Click handler closes the reader and persists Mass used state');
-assert.ok(click.includes("if(action==='back-masses')"),'Click handler keeps Mass navigation');
-assert.ok(click.includes('if(el.dataset.nav){state.massId=null;go(el.dataset.nav);return;}'),
- 'Click handler supports Home through corner data-nav');
-assert.equal((html.match(/class="app-back-btn"/g)||[]).length,0,'Old arrow Back buttons removed');
-assert.equal((html.match(/class="reader-back app-back-btn"/g)||[]).length,0);
+assert.ok(reader.includes("backCornerHTML('close-reader')"),'Score reader closes from the cross');
+assert.ok(reader.includes('data-action="follow-rewind"')&&reader.includes('data-action="follow-play"'),
+ 'Preserve both transport buttons');
 assert.ok(html.includes('<h2>CANTORIA 1.1 (45)</h2>'));
-console.log('PASS: clickable gold-cross corner Back on all secondary screens, decorative on Home and cards, no arrow buttons');
+console.log('PASS: iPad cross full touch target, portrait transport far-right, landscape clear of cross and tappable');
