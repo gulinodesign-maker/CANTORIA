@@ -1820,6 +1820,97 @@
  }
 }
 
+
+/* CANTORIA 1.1 (46): portrait transport LEFT and the whole gold-cross corner visible. */
+/* A 55px landscape header used to clip the 98px triangular SVG at its border.
+   Let the ornament extend beyond the header rather than cropping its curve. */
+.topbar-section,
+.topbar-home,
+.reader-layer .reader-toolbar{
+ overflow:visible!important;
+}
+.topbar-section>.corner-back-button,
+.reader-layer .reader-toolbar>.corner-back-button{
+ overflow:visible!important;
+ pointer-events:auto!important;
+ -webkit-clip-path:none!important;clip-path:none!important;
+ z-index:999!important;
+}
+.topbar-section>.corner-back-button>.corner-ornament,
+.reader-layer .reader-toolbar>.corner-back-button>.corner-ornament{
+ width:100%!important;height:100%!important;
+ overflow:visible!important;pointer-events:none!important;
+}
+.topbar-section .corner-back-button .corner-ornament-cross,
+.reader-layer .reader-toolbar .corner-back-button .corner-ornament-cross{
+ display:block!important;visibility:visible!important;opacity:1!important;
+}
+@media screen and (orientation:portrait){
+ /* Back belongs to the cross itself. Transport is directly to its RIGHT,
+    and Music/Menu remain at the FAR RIGHT. Title has a separate lower row. */
+ .reader-layer.reader-portrait .reader-toolbar-left{
+  position:absolute!important;
+  top:calc(7px + env(safe-area-inset-top,0px))!important;
+  left:clamp(127px,29vw,148px)!important;
+  right:auto!important;bottom:auto!important;
+  transform:none!important;display:flex!important;
+  flex-direction:row!important;flex-wrap:nowrap!important;
+  align-items:center!important;justify-content:flex-start!important;
+  gap:6px!important;width:max-content!important;
+  height:42px!important;margin:0!important;padding:0!important;
+  z-index:1000!important;pointer-events:auto!important
+ }
+ .reader-layer.reader-portrait .reader-toolbar-left>.reader-audio-btn{
+  position:relative!important;top:auto!important;left:auto!important;
+  right:auto!important;bottom:auto!important;
+  transform:none!important;flex:0 0 40px!important;
+  width:40px!important;min-width:40px!important;max-width:40px!important;
+  height:40px!important;min-height:40px!important;
+  margin:0!important;padding:0!important;pointer-events:auto!important
+ }
+ .reader-layer.reader-portrait .reader-toolbar-right{
+  top:calc(7px + env(safe-area-inset-top,0px))!important;
+  right:10px!important;left:auto!important;
+  z-index:1000!important;pointer-events:auto!important
+ }
+ .reader-layer.reader-portrait .reader-title{
+  top:calc(59px + env(safe-area-inset-top,0px))!important;
+  left:50%!important;transform:translateX(-50%)!important;
+  max-width:calc(100% - 28px)!important;
+  pointer-events:none!important
+ }
+}
+@media screen and (orientation:portrait) and (max-width:380px){
+ .reader-layer.reader-portrait .reader-toolbar-left{
+  left:clamp(117px,30vw,125px)!important;
+  right:auto!important;gap:5px!important
+ }
+ .reader-layer.reader-portrait .reader-toolbar-left>.reader-audio-btn{
+  flex-basis:38px!important;width:38px!important;min-width:38px!important;
+  max-width:38px!important;height:38px!important;min-height:38px!important
+ }
+}
+@media screen and (orientation:landscape){
+ /* Fit the WHOLE diagonal inside and just below compact header,
+    keeping the curved tip and golden cross unclipped. */
+ .topbar-section>.corner-back-button{
+  width:96px!important;min-width:96px!important;
+  height:78px!important;min-height:78px!important
+ }
+ .reader-layer.reader-landscape .reader-toolbar>.corner-back-button{
+  width:96px!important;min-width:96px!important;
+  height:78px!important;min-height:78px!important
+ }
+ .reader-layer.reader-landscape .reader-toolbar-left{
+  margin-left:clamp(111px,11vw,140px)!important;
+  margin-right:0!important;pointer-events:auto!important;
+  z-index:1000!important
+ }
+ .reader-layer.reader-landscape .reader-toolbar-left>.reader-audio-btn{
+  pointer-events:auto!important;z-index:1001!important
+ }
+}
+
 </style>
   <title>Cantoria — Canti per la liturgia cattolica</title>
 </head>
@@ -2632,7 +2723,7 @@ function modalHTML(){const m=state.modal;
   const song=currentSong();if(!song?.photoData)return '';
   return `<div class="modal-shade"><div class="modal-card" role="alertdialog" aria-modal="true" aria-label="Conferma ricalcolo accordi"><h2>Ricalcolare gli accordi?</h2><p>La partitura verrà ricalcolata dalla fotografia originale con le coordinate OCR. Le modifiche manuali fatte sulle sillabe e sugli accordi saranno sostituite. La fotografia originale resterà disponibile.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button type="button" class="primary-btn" data-action="reparse-photo">Ricalcola accordi</button></div></div></div>`;
  }
- if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (45)</h2><p>Indietro sulla croce ora usa un'area di tocco più ampia e affidabile su iPad. Riavvolgi e Play sono spostati all’estrema destra in portrait; in landscape i comandi restano fuori dallo smusso e cliccabili. Scaletta Messa ridisegnata con card compatte, titoli leggibili, croce e dettagli verde/oro. Navigazione manuale degli accordi rimossa e top bar Messa più compatta. Funzione liturgica selezionabile durante l’acquisizione, in verde nelle card di Biblioteca e Scaletta. Ascolto live: identificato il primo accordo, avanza ai cambi armonici confermati. Pubblicazione TestFlight senza avvio obbligatorio del simulatore, mantenendo i controlli di compilazione e integrità. Motore microfono nativo iOS: l’ascolto continua mentre l’app è in background. Al ritorno, gli accordi rilevati riallineano lo spartito senza salvare registrazioni audio. Schermo sempre acceso mentre CANTORIA è attiva in primo piano su iPhone o iPad: lo spartito rimane visibile durante tutta la celebrazione, anche senza toccare il display. Quando si esce dall’app o si blocca il dispositivo, il risparmio energetico iOS torna normale.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
+ if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (46)</h2><p>Indietro sulla croce ora usa un'area di tocco più ampia e affidabile su iPad. Riavvolgi e Play sono spostati a sinistra in portrait, subito a destra della croce; in landscape rimangono fuori dallo smusso e cliccabili. Lo smusso verde con la croce non è più ritagliato dai bordi delle top bar. Scaletta Messa ridisegnata con card compatte, titoli leggibili, croce e dettagli verde/oro. Navigazione manuale degli accordi rimossa e top bar Messa più compatta. Funzione liturgica selezionabile durante l’acquisizione, in verde nelle card di Biblioteca e Scaletta. Ascolto live: identificato il primo accordo, avanza ai cambi armonici confermati. Pubblicazione TestFlight senza avvio obbligatorio del simulatore, mantenendo i controlli di compilazione e integrità. Motore microfono nativo iOS: l’ascolto continua mentre l’app è in background. Al ritorno, gli accordi rilevati riallineano lo spartito senza salvare registrazioni audio. Schermo sempre acceso mentre CANTORIA è attiva in primo piano su iPhone o iPad: lo spartito rimane visibile durante tutta la celebrazione, anche senza toccare il display. Quando si esce dall’app o si blocca il dispositivo, il risparmio energetico iOS torna normale.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
 
 
  if(m.type==='key-analysis'){
