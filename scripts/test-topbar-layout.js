@@ -28,10 +28,10 @@ assert.ok(css.includes('.library-find-row .library-filter-bar{display:contents!i
 assert.ok(css.includes('height:48px!important'));
 assert.ok(css.includes('@media screen and (orientation:landscape)'));
 assert.ok(css.includes('.section-workspace{padding-top:5px!important;'),'Landscape workspace must have compact padding');
-assert.ok(css.includes('.reader-layer:not(.reader-photo) .reader-toolbar-left>.reader-back.app-back-btn{'),'Reader back stays right of corner artwork');
-assert.ok(css.includes('left:clamp(115px,13vw,170px)!important'),'Mass back must clear corner cross');
+assert.ok(css.includes('.corner-back-button'),'Decorative cross must be the actual Back control');
+assert.ok(!js.includes('class="reader-back app-back-btn"'),'Delete all Back arrows');
 assert.ok(css.includes('height:calc(80px + env(safe-area-inset-top,0px))!important'),'Mass landscape header must be compact');
-assert.ok(css.includes('left:clamp(91px,24vw,135px)!important'),'Reader portrait back must not cover decorative corner');
+assert.ok(css.includes('grid-template-columns:minmax(0,1fr)!important'),'Portrait Mass cards use a single column');
 const reader=js.slice(js.indexOf('function readerHTML()'),js.indexOf('const CATHOLIC_CORNER'));
 assert.ok(!reader.includes('reader-chord-nav'),'Remove redundant chord step arrows from toolbar');
 assert.ok(!reader.includes('follow-next-chord')&&!reader.includes('follow-prev-chord'));

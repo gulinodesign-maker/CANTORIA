@@ -22,7 +22,7 @@ assert.ok(css.includes('margin-inline:auto!important'),'Header block must center
 const start=code.indexOf('function headerHTML()'),end=code.indexOf('function navHTML()',start);
 assert.ok(start>=0&&end>start);
 const state={view:'masses',massId:'m1'};
-const ctx={state,currentMass:()=>({id:'m1',name:'Messa 1',date:'2026-11-22',items:[{songId:'s1'}]}),massDateDisplay:()=> '22/11/2026',CATHOLIC_CORNER:'<svg></svg>',escape:x=>String(x),releaseInfo:{version:'1.1',build:44}};
+const ctx={state,currentMass:()=>({id:'m1',name:'Messa 1',date:'2026-11-22',items:[{songId:'s1'}]}),massDateDisplay:()=> '22/11/2026',CATHOLIC_CORNER:'<svg></svg>',backCornerHTML:kind=>'<button class="corner-back-button" data-action="'+kind+'"></button>',escape:x=>String(x),releaseInfo:{version:'1.1',build:44}};
 vm.runInNewContext(code.slice(start,end)+'this.header=headerHTML;',ctx);
 const header=ctx.header();
 for(const token of ['class="mass-topbar-title-block"','class="mass-topbar-overline">SCALETTA','class="mass-topbar-name">Messa 1','class="mass-topbar-date">22/11/2026','class="mass-topbar-count">1 canto'])

@@ -16,18 +16,18 @@ assert.ok(!settings.includes('Modello musicale'));
 const css=html.slice(html.indexOf('/* CANTORIA 1.1 (22):'));
 assert.ok(css.includes('grid-template-columns:repeat(2,minmax(0,1fr))!important'));
 assert.ok(css.includes('width:100%!important'));
-assert.ok(css.includes('.topbar-standard>.app-back-btn'));
+assert.ok(css.includes('.corner-back-button'),'Corner is the universal back control');
 assert.ok(css.includes('.topbar-create-mass'));
 const sourceHeader=js.slice(js.indexOf('function headerHTML()'),js.indexOf('function navHTML()'));
 const ctx={
  state:{view:'masses',massId:null},releaseInfo:{version:'1.1',build:44},
- CATHOLIC_CORNER:'<svg class="corner-ornament"></svg>',escape:s=>s,massDateDisplay:()=>'',currentMass(){return null}
+ CATHOLIC_CORNER:'<svg class="corner-ornament"></svg>',backCornerHTML:kind=>kind==='home'?'<button class="corner-back-button" data-nav="home"></button>':'<button class="corner-back-button" data-action="'+kind+'"></button>',escape:s=>s,massDateDisplay:()=>'',currentMass(){return null}
 };
 vm.runInNewContext(sourceHeader+'this.head=headerHTML;',ctx);
 let top=ctx.head();
 assert.ok(top.includes('data-action="create-mass"'),'Messa creation must be in the top right');
 assert.ok(top.includes('data-nav="home"'),'Back to home must be in the top left');
-assert.ok(top.indexOf('class="app-back-btn"')<top.indexOf('class="header-section-title"'));
+assert.ok(top.indexOf('class="corner-back-button"')<top.indexOf('class="header-section-title"'));
 ctx.state.view='settings';top=ctx.head();
 assert.ok(top.includes('Versione 1.1 (44)'));
 assert.ok(!top.includes('create-mass'));
@@ -37,7 +37,8 @@ assert.ok(top.includes('data-action="back-masses"'));
 assert.ok(!top.includes('data-nav="home"'),'A detail back button must return to the Mass list');
 const massA=js.indexOf('function massesHTML()'),massB=js.indexOf('function massDetailHTML()',massA);
 assert.ok(!js.slice(massA,massB).includes('data-action="create-mass"'),'Mass create button duplicated below header');
-assert.equal((html.match(/class="reader-back app-back-btn"/g)||[]).length,2);
+assert.equal((html.match(/class="reader-back app-back-btn"/g)||[]).length,0);
+assert.equal((html.match(/backCornerHTML\('close-reader'\)/g)||[]).length,2,'Both reader types use the cross as Back');
 const a=js.indexOf('async function exportJSON(store){'),b=js.indexOf('function importJSON(',a);
 assert.ok(a>=0&&b>a);
 let output,shared;
