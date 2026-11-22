@@ -179,7 +179,7 @@
    const recognized=recognizeExpectedChord(chroma,first,[first]);
    return recognized?{index:0,prediction:recognized,skipped:0}:null;
   }
-  if(index>=items.length-1||elapsed<170)return null;
+  if(index>=items.length-1||elapsed<75)return null;
   const novelty=chordProfileChange(previous,chroma);
   const samePrintedChord=chordIdentity(items[index]?.label)===chordIdentity(label);
   if(novelty<.20&&!(samePrintedChord&&released&&elapsed>=320))return null;
