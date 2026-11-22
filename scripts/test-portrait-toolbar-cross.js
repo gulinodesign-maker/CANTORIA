@@ -2,9 +2,9 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
 const html=fs.readFileSync('index.html','utf8');
 const script=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(script);new vm.Script(script);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:43});
-const marker='/* CANTORIA 1.1 (43): fixed portrait transport row and protected gold cross.';
-assert.ok(html.includes(marker),'Missing build 43 layout override');
+assert.deepEqual(require('../release.json'),{version:'1.1',build:44});
+const marker='/* CANTORIA 1.1 (44): fixed portrait transport row and protected gold cross.';
+assert.ok(html.includes(marker),'Missing build 44 layout override');
 const css=html.slice(html.indexOf(marker),html.indexOf('</style>',html.indexOf(marker)));
 const baseHidden=html.indexOf('.reader-layer .reader-toolbar .corner-ornament-cross{display:none;}');
 const restored=html.lastIndexOf('.reader-layer .reader-toolbar .corner-ornament-cross{');
@@ -50,5 +50,5 @@ assert.ok(css.includes('top:calc(7px + env(safe-area-inset-top,0px))!important')
  'Both transport rows and right actions must align with safe area');
 assert.ok(css.includes('@media screen and (orientation:portrait) and (max-width:350px)'),
  'Fit compact iPhone widths without hiding the cross');
-assert.ok(html.includes('<h2>CANTORIA 1.1 (43)</h2>'),'Latest build must be shown in release notes');
+assert.ok(html.includes('<h2>CANTORIA 1.1 (44)</h2>'),'Latest build must be shown in release notes');
 console.log('PASS: three portrait controls on one left row, optimized Back and visible gold crosses');
