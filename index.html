@@ -1619,6 +1619,207 @@
  .topbar-section>.corner-back-button{width:102px!important;height:84px!important}
 }
 
+
+/* CANTORIA 1.1 (45): iPad touch-safe corner, transport layout, refined compact Mass cards. */
+/* Do not clip the interactive hit region to the painted curve: iPadOS sometimes
+   swallows touches over a clipped button. The artwork remains unchanged. */
+.topbar-section>.corner-back-button,
+.reader-layer .reader-toolbar>.corner-back-button{
+ -webkit-clip-path:none!important;clip-path:none!important;
+ pointer-events:auto!important;touch-action:manipulation!important;
+ z-index:999!important;isolation:isolate!important;
+ -webkit-user-select:none!important;user-select:none!important;
+ min-width:110px!important;min-height:104px!important;
+}
+.topbar-section>.corner-back-button>.corner-ornament,
+.reader-layer .reader-toolbar>.corner-back-button>.corner-ornament{
+ pointer-events:none!important;z-index:0!important
+}
+.topbar-section>.corner-back-button .corner-ornament-cross,
+.reader-layer .reader-toolbar>.corner-back-button .corner-ornament-cross{
+ display:block!important;visibility:visible!important;opacity:1!important
+}
+/* Green/gold shape looks the same. The TRANSPARENT rectangular touch target
+   extends below iPad's native status bar so it is reachable on a real device. */
+.topbar-section>.corner-back-button{width:clamp(116px,15vw,140px)!important;height:112px!important}
+.reader-layer .reader-toolbar>.corner-back-button{
+ width:clamp(112px,14vw,138px)!important;height:110px!important
+}
+/* Liturgical cards: restrained green, ivory and gold, with a slight depth. */
+.tiles.mass-song-tiles{gap:clamp(7px,1.2vw,11px)!important}
+.tiles.mass-song-tiles>.mass-song-card{
+ border:1px solid #d9c9a8!important;
+ border-radius:19px!important;
+ overflow:hidden!important;
+ box-shadow:0 3px 12px rgba(22,66,52,.075)!important;
+ background:#fdf9f1!important;
+ transition:box-shadow .16s ease,transform .16s ease!important
+}
+.tiles.mass-song-tiles>.mass-song-card:active{
+ box-shadow:0 1px 5px rgba(22,66,52,.13)!important
+}
+.tiles.mass-song-tiles>.mass-song-card .song-cover{
+ background:linear-gradient(110deg,#fbf7ed 0%,#fffaf1 55%,#f9f3e8 100%)!important
+}
+.tiles.mass-song-tiles>.mass-song-card .song-cover .cover-content>.cover-label{
+ color:#194638!important;
+ letter-spacing:-.3px!important;text-align:center!important
+}
+.tiles.mass-song-tiles>.mass-song-card .song-cover .cover-liturgical{
+ color:#3e966d!important;font-weight:800!important
+}
+.tiles.mass-song-tiles>.mass-song-card .mass-song-remove,
+.tiles.mass-song-tiles>.mass-song-card .mass-song-reset{
+ border-color:#dbcbb1!important;border-radius:11px!important;
+ background:rgba(255,253,248,.93)!important;
+ box-shadow:0 1px 3px rgba(28,66,54,.06)!important
+}
+@media screen and (orientation:portrait){
+ /* Back is on the green corner; Rewind/Play belong at the FAR RIGHT,
+    immediately to the left of the Music and Menu actions. */
+ .reader-layer.reader-portrait .reader-toolbar-left{
+  position:absolute!important;top:calc(7px + env(safe-area-inset-top,0px))!important;
+  left:auto!important;right:calc(16px + 2 * 42px + 6px + 8px)!important;
+  bottom:auto!important;transform:none!important;
+  display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;
+  align-items:center!important;justify-content:flex-end!important;
+  gap:6px!important;width:auto!important;margin:0!important;
+  padding:0!important;z-index:1000!important;
+ }
+ .reader-layer.reader-portrait .reader-toolbar-right{
+  position:absolute!important;top:calc(7px + env(safe-area-inset-top,0px))!important;
+  left:auto!important;right:10px!important;bottom:auto!important;
+  display:flex!important;align-items:center!important;gap:6px!important;
+  margin:0!important;z-index:1000!important
+ }
+ .reader-layer.reader-portrait .reader-toolbar-left>.reader-audio-btn{
+  position:relative!important;left:auto!important;top:auto!important;
+  right:auto!important;bottom:auto!important;transform:none!important;
+  flex:0 0 40px!important;width:40px!important;min-width:40px!important;
+  max-width:40px!important;height:40px!important;min-height:40px!important;
+  margin:0!important;padding:0!important
+ }
+ .reader-layer.reader-portrait:not(.reader-photo) .reader-toolbar-left>.reader-audio-btn:first-of-type{
+  margin-left:0!important
+ }
+ .reader-layer.reader-portrait .reader-toolbar-right>.reader-follow-btn,
+ .reader-layer.reader-portrait .reader-toolbar-right>.reader-menu-btn{
+  flex:0 0 42px!important;width:42px!important;min-width:42px!important;
+  max-width:42px!important;height:40px!important;min-height:40px!important;
+  margin:0!important;padding:0!important
+ }
+ .reader-layer.reader-portrait .reader-title{
+  top:calc(59px + env(safe-area-inset-top,0px))!important;
+  left:50%!important;transform:translateX(-50%)!important;
+  width:calc(100% - 28px)!important;
+  text-align:center!important;pointer-events:none!important
+ }
+ /* One card per row, with NO 69px empty upper strip. Three compact zones:
+    ornament at left, text in the flexible centre, actions at right. */
+ .tiles.mass-song-tiles{
+  display:grid!important;grid-template-columns:minmax(0,1fr)!important;
+  row-gap:8px!important;column-gap:0!important
+ }
+ .tiles.mass-song-tiles>.mass-song-card{
+  grid-column:1/-1!important;width:100%!important;max-width:100%!important;
+  min-width:0!important;min-height:0!important
+ }
+ .tiles.mass-song-tiles>.mass-song-card>.song-cover{
+  display:grid!important;
+  grid-template-columns:clamp(58px,8.5vw,74px) minmax(0,1fr) 100px!important;
+  grid-template-rows:minmax(0,auto)!important;
+  align-items:center!important;justify-content:stretch!important;
+  min-height:78px!important;height:auto!important;
+  padding:8px 9px!important;gap:0!important;
+  box-sizing:border-box!important
+ }
+ .tiles.mass-song-tiles>.mass-song-card .song-cover>.corner-ornament{
+  position:absolute!important;left:0!important;top:0!important;
+  width:clamp(65px,8.5vw,84px)!important;
+  height:clamp(58px,7.5vw,71px)!important;
+  z-index:0!important;pointer-events:none!important
+ }
+ .tiles.mass-song-tiles>.mass-song-card .song-cover .cover-content,
+ .tiles.mass-song-tiles>.mass-song-card .song-cover:has(.mass-song-remove) .cover-content,
+ .tiles.mass-song-tiles>.mass-song-card .song-cover:has(.mass-song-remove):has(.mass-song-reset) .cover-content{
+  grid-column:2!important;grid-row:1!important;
+  display:flex!important;flex-direction:column!important;
+  align-items:center!important;justify-content:center!important;
+  position:relative!important;z-index:1!important;
+  width:100%!important;max-width:100%!important;min-width:0!important;
+  margin:0!important;padding:0!important;gap:2px!important
+ }
+ .tiles.mass-song-tiles>.mass-song-card .song-cover .cover-content>.cover-label,
+ .tiles.mass-song-tiles>.mass-song-card .song-cover:has(.mass-song-remove) .cover-label,
+ .tiles.mass-song-tiles>.mass-song-card .song-cover:has(.mass-song-remove):has(.mass-song-reset) .cover-label{
+  width:100%!important;max-width:100%!important;min-width:0!important;
+  padding:0!important;margin:0!important;
+  font:normal clamp(17px,3.25vw,24px)/1.13 Georgia,serif!important;
+  white-space:normal!important;overflow-wrap:normal!important;word-break:normal!important;
+  text-wrap:wrap!important;hyphens:none!important
+ }
+ .tiles.mass-song-tiles>.mass-song-card .song-cover .cover-author{
+  margin:1px 0 0!important;padding:0!important;
+  font-size:clamp(10px,1.9vw,13px)!important;line-height:1.15!important
+ }
+ .tiles.mass-song-tiles>.mass-song-card .song-cover .cover-liturgical{
+  margin:1px 0 0!important;padding:0!important;
+  font-size:clamp(10px,1.9vw,13px)!important;line-height:1.15!important
+ }
+ .tiles.mass-song-tiles>.mass-song-card .mass-song-remove,
+ .tiles.mass-song-tiles>.mass-song-card .mass-song-reset{
+  top:50%!important;transform:translateY(-50%)!important;
+  width:34px!important;height:34px!important;min-height:34px!important
+ }
+ .tiles.mass-song-tiles>.mass-song-card .mass-song-remove{right:10px!important}
+ .tiles.mass-song-tiles>.mass-song-card .mass-song-reset{right:52px!important}
+}
+@media screen and (orientation:portrait) and (max-width:380px){
+ .reader-layer.reader-portrait .reader-toolbar-left{
+  right:calc(9px + 2 * 38px + 5px + 6px)!important;gap:5px!important
+ }
+ .reader-layer.reader-portrait .reader-toolbar-right{right:6px!important;gap:5px!important}
+ .reader-layer.reader-portrait .reader-toolbar-left>.reader-audio-btn{
+  flex-basis:38px!important;width:38px!important;min-width:38px!important;
+  max-width:38px!important;height:38px!important;min-height:38px!important
+ }
+ .reader-layer.reader-portrait .reader-toolbar-right>.reader-follow-btn,
+ .reader-layer.reader-portrait .reader-toolbar-right>.reader-menu-btn{
+  flex-basis:38px!important;width:38px!important;min-width:38px!important;
+  max-width:38px!important;height:38px!important;min-height:38px!important
+ }
+ .tiles.mass-song-tiles>.mass-song-card>.song-cover{
+  grid-template-columns:56px minmax(0,1fr) 81px!important
+ }
+ .tiles.mass-song-tiles>.mass-song-card .mass-song-remove,
+ .tiles.mass-song-tiles>.mass-song-card .mass-song-reset{
+  width:32px!important;height:32px!important
+ }
+ .tiles.mass-song-tiles>.mass-song-card .mass-song-reset{right:45px!important}
+}
+@media screen and (orientation:landscape){
+ /* Old controls started at x=0 under the green corner. Give them a
+    guaranteed clear inset and a higher stacking level than the ornament. */
+ .reader-layer.reader-landscape .reader-toolbar-left{
+  position:relative!important;left:auto!important;right:auto!important;
+  display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;
+  align-items:center!important;gap:7px!important;
+  margin-left:clamp(129px,13vw,160px)!important;
+  margin-right:0!important;z-index:1000!important;
+  pointer-events:auto!important
+ }
+ .reader-layer.reader-landscape .reader-toolbar-left>.reader-audio-btn{
+  position:relative!important;left:auto!important;right:auto!important;
+  min-width:40px!important;min-height:40px!important;
+  z-index:1001!important;pointer-events:auto!important
+ }
+ .reader-layer.reader-landscape .reader-toolbar-right{z-index:1000!important}
+ .reader-layer.reader-landscape .reader-title{
+  width:clamp(148px,31vw,440px)!important;
+  max-width:calc(100% - 440px)!important
+ }
+}
+
 </style>
   <title>Cantoria — Canti per la liturgia cattolica</title>
 </head>
@@ -2431,7 +2632,7 @@ function modalHTML(){const m=state.modal;
   const song=currentSong();if(!song?.photoData)return '';
   return `<div class="modal-shade"><div class="modal-card" role="alertdialog" aria-modal="true" aria-label="Conferma ricalcolo accordi"><h2>Ricalcolare gli accordi?</h2><p>La partitura verrà ricalcolata dalla fotografia originale con le coordinate OCR. Le modifiche manuali fatte sulle sillabe e sugli accordi saranno sostituite. La fotografia originale resterà disponibile.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button type="button" class="primary-btn" data-action="reparse-photo">Ricalcola accordi</button></div></div></div>`;
  }
- if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (44)</h2><p>Lo smusso verde con la croce diventa il comando Indietro in tutte le pagine, senza freccia separata. Nella Scaletta in portrait le card sono a colonna singola e i titoli sfruttano l’intera larghezza, andando a capo solo quando indispensabile. Navigazione manuale degli accordi rimossa e top bar Messa più compatta. Funzione liturgica selezionabile durante l’acquisizione, in verde nelle card di Biblioteca e Scaletta. Ascolto live: identificato il primo accordo, avanza ai cambi armonici confermati. Pubblicazione TestFlight senza avvio obbligatorio del simulatore, mantenendo i controlli di compilazione e integrità. Motore microfono nativo iOS: l’ascolto continua mentre l’app è in background. Al ritorno, gli accordi rilevati riallineano lo spartito senza salvare registrazioni audio. Schermo sempre acceso mentre CANTORIA è attiva in primo piano su iPhone o iPad: lo spartito rimane visibile durante tutta la celebrazione, anche senza toccare il display. Quando si esce dall’app o si blocca il dispositivo, il risparmio energetico iOS torna normale.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
+ if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (45)</h2><p>Indietro sulla croce ora usa un'area di tocco più ampia e affidabile su iPad. Riavvolgi e Play sono spostati all’estrema destra in portrait; in landscape i comandi restano fuori dallo smusso e cliccabili. Scaletta Messa ridisegnata con card compatte, titoli leggibili, croce e dettagli verde/oro. Navigazione manuale degli accordi rimossa e top bar Messa più compatta. Funzione liturgica selezionabile durante l’acquisizione, in verde nelle card di Biblioteca e Scaletta. Ascolto live: identificato il primo accordo, avanza ai cambi armonici confermati. Pubblicazione TestFlight senza avvio obbligatorio del simulatore, mantenendo i controlli di compilazione e integrità. Motore microfono nativo iOS: l’ascolto continua mentre l’app è in background. Al ritorno, gli accordi rilevati riallineano lo spartito senza salvare registrazioni audio. Schermo sempre acceso mentre CANTORIA è attiva in primo piano su iPhone o iPad: lo spartito rimane visibile durante tutta la celebrazione, anche senza toccare il display. Quando si esce dall’app o si blocca il dispositivo, il risparmio energetico iOS torna normale.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
 
 
  if(m.type==='key-analysis'){
