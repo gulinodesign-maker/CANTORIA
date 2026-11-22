@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const html=fs.readFileSync('index.html','utf8'),inline=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(inline);new vm.Script(inline);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:42});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:43});
 assert.equal(require('../package.json').version,'1.1.0');
 for(const text of ['releaseInfo.build','data-action="follow-source"','data-action="choose-section-text"','data-action="recognize-photo"','data-action="follow-play"','data-action="follow-rewind"','data-follow-chord=','audio-follow.js','library-action-icon','song-options-grid'])assert.ok(html.includes(text),text);
 for(const text of ['Apple Intelligence','recognize-apple','cantoriaAI'])assert.ok(!html.includes(text),text);
