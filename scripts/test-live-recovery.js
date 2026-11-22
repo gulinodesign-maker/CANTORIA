@@ -44,6 +44,7 @@ const root={
 };
 vm.runInNewContext(source,{window:root,Date:{now(){return now;}},module:{exports:{}}});
 const follow=root.CantoriaAudioFollow;
+follow.setTolerance(0); // Regression checks recovery with the original rapid two-frame detection.
 const tick=()=>{now+=80;const fn=frames.shift();assert.ok(fn,'Live loop must still be scheduled');fn();};
 const flush=async()=>{for(let i=0;i<10;i++)await Promise.resolve();};
 (async()=>{

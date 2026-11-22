@@ -35,6 +35,7 @@ const root={document:doc,AudioContext:Context,
 };
 vm.runInNewContext(source,{window:root,module:{exports:{}}});
 const follow=root.CantoriaAudioFollow;
+follow.setTolerance(0); // Regression checks recovery with the original rapid two-frame detection.
 const settle=async()=>{for(let i=0;i<12;i++)await Promise.resolve();};
 (async()=>{
  follow.setScore('chant',[{id:'a',label:'SOL',page:0},
