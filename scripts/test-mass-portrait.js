@@ -1,8 +1,8 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const html=fs.readFileSync('index.html','utf8'),js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
-assert.deepEqual(require('../release.json'),{version:'1.1',build:44});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:45});
 assert.ok(js);new vm.Script(js);
-const marker='/* CANTORIA 1.1 (44) — back is the original cross ornament itself.';
+const marker='/* CANTORIA 1.1 (45) — back is the original cross ornament itself.';
 const css=html.slice(html.indexOf(marker),html.indexOf('</style>',html.indexOf(marker)));
 assert.ok(css.includes('@media screen and (orientation:portrait)'), 'Portrait-specific layout required');
 for(const selector of [
