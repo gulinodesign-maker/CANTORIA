@@ -1,8 +1,8 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const html=fs.readFileSync('index.html','utf8'),js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(js);new vm.Script(js);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:44});
-const marker='/* CANTORIA 1.1 (44) — back is the original cross ornament itself.';
+assert.deepEqual(require('../release.json'),{version:'1.1',build:45});
+const marker='/* CANTORIA 1.1 (45) — back is the original cross ornament itself.';
 assert.ok(html.includes(marker),'New corner navigation CSS required');
 const css=html.slice(html.indexOf(marker),html.indexOf('</style>',html.indexOf(marker)));
 for(const rule of ['.corner-back-button','clip-path:polygon(', 'z-index:50!important',
@@ -45,5 +45,5 @@ assert.ok(click.includes('if(el.dataset.nav){state.massId=null;go(el.dataset.nav
  'Click handler supports Home through corner data-nav');
 assert.equal((html.match(/class="app-back-btn"/g)||[]).length,0,'Old arrow Back buttons removed');
 assert.equal((html.match(/class="reader-back app-back-btn"/g)||[]).length,0);
-assert.ok(html.includes('<h2>CANTORIA 1.1 (44)</h2>'));
+assert.ok(html.includes('<h2>CANTORIA 1.1 (45)</h2>'));
 console.log('PASS: clickable gold-cross corner Back on all secondary screens, decorative on Home and cards, no arrow buttons');
