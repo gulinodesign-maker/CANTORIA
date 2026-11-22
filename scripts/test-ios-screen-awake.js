@@ -4,7 +4,7 @@ const os=require('node:os');
 const path=require('node:path');
 const child=require('node:child_process');
 const release=require('../release.json');
-assert.deepEqual(release,{version:'1.1',build:38});
+assert.deepEqual(release,{version:'1.1',build:39});
 const prepare=fs.readFileSync('scripts/prepare-ios.sh','utf8');
 const script='scripts/ios-screen-awake.py';
 assert.ok(prepare.indexOf('npx cap sync ios')<prepare.indexOf('python3 '+script+' ios/App/App/AppDelegate.swift'));
