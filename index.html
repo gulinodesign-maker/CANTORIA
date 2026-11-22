@@ -2114,6 +2114,35 @@
  .mass-record-card>.mass-record-corner{width:86px!important;height:71px!important}
 }
 
+
+/* CANTORIA 1.1 (49): Mass list cards, gold cross LEFT and delete X RIGHT. */
+/* Use the original (unmirrored) decorative corner, on both planned and
+   celebrated Masses. The ornament is not an interactive Back button here. */
+.mass-record-card>.mass-record-corner{
+ left:0!important;right:auto!important;top:0!important;
+ transform:none!important;transform-origin:top left!important;
+ z-index:0!important;pointer-events:none!important
+}
+.mass-record-card>.mass-record-corner>.corner-ornament{
+ transform:none!important;pointer-events:none!important
+}
+.mass-record-card>.mass-delete-btn{
+ left:auto!important;right:11px!important;top:11px!important;
+ z-index:5!important;pointer-events:auto!important
+}
+/* Keep the title and the Celebrata/date line clear of the left corner.
+   Leave space for the right-side delete control on small displays. */
+.mass-record-card .eyebrow{
+ margin:1px 44px 0 clamp(90px,13vw,112px)!important
+}
+.mass-record-card .mass-record-title-row{
+ padding:0 48px 0 clamp(78px,11vw,104px)!important
+}
+@media screen and (orientation:portrait) and (max-width:385px){
+ .mass-record-card .eyebrow{margin-left:88px!important;margin-right:42px!important}
+ .mass-record-card .mass-record-title-row{padding-left:75px!important;padding-right:44px!important}
+}
+
 </style>
   <title>Cantoria — Canti per la liturgia cattolica</title>
 </head>
@@ -2921,7 +2950,7 @@ function modalHTML(){const m=state.modal;
   const song=currentSong();if(!song?.photoData)return '';
   return `<div class="modal-shade"><div class="modal-card" role="alertdialog" aria-modal="true" aria-label="Conferma ricalcolo accordi"><h2>Ricalcolare gli accordi?</h2><p>La partitura verrà ricalcolata dalla fotografia originale con le coordinate OCR. Le modifiche manuali fatte sulle sillabe e sugli accordi saranno sostituite. La fotografia originale resterà disponibile.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button type="button" class="primary-btn" data-action="reparse-photo">Ricalcola accordi</button></div></div></div>`;
  }
- if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (48)</h2><p>Indietro sulla croce ora usa un'area di tocco più ampia e affidabile su iPad. Riavvolgi e Play sono posizionati ulteriormente a sinistra in portrait, accanto allo smusso; in landscape rimangono fuori dallo smusso e cliccabili. Le top bar di Messe e del dettaglio sono più basse, con titolo e data centrati. Il pulsante Nuova Messa è sotto la linea dorata e centrato. Le card delle Messe hanno lo smusso verde con croce a destra e non mostrano più i titoli dei canti; riordino e apertura restano invariati. Lo smusso verde con la croce non è più ritagliato dai bordi delle top bar. Scaletta Messa ridisegnata con card compatte, titoli leggibili, croce e dettagli verde/oro. Navigazione manuale degli accordi rimossa e top bar Messa più compatta. Funzione liturgica selezionabile durante l’acquisizione, in verde nelle card di Biblioteca e Scaletta. Ascolto live: identificato il primo accordo, avanza ai cambi armonici confermati. Pubblicazione TestFlight senza avvio obbligatorio del simulatore, mantenendo i controlli di compilazione e integrità. Motore microfono nativo iOS: l’ascolto continua mentre l’app è in background. Al ritorno, gli accordi rilevati riallineano lo spartito senza salvare registrazioni audio. Schermo sempre acceso mentre CANTORIA è attiva in primo piano su iPhone o iPad: lo spartito rimane visibile durante tutta la celebrazione, anche senza toccare il display. Quando si esce dall’app o si blocca il dispositivo, il risparmio energetico iOS torna normale.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
+ if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (49)</h2><p>Indietro sulla croce ora usa un'area di tocco più ampia e affidabile su iPad. Riavvolgi e Play sono posizionati ulteriormente a sinistra in portrait, accanto allo smusso; in landscape rimangono fuori dallo smusso e cliccabili. Le top bar di Messe e del dettaglio sono più basse, con titolo e data centrati. Il pulsante Nuova Messa è sotto la linea dorata e centrato. Nelle card delle Messe lo smusso verde con la croce torna a sinistra e il pulsante X passa a destra. Le card non mostrano più i titoli dei canti; riordino e apertura restano invariati. Lo smusso verde con la croce non è più ritagliato dai bordi delle top bar. Scaletta Messa ridisegnata con card compatte, titoli leggibili, croce e dettagli verde/oro. Navigazione manuale degli accordi rimossa e top bar Messa più compatta. Funzione liturgica selezionabile durante l’acquisizione, in verde nelle card di Biblioteca e Scaletta. Ascolto live: identificato il primo accordo, avanza ai cambi armonici confermati. Pubblicazione TestFlight senza avvio obbligatorio del simulatore, mantenendo i controlli di compilazione e integrità. Motore microfono nativo iOS: l’ascolto continua mentre l’app è in background. Al ritorno, gli accordi rilevati riallineano lo spartito senza salvare registrazioni audio. Schermo sempre acceso mentre CANTORIA è attiva in primo piano su iPhone o iPad: lo spartito rimane visibile durante tutta la celebrazione, anche senza toccare il display. Quando si esce dall’app o si blocca il dispositivo, il risparmio energetico iOS torna normale.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
 
 
  if(m.type==='key-analysis'){
