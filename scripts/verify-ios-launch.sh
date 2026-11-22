@@ -83,6 +83,11 @@ if fraction < 0.15 {
 }
 print("PASS: iOS app startup is visibly nonblack.")
 SWIFT
+# Compile the screenshot verifier before booting CoreSimulator. Invoking the
+# Swift interpreter during simulator migration can hang for 90s on hosted macOS.
+# Running a prebuilt executable preserves the exact same black-screen gate.
+run_bounded 150 xcrun swiftc "$RUNNER_TEMP/check-cantoria-screen.swift" \
+  -o "$RUNNER_TEMP/check-cantoria-screen"
 passed=false
 for attempt in 1 2; do
   echo "Cantoria iOS launch verification attempt $attempt of 2, simulator $device"
@@ -116,7 +121,7 @@ for attempt in 1 2; do
   run_bounded 35 xcrun simctl spawn "$device" log show --last 90s --style compact \
     --predicate 'process == "App" OR process == "WebKit.WebContent"' \
     > "$simlog" 2>&1 || true
-  if run_bounded 90 swift "$RUNNER_TEMP/check-cantoria-screen.swift" "$screens"; then
+  if run_bounded 30 "$RUNNER_TEMP/check-cantoria-screen" "$screens"; then
     passed=true
     break
   fi
