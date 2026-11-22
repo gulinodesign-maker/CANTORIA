@@ -1514,6 +1514,111 @@
  .reader-layer.reader-portrait .reader-toolbar-right{right:4px!important;gap:4px!important}
 }
 
+
+/* CANTORIA 1.1 (44) — back is the original cross ornament itself. */
+.topbar-section,.reader-toolbar{position:relative!important}
+.topbar-section>.corner-back-button,
+.reader-layer .reader-toolbar>.corner-back-button{
+ position:absolute!important;top:0!important;left:0!important;
+ display:block!important;margin:0!important;padding:0!important;
+ background:transparent!important;border:0!important;border-radius:0!important;
+ box-shadow:none!important;outline-offset:-4px!important;
+ z-index:50!important;cursor:pointer!important;touch-action:manipulation!important;
+ -webkit-tap-highlight-color:rgba(228,184,100,.22)!important;
+ /* Hit area follows the diagonal green swash, not a rectangle on title. */
+ clip-path:polygon(0 0,100% 0,87% 14%,73% 27%,57% 41%,44% 55%,32% 70%,17% 86%,0 100%)!important;
+}
+.topbar-section>.corner-back-button{
+ width:120px!important;height:98px!important
+}
+.reader-layer .reader-toolbar>.corner-back-button{
+ width:clamp(94px,25vw,110px)!important;
+ height:clamp(77px,22vw,94px)!important
+}
+.topbar-section>.corner-back-button>.corner-ornament,
+.reader-layer .reader-toolbar>.corner-back-button>.corner-ornament{
+ position:absolute!important;inset:0!important;
+ display:block!important;width:100%!important;height:100%!important;
+ pointer-events:none!important;z-index:0!important
+}
+.topbar-section .corner-back-button .corner-ornament-cross,
+.reader-layer .reader-toolbar .corner-back-button .corner-ornament-cross{
+ display:block!important;visibility:visible!important;opacity:1!important
+}
+.topbar-section>.corner-back-button:focus-visible,
+.reader-layer .reader-toolbar>.corner-back-button:focus-visible{
+ outline:3px solid #d9a54f!important
+}
+/* The old arrow/back nodes are REMOVED from HTML, not merely covered. */
+@media screen and (orientation:portrait){
+ .topbar-section>.corner-back-button{width:110px!important;height:91px!important}
+ .topbar-section.topbar-standard>.header-section-title{max-width:65%!important}
+ .reader-layer.reader-portrait .reader-toolbar-left{
+  left:clamp(112px,29vw,134px)!important
+ }
+ .reader-layer.reader-portrait .reader-toolbar-left>.reader-audio-btn{
+  position:relative!important;top:auto!important;left:auto!important;
+  right:auto!important;bottom:auto!important;margin:0!important
+ }
+ .tiles.mass-song-tiles{
+  display:grid!important;grid-template-columns:minmax(0,1fr)!important;
+  width:100%!important;max-width:100%!important;min-width:0!important;
+  row-gap:clamp(9px,2vw,15px)!important;column-gap:0!important
+ }
+ .tiles.mass-song-tiles>.mass-song-card{
+  display:block!important;grid-column:1/-1!important;
+  width:100%!important;max-width:100%!important;min-width:0!important;
+  box-sizing:border-box!important
+ }
+ .tiles.mass-song-tiles>.mass-song-card>.song-cover{
+  display:flex!important;flex-direction:column!important;
+  justify-content:flex-end!important;align-items:center!important;
+  box-sizing:border-box!important;
+  width:100%!important;min-width:0!important;height:auto!important;
+  min-height:124px!important;
+  padding:69px 12px 12px!important
+ }
+ /* Reserve the top strip for the gold cross and action icons. Below it,
+    use the ENTIRE card width for readable titles. */
+ .tiles.mass-song-tiles>.mass-song-card .song-cover .cover-content,
+ .tiles.mass-song-tiles>.mass-song-card .song-cover:has(.mass-song-remove) .cover-content,
+ .tiles.mass-song-tiles>.mass-song-card .song-cover:has(.mass-song-remove):has(.mass-song-reset) .cover-content{
+  display:flex!important;position:relative!important;
+  flex-direction:column!important;align-items:center!important;
+  box-sizing:border-box!important;width:100%!important;max-width:100%!important;
+  min-width:0!important;margin:0!important;padding:0!important;gap:2px!important
+ }
+ .tiles.mass-song-tiles>.mass-song-card .song-cover .cover-content>.cover-label,
+ .tiles.mass-song-tiles>.mass-song-card .song-cover:has(.mass-song-remove) .cover-label,
+ .tiles.mass-song-tiles>.mass-song-card .song-cover:has(.mass-song-remove):has(.mass-song-reset) .cover-label{
+  box-sizing:border-box!important;width:100%!important;max-width:100%!important;
+  margin:0!important;padding:0!important;min-width:0!important;
+  font:normal clamp(18px,4.6vw,24px)/1.16 Georgia,serif!important;
+  text-align:center!important;white-space:normal!important;
+  overflow-wrap:normal!important;word-break:normal!important;
+  text-wrap:wrap!important;hyphens:none!important
+ }
+ .tiles.mass-song-tiles>.mass-song-card .song-cover .cover-author,
+ .tiles.mass-song-tiles>.mass-song-card .song-cover .cover-liturgical{
+  box-sizing:border-box!important;width:100%!important;
+  text-align:center!important;min-width:0!important;max-width:100%!important;
+  margin:2px 0 0!important;padding:0!important
+ }
+ .tiles.mass-song-tiles>.mass-song-card .mass-song-remove,
+ .tiles.mass-song-tiles>.mass-song-card .mass-song-reset{
+  position:absolute!important;top:12px!important;
+  transform:none!important;bottom:auto!important;
+ }
+ .tiles.mass-song-tiles>.mass-song-card .mass-song-remove{right:11px!important}
+ .tiles.mass-song-tiles>.mass-song-card .mass-song-reset{right:57px!important}
+}
+@media screen and (orientation:portrait) and (max-width:350px){
+ .reader-layer.reader-portrait .reader-toolbar-left{
+  left:98px!important
+ }
+ .topbar-section>.corner-back-button{width:102px!important;height:84px!important}
+}
+
 </style>
   <title>Cantoria — Canti per la liturgia cattolica</title>
 </head>
@@ -1820,9 +1925,8 @@ function entriesHTML(entries){if(!entries.length)return '<p>Questo canto non ha 
 function readerColumns(){const w=window.innerWidth,h=window.innerHeight;return ((w>=650&&w>h)||w>=760)?2:1;}
 function photoReaderHTML(song){
  return `<div class="reader-layer reader-portrait reader-photo" id="readerLayer" data-song="${escapeAttr(song.id)}">
- <header class="reader-toolbar">${CATHOLIC_CORNER}
+ <header class="reader-toolbar">${backCornerHTML('close-reader')}
  <div class="reader-toolbar-left">
- <button class="reader-back app-back-btn" type="button" data-action="close-reader" aria-label="Indietro"><svg class="app-back-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m15 19-7-7 7-7"/></svg></button>
  <button class="reader-audio-btn" type="button" data-action="follow-rewind" title="Torna all’inizio" aria-label="Torna all’inizio del brano"><svg class="reader-transport-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3.5 5v14" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" fill="none"/><path d="M12 6v12L5 12zM21 6v12l-7-6z" fill="currentColor"/></svg></button>
  <button class="reader-audio-btn reader-play-toggle" type="button" disabled data-action="follow-play" title="Play / Stop" aria-label="Play"><svg class="reader-transport-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 4v16l13-8z" fill="currentColor"/></svg></button>
  </div>
@@ -1849,9 +1953,8 @@ function readerHTML(){
  const perColumnWidth=(window.innerWidth-(cols===2?67:30))/cols;
  const font=Math.max(15,Math.min(26,perColumnWidth*(horizontal?.051:.058)));
  return `<div class="reader-layer ${horizontal?'reader-landscape':'reader-portrait'}" id="readerLayer" data-song="${escapeAttr(song.id)}" style="--reader-font:${font.toFixed(1)}px">
- <header class="reader-toolbar">${CATHOLIC_CORNER}
+ <header class="reader-toolbar">${backCornerHTML('close-reader')}
  <div class="reader-toolbar-left">
- <button class="reader-back app-back-btn" type="button" data-action="close-reader" aria-label="Indietro"><svg class="app-back-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m15 19-7-7 7-7"/></svg></button>
  <button class="reader-audio-btn" type="button" data-action="follow-rewind" title="Torna all’inizio" aria-label="Torna all’inizio del brano"><svg class="reader-transport-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3.5 5v14" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" fill="none"/><path d="M12 6v12L5 12zM21 6v12l-7-6z" fill="currentColor"/></svg></button>
  <button class="reader-audio-btn reader-play-toggle" type="button" data-action="follow-play" title="Play / Stop" aria-label="Play"><svg class="reader-transport-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 4v16l13-8z" fill="currentColor"/></svg></button>
  </div>
@@ -1865,6 +1968,12 @@ function readerHTML(){
  </article></div></div>`;
 }
 const CATHOLIC_CORNER = '<svg class="corner-ornament" viewBox="0 0 300 245" preserveAspectRatio="xMinYMin meet" aria-hidden="true" focusable="false"><path d="M0 0H300C186 46 76 148 0 245Z" fill="#194638"/><path d="M300 0C186 46 76 148 0 245" fill="none" stroke="#C59442" stroke-width="6"/><path class="corner-ornament-cross" d="M75 41V111M49 72H101" fill="none" stroke="#EBC16F" stroke-width="10" stroke-linecap="square"/></svg>';
+// Keep the original gold-cross artwork untouched; only the TOPBAR instances
+// become interactive. Song-card ornaments and Home remain decorative.
+function backCornerHTML(kind){
+ const attr=kind==='home'?'data-nav="home"':'data-action="'+kind+'"';
+ return '<button type="button" class="corner-back-button" '+attr+' aria-label="Torna indietro" title="Torna indietro">'+CATHOLIC_CORNER+'</button>';
+}
 function homeHTML(){
  const iconProps='viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true"';
  const tiles=[
@@ -1877,13 +1986,11 @@ function homeHTML(){
 }
 function headerHTML(){
  if(state.view==='home')return `<header class="topbar topbar-home topbar-home-labeled">${CATHOLIC_CORNER}<h1 class="home-topbar-title">Cantoria</h1></header>`;
- const back=(toMass=false)=>`<button type="button" class="app-back-btn" ${toMass?'data-action="back-masses"':'data-nav="home"'} aria-label="Indietro" title="Indietro"><svg class="app-back-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m15 19-7-7 7-7"/></svg></button>`;
  if(state.view==='masses'&&state.massId&&currentMass()){
   const m=currentMass(),done=!!m.celebratedAt,n=(m.items||[]).length;
   const date=massDateDisplay(m.date||(done?String(m.celebratedAt).slice(0,10):''));
   return `<header class="topbar topbar-section topbar-mass-detail" aria-label="Intestazione scaletta della Messa">
-   ${CATHOLIC_CORNER}
-   <div class="mass-topbar-row">${back(true)}<span class="topbar-right-spacer" aria-hidden="true"></span></div>
+   ${backCornerHTML('back-masses')}
    <div class="mass-topbar-info"><div class="mass-topbar-title-block">
     <span class="mass-topbar-overline">${done?'CELEBRATA':'SCALETTA'}</span>
     <strong class="mass-topbar-name">${escape(m.name)}</strong>
@@ -1897,7 +2004,7 @@ function headerHTML(){
  const right=state.view==='masses'?
  `<button type="button" class="topbar-create-mass" data-action="create-mass" aria-label="Crea nuova Messa"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 4v16M4 12h16"/></svg><span>Nuova Messa</span></button>`:
  '<span class="topbar-right-spacer" aria-hidden="true"></span>';
- return `<header class="topbar topbar-section topbar-standard">${CATHOLIC_CORNER}${back()}<strong class="header-section-title">${titles[state.view]||'Cantoria'}${sub}</strong>${right}</header>`;
+ return `<header class="topbar topbar-section topbar-standard">${backCornerHTML('home')}<strong class="header-section-title">${titles[state.view]||'Cantoria'}${sub}</strong>${right}</header>`;
 }
 function navHTML(){const nav=Object.keys(labels);return `<nav class="sidenav">${nav.map(k=>`<button class="nav-item ${state.view===k?'active':''}" data-nav="${k}"><span class="ico">${icons[k]}</span>${labels[k]}</button>`).join('')}<div class="nav-helper">La tua biblioteca è salvata in questo dispositivo.<br><strong>Il cloud verrà aggiunto in una prossima versione.</strong></div></nav><nav class="bottom-nav">${nav.map(k=>`<button class="bottom-item ${state.view===k?'active':''}" data-nav="${k}"><span class="ico">${icons[k]}</span>${labels[k]}</button>`).join('')}</nav>`;}
 function libraryHTML(){
@@ -2324,7 +2431,7 @@ function modalHTML(){const m=state.modal;
   const song=currentSong();if(!song?.photoData)return '';
   return `<div class="modal-shade"><div class="modal-card" role="alertdialog" aria-modal="true" aria-label="Conferma ricalcolo accordi"><h2>Ricalcolare gli accordi?</h2><p>La partitura verrà ricalcolata dalla fotografia originale con le coordinate OCR. Le modifiche manuali fatte sulle sillabe e sugli accordi saranno sostituite. La fotografia originale resterà disponibile.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button type="button" class="primary-btn" data-action="reparse-photo">Ricalcola accordi</button></div></div></div>`;
  }
- if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (43)</h2><p>Tre comandi Indietro, Riavvolgi e Play ora allineati su un’unica riga in portrait; il tasto Indietro è più vicino allo smusso senza coprire la croce dorata, sempre visibile nelle pagine. Navigazione manuale degli accordi rimossa e top bar Messa più compatta. Funzione liturgica selezionabile durante l’acquisizione, in verde nelle card di Biblioteca e Scaletta. Ascolto live: identificato il primo accordo, avanza ai cambi armonici confermati. Pubblicazione TestFlight senza avvio obbligatorio del simulatore, mantenendo i controlli di compilazione e integrità. Motore microfono nativo iOS: l’ascolto continua mentre l’app è in background. Al ritorno, gli accordi rilevati riallineano lo spartito senza salvare registrazioni audio. Schermo sempre acceso mentre CANTORIA è attiva in primo piano su iPhone o iPad: lo spartito rimane visibile durante tutta la celebrazione, anche senza toccare il display. Quando si esce dall’app o si blocca il dispositivo, il risparmio energetico iOS torna normale.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
+ if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (44)</h2><p>Lo smusso verde con la croce diventa il comando Indietro in tutte le pagine, senza freccia separata. Nella Scaletta in portrait le card sono a colonna singola e i titoli sfruttano l’intera larghezza, andando a capo solo quando indispensabile. Navigazione manuale degli accordi rimossa e top bar Messa più compatta. Funzione liturgica selezionabile durante l’acquisizione, in verde nelle card di Biblioteca e Scaletta. Ascolto live: identificato il primo accordo, avanza ai cambi armonici confermati. Pubblicazione TestFlight senza avvio obbligatorio del simulatore, mantenendo i controlli di compilazione e integrità. Motore microfono nativo iOS: l’ascolto continua mentre l’app è in background. Al ritorno, gli accordi rilevati riallineano lo spartito senza salvare registrazioni audio. Schermo sempre acceso mentre CANTORIA è attiva in primo piano su iPhone o iPad: lo spartito rimane visibile durante tutta la celebrazione, anche senza toccare il display. Quando si esce dall’app o si blocca il dispositivo, il risparmio energetico iOS torna normale.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
 
 
  if(m.type==='key-analysis'){
