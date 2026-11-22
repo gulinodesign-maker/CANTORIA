@@ -17,7 +17,7 @@ const chroma=Array(12).fill(.002);for(const x of [7,11,2])chroma[x]=.32;
 assert.equal(audio.recognizeChord(chroma,['DO','SOL','LA-','RE7']).chord,'SOL');
 const wf=fs.readFileSync('.github/workflows/ios-testflight-auto.yml','utf8');
 assert.ok(wf.includes("require('./release.json').build"));
-assert.ok(wf.indexOf('Block TestFlight release if iOS starts black')<wf.indexOf('Upload signed IPA to TestFlight'));
+assert.ok(!wf.includes('run: bash scripts/verify-ios-launch.sh'),'No mandatory iPhone simulator in release');
 console.log('CANTORIA 1.1 (14): UI, audio, OCR and version validated.');
 
 // 1.1 (5): precisely two audio buttons in reader topbar; follow before settings.
@@ -72,8 +72,8 @@ assert.equal(audio.stepChordIndex(seq,2,1),3);
 assert.equal(audio.stepChordIndex(seq,4,1),4);
 assert.equal(audio.stepChordIndex([],0,1),0);
 const reader=html.slice(html.indexOf('function readerHTML()'),html.indexOf('const CATHOLIC_CORNER ='));
-for(const action of ['follow-prev-chord','follow-next-chord'])assert.equal((reader.match(new RegExp('data-action="'+action+'"','g'))||[]).length,1,action);
-assert.ok(inline.includes("window.CantoriaAudioFollow?.step(action==='follow-prev-chord'?-1:1)"));
+for(const action of ['follow-prev-chord','follow-next-chord'])assert.equal((reader.match(new RegExp('data-action="'+action+'"','g'))||[]).length,0,'Remove chord toolbar arrow '+action);
+assert.ok(!inline.includes("window.CantoriaAudioFollow?.step(action==='follow-prev-chord'?-1:1)"));
 assert.ok(html.includes('reader-follow-btn[data-listening="true"]'));
 assert.ok(html.includes('orientation:portrait')&&html.includes('.reader-chord-nav'));
 const audioSource=fs.readFileSync('audio-follow.js','utf8');
@@ -103,8 +103,6 @@ const follower=fakeWindow.CantoriaAudioFollow;
 (async()=>{
  const pageHistory=[];
  follower.setScore('song-a',seq,page=>pageHistory.push(page));follower.refresh();
- assert.equal(prevButton.disabled,true);
- assert.equal(nextButton.disabled,false);
  assert.equal(follower.step(1),true);
  assert.equal(follower.activeIndex,0);
  assert.equal(follower.step(1),true);
@@ -149,7 +147,7 @@ const actualRe=Array(12).fill(.001);for(const note of [2,6,9])actualRe[note]=.32
 assert.equal(audio.recognizeExpectedChord(actualRe,'RE7',['RE','RE7']).chord,'RE7',
  'A complete major triad supports a seventh-labelled target when the seventh is omitted');
 assert.equal(audio.parseChord('FA7+').intervals.at(-1),11,'FA7+ must have a major seventh');
-assert.ok(audioSource.includes('liveChordCandidate(scoreItems,activeIndex,chroma,Date.now()-lastAdvance)'), 'Live follow must check the next expected chord and rejoin confidently recognized nearby chords');
+assert.ok(audioSource.includes('changeDrivenCandidate(scoreItems,activeIndex,chroma,markedChroma,Date.now()-lastAdvance'), 'Live follow must detect harmonic change without matching each next label');
 
 // Integration: simulate frequency bins received by a live microphone over time.
 let clock=0,notes=[392,494,587],scheduled=[],pages=[];
@@ -179,15 +177,15 @@ const feed=ticks=>{for(let k=0;k<ticks;k++){clock+=160;const next=scheduled.shif
  feed(3);
  assert.equal(live.activeIndex,0,'First SOL from mic must be detected');
  notes=[294,370,440];feed(5);
- assert.equal(live.activeIndex,0,'Future unrelated chord must not skip DO');
+ assert.equal(live.activeIndex,1,'New harmonic sound advances once even when it is not the next named chord');
  notes=[262,330,392,440];feed(5);
- assert.equal(live.activeIndex,1,'Expected DO must be detected even with interfering LA');
+ assert.equal(live.activeIndex,2,'Next harmonic change advances the score to page 1');
  notes=[440,262,330];feed(5);
- assert.equal(live.activeIndex,2,'Next expected LA- must be detected and move to page 1');
+ assert.equal(live.activeIndex,2,'At the end of the score no extra step is possible');
  assert.equal(pages.at(-1),1);
  assert.equal(live.mode,'mic','Microphone must remain active');
  live.stop();
- console.log('PASS: actual synthesized microphone spectrum follows all expected chords without skips');
+ console.log('PASS: synthesized microphone follows consecutive changes without strict chord-name matching');
 })().catch(e=>{console.error(e);process.exitCode=1});
 
 /* Build 26: mic starts at first chord and only then starts score; no upload UI. */
@@ -197,8 +195,7 @@ assert.ok(!html.includes("if(m.type==='follow-source')"),'Do not show a source-s
 assert.ok(inline.includes("if(follower.mode==='mic'){follower.stop();return;}"));
 assert.ok(inline.includes("follower.microphone().catch(err=>notify(err.message))"));
 const reader26=inline.slice(inline.indexOf('function readerHTML()'),inline.indexOf('const CATHOLIC_CORNER ='));
-const leftEnd=reader26.indexOf(' </div>\\n </div>\\n <div class="reader-title"'.replaceAll('\\n','\n'));
-assert.ok(leftEnd>=0,'Chord nav must be nested in the left group and separated from the title');
+assert.ok(reader26.includes(' </div>\n <div class="reader-title"'),'Reader title follows the left transport group directly without chord arrows');
 assert.ok(reader26.includes('id="readerVerification"')&&reader26.includes('id="audioFollowStatus"'));
 assert.ok(html.includes('/* CANTORIA 1.1 (26)'),'Responsive toolbar correction required');
 assert.ok(audioSource.includes('accumulatedChroma('));
