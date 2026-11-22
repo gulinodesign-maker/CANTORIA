@@ -40,16 +40,21 @@ python3 scripts/ios-screen-awake.py ios/App/App/AppDelegate.swift
 python3 scripts/ios-screen-awake.py --verify ios/App/App/AppDelegate.swift
 
 # Preserve Capacitor's stock controller; never replace the startup storyboard.
-if ! grep -q 'customClass="CAPBridgeViewController" customModule="Capacitor"' ios/App/App/Base.lproj/Main.storyboard; then
+if ! grep -Eq 'customClass="(CAPBridgeViewController|CantoriaBridgeViewController)" customModule="(Capacitor|App)"' ios/App/App/Base.lproj/Main.storyboard; then
  echo "Unsafe controller. Refusing build." >&2; exit 1
 fi
+
+# Keep microphone recording active during iOS app suspension.
+# Register a local Capacitor plugin by subclassing its original controller.
+python3 scripts/ios-background-mic.py ios/App/App/AppDelegate.swift ios/App/App/Base.lproj/Main.storyboard ios/App/App/Info.plist
+python3 scripts/ios-background-mic.py --verify ios/App/App/AppDelegate.swift ios/App/App/Base.lproj/Main.storyboard ios/App/App/Info.plist
 
 # Required prompts for photo-based song capture on iOS.
 plist="ios/App/App/Info.plist"
 for entry in \
   "NSCameraUsageDescription|Cantoria usa la fotocamera per fotografare gli spartiti." \
   "NSPhotoLibraryUsageDescription|Cantoria apre le foto degli spartiti che scegli dalla libreria." \
-  "NSMicrophoneUsageDescription|Cantoria ascolta la musica, solo quando lo richiedi, per seguire gli accordi sullo spartito."; do
+  "NSMicrophoneUsageDescription|Quando attivi Segui accordi, Cantoria ascolta la musica anche in background fino a quando premi Stop. Non salva registrazioni audio."; do
   key="${entry%%|*}"
   value="${entry#*|}"
   /usr/libexec/PlistBuddy -c "Add :$key string $value" "$plist" 2>/dev/null || \

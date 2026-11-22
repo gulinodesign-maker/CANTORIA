@@ -4,7 +4,7 @@ const source=fs.readFileSync('audio-follow.js','utf8');
 const html=fs.readFileSync('index.html','utf8');
 assert.ok(!html.includes("pagehide',()=>window.CantoriaAudioFollow?.stop()"),
  'Backgrounding Cantoria must never act as Stop');
-assert.deepEqual(require('../release.json'),{version:'1.1',build:39});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:40});
 new vm.Script(source);
 
 let requests=0,stops=0,resumes=0,nextTimer=0;

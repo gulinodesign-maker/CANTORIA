@@ -173,6 +173,54 @@
  let chromaHistory=[],markedChroma=null;
  let diagSerial=0,diagCallback=null,diagLast="",diagStable="",diagFrames=0;
  let sessionSerial=0,micRecovery=null,lastMicRecovery=-Infinity,mutedSince=0,resumePromise=null,wakeLock=null,foregroundCaptureDirty=false;
+ let nativeMicActive=false,nativeSeq=0,nativePolling=false,detectionClock=0;
+ function nativeMicPlugin(){
+  const cap=root.Capacitor;
+  if(cap?.getPlatform?.()!=="ios")return null;
+  const plugin=cap.Plugins?.CantoriaBackgroundMic;
+  if(!plugin?.start||!plugin?.pull)throw new Error("Motore microfono nativo non disponibile: aggiorna l'app.");
+  return plugin;
+ }
+ function processNativeFrame(frame){
+  const raw=Array.isArray(frame?.chroma)?frame.chroma.map(v=>Math.max(0,Number(v)||0)):null;
+  if(!raw||raw.length!==12)return;
+  detectionClock=Number(frame.at)||Date.now();
+  try{
+   if(raw.some(v=>v>.0001))silentFrames=0;
+   else if(++silentFrames>=2)releasedSinceLast=true;
+   const chroma=accumulatedChroma(raw);
+   const candidate=liveChordCandidate(scoreItems,activeIndex,chroma,detectionClock-lastAdvance);
+   const signature=candidate?candidate.index+":"+candidate.prediction.chord:"";
+   if(signature&&signature===stableName)stableCount++;
+   else{stableName=signature;stableCount=signature?1:0;}
+   if(candidate&&stableCount>=(candidate.skipped?4:2)){
+    match(candidate,chroma);seenAt=detectionClock;
+   }
+  }finally{detectionClock=0;}
+ }
+ async function nativePump(){
+  if(!nativeMicActive||nativePolling)return;
+  const plugin=nativeMicPlugin(),serial=sessionSerial;
+  nativePolling=true;
+  try{
+   const data=await plugin.pull({after:nativeSeq,limit:240});
+   if(serial!==sessionSerial||!nativeMicActive||mode!=="mic")return;
+   if(data?.firstSeq>nativeSeq+1){
+    resetListeningWindow();
+    status("Cronologia limitata · riallineamento live in corso...");
+   }
+   for(const frame of data?.frames||[]){
+    if(!Number.isInteger(frame.seq)||frame.seq<=nativeSeq)continue;
+    nativeSeq=frame.seq;
+    processNativeFrame(frame);
+   }
+   if(data?.running===false)status("Microfono iOS temporaneamente interrotto · ripristino in corso...");
+   else if(!data?.frames?.length&&data?.lastSampleAgeMs>5000)
+    status("Microfono iOS senza campioni · ripristino in corso...");
+  }catch(err){
+   if(serial===sessionSerial)status("Errore microfono iOS: "+(err?.message||err));
+  }finally{nativePolling=false;}
+ }
  const $=selector=>root.document?.querySelector(selector);
  function status(message){
   const element=$("#audioFollowStatus");
@@ -305,8 +353,12 @@
   if(root.document?.hidden||(mode!=="mic"&&mode!=="diagnostic"))return;
   const force=foregroundCaptureDirty;
   foregroundCaptureDirty=false;
-  void resumeAudio();
-  if(force||needsMicRecovery())void recoverMicrophone(force);
+  if(mode==="mic"&&nativeMicActive){
+   void nativeMicPlugin().ensure().catch(err=>status("Ripristino microfono iOS: "+err.message));
+  }else{
+   void resumeAudio();
+   if(force||needsMicRecovery())void recoverMicrophone(force);
+  }
   if(timer){root.clearTimeout(timer);timer=0;}
   if(mode==="mic"){keepAwake();detect();}
   else diagDetect();
@@ -319,7 +371,6 @@
  root.addEventListener?.("blur",onAudioBackground);
  root.addEventListener?.("pageshow",onAudioForeground);
  root.addEventListener?.("focus",onAudioForeground);
-("focus",onAudioForeground);
  function chordProfileChange(before,now){
   if(!Array.isArray(before)||!Array.isArray(now)||before.length!==12||now.length!==12)return 1;
   const a=before.reduce((sum,v)=>sum+Math.max(0,v||0),0)||1;
@@ -425,7 +476,7 @@
   if(hint)hint.hidden=mode!=="mic";
   if(verification)verification.hidden=mode==="mic";
   if(mic&&!mic.disabled){
-   const listening=mode==="mic"&&!!stream;
+   const listening=mode==="mic"&&(!!stream||nativeMicActive);
    mic.dataset.listening=String(listening);
    mic.dataset.waiting=String(listening&&activeIndex<0);
    mic.setAttribute("aria-pressed",String(listening));
@@ -476,7 +527,7 @@
  }
  function mark(index,chroma=null){
   const item=scoreItems[index];if(!item)return;
-  activeIndex=index;activeName=item.label;lastAdvance=Date.now();
+  activeIndex=index;activeName=item.label;lastAdvance=detectionClock||Date.now();
   markedChroma=chroma?Array.from(chroma):null;
   lastMarkAttackCount=attackCount;releasedSinceLast=false;
   resetListeningWindow();
@@ -497,7 +548,7 @@
   const next=candidate.index,skipped=candidate.skipped||0;
   const freshAttack=releasedSinceLast||attackCount>lastMarkAttackCount;
   const repeated=activeIndex>=0&&chordIdentity(scoreItems[activeIndex]?.label)===chordIdentity(scoreItems[next]?.label);
-  if(activeIndex>=0&&Date.now()-lastAdvance<(repeated?320:130))return;
+  if(activeIndex>=0&&(detectionClock||Date.now())-lastAdvance<(repeated?320:130))return;
   // A sustained chord must not accidentally trigger a future harmony.
   if(activeIndex>=0&&!freshAttack&&chordProfileChange(markedChroma,chroma)<(skipped?.18:.12))return;
   if(!skipped&&nextChordIndex(scoreItems,activeIndex,candidate.prediction.chord,freshAttack)!==next)return;
@@ -520,9 +571,10 @@
   previousRms=rms;
  }
  function detect(){
-  if((mode!=="mic"&&mode!=="player")||!analyser)return;
+  if((mode!=="mic"&&mode!=="player")||(!analyser&&!nativeMicActive))return;
   try{
    if(mode==="player"&&player?.paused){status("Audio in pausa");return;}
+   if(mode==="mic"&&nativeMicActive){void nativePump();return;}
    if(mode==="mic"&&micRecovery)return;
    if(mode==="mic"&&needsMicRecovery()){void recoverMicrophone();return;}
    if(ctx.state!=="running"){
@@ -570,6 +622,9 @@
   const wasDiag=mode==="diagnostic";
   diagSerial++;sessionSerial++;lastMicRecovery=-Infinity;mutedSince=0;
   micRecovery=null;foregroundCaptureDirty=false;
+  const wasNativeMic=nativeMicActive;
+  nativeMicActive=false;nativeSeq=0;nativePolling=false;detectionClock=0;
+  if(wasNativeMic)try{void nativeMicPlugin().stop().catch(err=>root.console?.warn?.("Stop microfono nativo:",err));}catch(_){}
   if(timer)root.clearTimeout(timer);timer=0;
   if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
   try{micNode?.disconnect();}catch(_){}
@@ -597,9 +652,20 @@
   await player.play();mode="player";preferredSource="file";status("Riproduzione e riconoscimento…");syncControls();detect();
  }
  async function microphone(){
-  if(!root.navigator?.mediaDevices?.getUserMedia)throw new Error("Il microfono non è disponibile.");
+  const native=nativeMicPlugin();
+  if(!native&&!root.navigator?.mediaDevices?.getUserMedia)throw new Error("Il microfono non è disponibile.");
   if(!scoreItems.length)throw new Error("Questo brano non contiene accordi riconoscibili. Se è importato, verifica che le sigle siano presenti (DO o C, SOL o G) e crea prima la partitura se contiene solo una foto.");
   stop();const serial=sessionSerial;
+  if(native){
+   activeIndex=-1;activeName="";lastAdvance=0;resetListeningWindow();markedChroma=null;refresh();
+   await native.start();
+   if(serial!==sessionSerial){await native.stop();return;}
+   nativeMicActive=true;nativeSeq=0;
+   mode="mic";preferredSource="mic";
+   status("Microfono iOS attivo anche in background · in attesa di "+scoreItems[0].label);
+   syncControls();keepAwake();detect();
+   return;
+  }
   await ensureContext();
   if(serial!==sessionSerial)return;
   analyser.smoothingTimeConstant=.34;
