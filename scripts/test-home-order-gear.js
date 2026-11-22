@@ -2,7 +2,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
 const html=fs.readFileSync('index.html','utf8');
 const script=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(script);new vm.Script(script);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:47});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:48});
 const start=script.indexOf('function homeHTML()'),stop=script.indexOf('function headerHTML()',start);
 assert.ok(start>=0&&stop>start,'Home must have isolated template');
 const view=vm.runInNewContext(script.slice(start,stop)+'homeHTML();',{});
