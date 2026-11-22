@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
 const cp=require('node:child_process'),vm=require('node:vm');
-assert.deepEqual(require('../release.json'),{version:'1.1',build:49});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:50});
 const prepare=fs.readFileSync('scripts/prepare-ios.sh','utf8');
 const swift=fs.readFileSync('scripts/ios-background-mic.swift','utf8');
 const js=fs.readFileSync('audio-follow.js','utf8');
@@ -54,6 +54,7 @@ const root={document:doc,Capacitor:{getPlatform(){return 'ios'},Plugins:{Cantori
  clearTimeout(id){timers.delete(id);},requestAnimationFrame(fn){fn();}};
 vm.runInNewContext(js,{window:root,module:{exports:{}}});
 const follow=root.CantoriaAudioFollow;
+follow.setTolerance(0); // Fast mode retains two-frame iOS native regression semantics.
 let tickTime=100000;
 function push(notes){
  const chroma=Array.from({length:12},(_,i)=>notes.includes(i)?1/notes.length:0);
