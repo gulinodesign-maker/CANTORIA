@@ -2,7 +2,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
 const html=fs.readFileSync('index.html','utf8');
 const js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(js,'Inline app code required');new vm.Script(js);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:42});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:43});
 const marker='/* CANTORIA 1.1 (32): one full-width Mass song per row in landscape. */';
 assert.equal(html.split(marker).length,2,'CSS for Mass landscape must be present exactly once');
 const css=html.slice(html.indexOf(marker),html.indexOf('</style>'));
