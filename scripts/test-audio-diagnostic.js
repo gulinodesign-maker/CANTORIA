@@ -3,7 +3,7 @@ const html=fs.readFileSync('index.html','utf8');
 const source=fs.readFileSync('audio-follow.js','utf8');
 const audio=require('../audio-follow.js');
 const release=require('../release.json');
-assert.deepEqual(release,{version:'1.1',build:45});
+assert.deepEqual(release,{version:'1.1',build:46});
 new vm.Script(source);
 const inner=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(inner,'Inline app script missing');new vm.Script(inner);
@@ -19,7 +19,7 @@ assert.ok(!reader.includes('reader-chord-nav'),'Manual chord arrows removed from
 assert.ok(reader.includes(' </div>\n <div class="reader-title"'),'Title follows compact transport controls');
 const css=html.slice(html.indexOf('/* CANTORIA 1.1 (27)'));
 assert.ok(css.includes('@media(orientation:landscape)'));
-assert.ok(css.includes('/* CANTORIA 1.1 (45): iPad touch-safe corner, transport layout, refined compact Mass cards.'),'Reader layout protects corner decoration');
+assert.ok(css.includes('/* CANTORIA 1.1 (46): portrait transport LEFT and the whole gold-cross corner visible.'),'Reader layout protects corner decoration');
 assert.ok(css.includes('left:clamp(115px,13vw,170px)!important'),'Mass back is moved right');
 assert.ok(css.includes('left:clamp(91px,24vw,135px)!important'),'Portrait reader back clears cross');
 

@@ -1,4 +1,4 @@
-const CACHE='cantoria-shell-v1.1-build45';
+const CACHE='cantoria-shell-v1.1-build46';
 const FILES=['./','./index.html','./release.json','./audio-follow.js','./harmony-analysis.js','./score-ocr.js','./score-geometry.js','./score-metadata.js','./score-editor.js','./manifest.webmanifest','./assets/cantoria-icona-ufficiale-045.png'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(FILES)));self.skipWaiting();});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));self.clients.claim();});
