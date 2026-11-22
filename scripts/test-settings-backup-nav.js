@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const html=fs.readFileSync('index.html','utf8'),js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(js);new vm.Script(js);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:48});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:49});
 const pkg=require('../package.json');
 assert.equal(pkg.dependencies['@capacitor/filesystem'],'8.0.0');
 assert.equal(pkg.dependencies['@capacitor/share'],'8.0.0');
@@ -20,7 +20,7 @@ assert.ok(css.includes('.corner-back-button'),'Corner is the universal back cont
 assert.ok(css.includes('.topbar-create-mass'));
 const sourceHeader=js.slice(js.indexOf('function headerHTML()'),js.indexOf('function navHTML()'));
 const ctx={
- state:{view:'masses',massId:null},releaseInfo:{version:'1.1',build:48},
+ state:{view:'masses',massId:null},releaseInfo:{version:'1.1',build:49},
  CATHOLIC_CORNER:'<svg class="corner-ornament"></svg>',backCornerHTML:kind=>kind==='home'?'<button class="corner-back-button" data-nav="home"></button>':'<button class="corner-back-button" data-action="'+kind+'"></button>',escape:s=>s,massDateDisplay:()=>'',currentMass(){return null}
 };
 vm.runInNewContext(sourceHeader+'this.head=headerHTML;',ctx);
@@ -29,7 +29,7 @@ assert.ok(!top.includes('data-action="create-mass"'),'Creation button moves belo
 assert.ok(top.includes('data-nav="home"'),'Back to home must be in the top left');
 assert.ok(top.indexOf('class="corner-back-button"')<top.indexOf('class="header-section-title"'));
 ctx.state.view='settings';top=ctx.head();
-assert.ok(top.includes('Versione 1.1 (48)'));
+assert.ok(top.includes('Versione 1.1 (49)'));
 assert.ok(!top.includes('create-mass'));
 ctx.state.view='masses';ctx.state.massId='m1';ctx.currentMass=()=>({name:'Messa 1',items:[],date:'',celebratedAt:null});
 top=ctx.head();

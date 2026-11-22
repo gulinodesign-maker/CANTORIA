@@ -2,14 +2,14 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
 const html=fs.readFileSync('index.html','utf8');
 const js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(js);new vm.Script(js);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:48});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:49});
 const hStart=js.indexOf('function headerHTML(){'),hEnd=js.indexOf('function navHTML(){');
 const lStart=js.indexOf('function massesHTML(){'),lEnd=js.indexOf('function massDetailHTML(){');
 assert.ok(hStart>0&&hEnd>hStart&&lStart>hEnd&&lEnd>lStart);
 const planned={id:'m1',name:'Messa futura',date:'2026-11-29',items:[{id:'a',songId:'s1'}]};
 const past={id:'m2',name:'Messa celebrata',date:'2026-11-22',celebratedAt:'2026-11-22T10:00:00Z',items:[{id:'b',songId:'s1',archiveTitle:'Canto archiviato'}]};
 const state={view:'masses',massId:null};
-const ctx={state,releaseInfo:{version:'1.1',build:48},
+const ctx={state,releaseInfo:{version:'1.1',build:49},
  store:{songs:[{id:'s1',title:'Un canto che non deve apparire nella card'}],masses:[planned,past]},
  escape:x=>String(x),escapeAttr:x=>String(x),massDateDisplay:date=>date?date.slice(8)+'/'+date.slice(5,7)+'/'+date.slice(0,4):'Data da definire',
  CATHOLIC_CORNER:'<svg class="corner-ornament"><path class="corner-ornament-cross"/></svg>',
@@ -53,13 +53,21 @@ for(const rule of [
  '.section-workspace>.mass-list-action-row{',
  'justify-content:center!important',
  '.mass-list-action-row>.mass-create-btn{',
- 'transform:scaleX(-1)!important',
  '.mass-record-card>.mass-record-corner>.corner-ornament{',
  '.mass-record-card>.mass-delete-btn{',
- 'left:11px!important',
  '.mass-record-card .mass-card-controls{'
-])assert.ok(css.includes(rule),'Missing build 48 layout '+rule);
+])assert.ok(css.includes(rule),'Missing build 49 layout '+rule);
 assert.ok(css.includes('@media screen and (orientation:portrait)')&&css.includes('@media screen and (orientation:landscape)'),
  'Both device orientations must be covered');
-assert.ok(html.includes('<h2>CANTORIA 1.1 (48)</h2>'));
-console.log('PASS: Mass headers compact, create below border, cards mirrored gold cross at right, no song previews, interactions retained');
+assert.ok(html.includes('<h2>CANTORIA 1.1 (49)</h2>'));
+const finalMarker='/* CANTORIA 1.1 (49): Mass list cards, gold cross LEFT and delete X RIGHT.';
+const finalPos=html.indexOf(finalMarker);
+assert.ok(finalPos>pos,'Build49 inversion must override Build48');
+const finalCss=html.slice(finalPos,html.indexOf('</style>',finalPos));
+assert.match(finalCss,/\.mass-record-card>\.mass-record-corner\{[^}]*left:0!important;right:auto!important;top:0!important;[^}]*transform:none!important;/s,'Corner is at LEFT without mirroring');
+assert.match(finalCss,/\.mass-record-card>\.mass-delete-btn\{[^}]*left:auto!important;right:11px!important;top:11px!important;/s,'X is at RIGHT');
+assert.ok(finalCss.includes('pointer-events:none!important'),'Decorative cross never intercepts taps');
+assert.ok(finalCss.includes('z-index:5!important;pointer-events:auto!important'),'Delete button remains clickable');
+assert.ok(finalCss.includes('.mass-record-card .eyebrow{'),'Celebrated date clears left cross');
+assert.ok(finalCss.includes('.mass-record-card .mass-record-title-row{'),'Title clears left cross');
+console.log('PASS: Mass cards gold cross LEFT, delete X RIGHT, no song previews, all actions retained');
