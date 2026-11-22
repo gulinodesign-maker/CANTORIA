@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const source=fs.readFileSync('audio-follow.js','utf8');
-const release=require('../release.json');assert.deepEqual(release,{version:'1.1',build:35});
-assert.ok(source.includes('stableCount>=2'),'Audio follow must lock after two consecutive detections');
+const release=require('../release.json');assert.deepEqual(release,{version:'1.1',build:36});
+assert.ok(source.includes('stableCount>=(candidate.skipped?4:2)'),'Audio follow must lock after two consecutive detections');
 assert.ok(source.includes('root.setTimeout(detect,80)'),'Poll interval should be 80 ms');
 assert.ok(source.includes('lastAdvance<(repeated?320:130)'),'Guard for fast transitions must depend on repetition');
 assert.ok(source.includes('smoothingTimeConstant=.34'),'FFT must avoid excessive historic smoothing');

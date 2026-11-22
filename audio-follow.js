@@ -137,18 +137,142 @@
   if(index>=0&&chordIdentity(previous)===chordIdentity(wanted)&&!freshAttack)return -1;
   return index+1;
  }
+ // A live player must be able to rejoin at a nearby recognized harmony
+ // when one chord was missed. Never infer passage of time from silence alone.
+ function liveChordCandidate(items,index,chroma,elapsed=0){
+  if(!Array.isArray(items)||!items.length||!Array.isArray(chroma))return null;
+  const labels=items.map(x=>typeof x==="string"?x:x?.label);
+  const first=index+1,expected=labels[first];
+  const direct=recognizeExpectedChord(chroma,expected,labels);
+  if(direct)return {index:first,prediction:direct,skipped:0};
+  if(index<0||elapsed<1100)return null;
+  const options=[],total=chroma.reduce((a,b)=>a+Math.max(0,Number(b)||0),0);
+  if(total<.005)return null;
+  const peak=Math.max(...chroma)/total;
+  // At most two missed changes, never jump across a long unseen section.
+  for(let i=first+1;i<=Math.min(items.length-1,index+3);i++){
+   const chord=parseChord(labels[i]);
+   if(!chord||chordIdentity(labels[i])===chordIdentity(labels[index]))continue;
+   if(labels.slice(first,i).some(x=>chordIdentity(x)===chordIdentity(labels[i]))||
+      labels.slice(i+1,Math.min(items.length,index+4)).some(x=>chordIdentity(x)===chordIdentity(labels[i])))continue;
+   const prediction=recognizeExpectedChord(chroma,labels[i],labels);
+   if(!prediction||prediction.coverage<.74)continue;
+   const strengths=chord.intervals.slice(0,3).map(interval=>
+    Math.max(0,Number(chroma[clampPitch(chord.root+interval)])||0)/total);
+   if(strengths.filter(v=>v>=Math.max(.065,peak*.17)).length<3)continue;
+   options.push({index:i,prediction,skipped:i-first});
+  }
+  options.sort((a,b)=>b.prediction.coverage-a.prediction.coverage);
+  if(!options.length||(options[1]&&options[0].prediction.coverage-options[1].prediction.coverage<.09))return null;
+  return options[0];
+ }
  const player=typeof root.Audio==="function"?new root.Audio():null;
  let ctx=null,analyser=null,mediaNode=null,micNode=null,stream=null,trackURL=null;
  let preferredSource="none",mode="idle",timer=0,bins=null,wave=null,activeIndex=-1,activeName="",stableName="",stableCount=0,lastAdvance=0,seenAt=0,currentSongId="";
  let scoreItems=[],showPage=null,previousRms=0,silentFrames=0,releasedSinceLast=false,attackCount=0,lastMarkAttackCount=0,lastAttackAt=0;
  let chromaHistory=[],markedChroma=null;
  let diagSerial=0,diagCallback=null,diagLast="",diagStable="",diagFrames=0;
+ let sessionSerial=0,micRecovery=null,lastMicRecovery=-Infinity,mutedSince=0,resumePromise=null,wakeLock=null;
  const $=selector=>root.document?.querySelector(selector);
  function status(message){
   const element=$("#audioFollowStatus");
   if(element)element.textContent=message;
  }
  function resetListeningWindow(){chromaHistory=[];stableName="";stableCount=0;}
+ function audioTracks(){
+  if(!stream)return [];
+  if(typeof stream.getAudioTracks==="function")return stream.getAudioTracks();
+  return typeof stream.getTracks==="function"?stream.getTracks().filter(t=>!t.kind||t.kind==="audio"):[];
+ }
+ function needsMicRecovery(){
+  const tracks=audioTracks();
+  if(!tracks.length||tracks.every(t=>t.readyState==="ended"))return true;
+  if(tracks.every(t=>t.muted===true)){
+   if(!mutedSince)mutedSince=Date.now();
+   return Date.now()-mutedSince>=2500;
+  }
+  mutedSince=0;
+  return false;
+ }
+ function releaseWakeLock(){
+  const lock=wakeLock;wakeLock=null;
+  if(lock?.release)Promise.resolve().then(()=>lock.release()).catch(()=>{});
+ }
+ function keepAwake(){
+  if(mode!=="mic"||wakeLock||root.document?.hidden)return;
+  const request=root.navigator?.wakeLock?.request;
+  if(typeof request!=="function")return;
+  const serial=sessionSerial;
+  Promise.resolve().then(()=>request.call(root.navigator.wakeLock,"screen")).then(lock=>{
+   if(serial!==sessionSerial||mode!=="mic"){lock?.release?.();return;}
+   wakeLock=lock;
+  }).catch(()=>{}); // Wake Lock is optional and not supported by all iOS WebViews.
+ }
+ function resumeAudio(){
+  if(!ctx||ctx.state==="running"||resumePromise)return resumePromise;
+  const serial=sessionSerial;
+  resumePromise=Promise.resolve().then(()=>ctx.resume()).then(()=>{
+   if(serial===sessionSerial&&(mode==="mic"||mode==="diagnostic"))status("Ascolto audio ripristinato.");
+  }).catch(()=>{
+   if(serial===sessionSerial)status("Audio sospeso da iOS: tieni lo schermo attivo e riavvia l’ascolto se necessario.");
+  }).finally(()=>{resumePromise=null;});
+  return resumePromise;
+ }
+ function bindMicrophoneTracks(captured,serial){
+  for(const track of captured.getTracks?.()||[]){
+   track.addEventListener?.("ended",()=>{
+    if(serial===sessionSerial&&mode==="mic")void recoverMicrophone();
+   });
+   track.addEventListener?.("mute",()=>{if(serial===sessionSerial)mutedSince=Date.now();});
+   track.addEventListener?.("unmute",()=>{if(serial===sessionSerial)mutedSince=0;});
+  }
+ }
+ function recoverMicrophone(){
+  if(mode!=="mic"||micRecovery||Date.now()-lastMicRecovery<3500)return micRecovery;
+  lastMicRecovery=Date.now();
+  const serial=sessionSerial;
+  status("Connessione microfono interrotta: tentativo di ripristino...");
+  micRecovery=(async()=>{
+   let captured=null;
+   try{
+    await ensureContext();
+    if(serial!==sessionSerial||mode!=="mic")return;
+    captured=await root.navigator.mediaDevices.getUserMedia({audio:{
+     echoCancellation:false,noiseSuppression:false,autoGainControl:false},video:false});
+    if(serial!==sessionSerial||mode!=="mic"){captured.getTracks().forEach(t=>t.stop());return;}
+    const node=ctx.createMediaStreamSource(captured);
+    node.connect(analyser);
+    try{micNode?.disconnect();}catch(_){}
+    stream?.getTracks?.().forEach(t=>t.stop());
+    stream=captured;micNode=node;mutedSince=0;
+    resetListeningWindow();bindMicrophoneTracks(stream,serial);
+    status("Microfono riattivato · ascolto live in corso.");
+    syncControls();keepAwake();
+   }catch(err){
+    if(captured&&captured!==stream)captured.getTracks?.().forEach(t=>t.stop());
+    if(serial===sessionSerial&&mode==="mic")
+     status("Microfono non disponibile: tocca Stop e riattiva l’ascolto. "+(err?.message||""));
+   }finally{micRecovery=null;}
+  })();
+  return micRecovery;
+ }
+ function onAudioForeground(){
+  if(mode!=="mic"&&mode!=="diagnostic")return;
+  void resumeAudio();
+  if(mode==="mic"){
+   keepAwake();
+   if(needsMicRecovery())void recoverMicrophone();
+   // iOS may discard timers during an interruption: restart just one loop
+   // on return to the foreground instead of depending on the old timeout.
+   if(timer){root.clearTimeout(timer);timer=0;}
+   detect();
+  }
+ }
+ root.document?.addEventListener?.("visibilitychange",()=>{
+  if(!root.document.hidden)onAudioForeground();
+ });
+ root.addEventListener?.("pageshow",onAudioForeground);
+ root.addEventListener?.("focus",onAudioForeground);
  function chordProfileChange(before,now){
   if(!Array.isArray(before)||!Array.isArray(now)||before.length!==12||now.length!==12)return 1;
   const a=before.reduce((sum,v)=>sum+Math.max(0,v||0),0)||1;
@@ -185,7 +309,7 @@
  }
  function diagDetect(){
   if(mode!=="diagnostic"||!analyser)return;
-  if(ctx.state==="suspended"){diagNotify({phase:"listening",message:"Audio sospeso: riprova il test.",chord:diagLast});timer=root.setTimeout(diagDetect,250);return;}
+  if(ctx.state!=="running"){void resumeAudio();diagNotify({phase:"listening",message:"Audio sospeso: ripristino in corso.",chord:diagLast});timer=root.setTimeout(diagDetect,250);return;}
   analyser.getByteFrequencyData(bins);
   const low=Math.ceil(85*analyser.fftSize/ctx.sampleRate);
   const high=Math.min(bins.length-1,Math.floor(1400*analyser.fftSize/ctx.sampleRate));
@@ -315,25 +439,21 @@
  function step(direction){
   const index=stepChordIndex(scoreItems,activeIndex,direction);
   if(index<0||index===activeIndex)return false;
-  // Manual correction adjusts only the score cursor; the audio source stays active.
-  resetListeningWindow();
-  mark(index);
-  return true;
+  // Arrows remain available even if all notes are unrecognized.
+  resetListeningWindow();mark(index);return true;
  }
- function match(chord,chroma){
-  if(!scoreItems.length)return;
+ function match(candidate,chroma){
+  if(!scoreItems.length||!candidate)return;
+  const next=candidate.index,skipped=candidate.skipped||0;
   const freshAttack=releasedSinceLast||attackCount>lastMarkAttackCount;
-  const next=nextChordIndex(scoreItems,activeIndex,chord,freshAttack);
-  if(next<0)return;
-  // Distinct successive chords must react promptly; repeated identical
-  // chords retain a longer guard and still require a new onset/release.
-  const repeated=activeIndex>=0&&chordIdentity(scoreItems[activeIndex]?.label)===chordIdentity(scoreItems[activeIndex+1]?.label);
+  const repeated=activeIndex>=0&&chordIdentity(scoreItems[activeIndex]?.label)===chordIdentity(scoreItems[next]?.label);
   if(activeIndex>=0&&Date.now()-lastAdvance<(repeated?320:130))return;
-  // The previously played chord may already contain the next triad's notes.
-  // Require an actual change in pitch-class energy OR a fresh audible attack;
-  // do not advance twice on one sustained chord spectrum.
-  if(activeIndex>=0&&!repeated&&!freshAttack&&chordProfileChange(markedChroma,chroma)<.12)return;
+  // A sustained chord must not accidentally trigger a future harmony.
+  if(activeIndex>=0&&!freshAttack&&chordProfileChange(markedChroma,chroma)<(skipped?.18:.12))return;
+  if(!skipped&&nextChordIndex(scoreItems,activeIndex,candidate.prediction.chord,freshAttack)!==next)return;
   mark(next,chroma);
+  if(skipped)status("Live riallineato: "+scoreItems[next].label+
+   " · "+skipped+" "+(skipped===1?"accordo saltato":"accordi saltati")+" · "+(next+1)+" / "+scoreItems.length);
  }
  function updateDynamics(){
   if(!wave||typeof analyser.getByteTimeDomainData!=="function")return;
@@ -350,41 +470,60 @@
   previousRms=rms;
  }
  function detect(){
-  if(mode==="idle"||!analyser)return;
-  if(mode==="player"&&player?.paused){status("Audio in pausa");return;}
-  if(ctx.state==="suspended"){timer=root.setTimeout(detect,250);return;}
-  analyser.getByteFrequencyData(bins);
-  updateDynamics();
-  const rawChroma=chromaFromFFT(bins,ctx.sampleRate,analyser.fftSize);
-  if(silentFrames>=2&&!rawChroma.some(v=>v>.001))releasedSinceLast=true;
-  const chroma=accumulatedChroma(rawChroma);
-  const expected=sequence()[activeIndex+1]?.label;
-  const prediction=recognizeExpectedChord(chroma,expected,sequence().map(x=>x.label));
-  const name=prediction?prediction.chord:"";
-  if(name&&name===stableName)stableCount++;
-  else{stableName=name;stableCount=1;}
-  // Two consecutive FFT readings confirm a chord without the ~500ms
-  // delay previously imposed by three 155ms polling intervals.
-  if(name&&stableCount>=2){match(name,chroma);seenAt=Date.now();}
-  if(!name&&Date.now()-seenAt>2000&&mode==="mic")
-   status(activeIndex<0?"In attesa del primo accordo: "+(scoreItems[0]?.label||"—"):"In ascolto · prossimo: "+(expected||"fine"));
-  timer=root.setTimeout(detect,80);
+  if((mode!=="mic"&&mode!=="player")||!analyser)return;
+  try{
+   if(mode==="player"&&player?.paused){status("Audio in pausa");return;}
+   if(mode==="mic"&&needsMicRecovery()){void recoverMicrophone();return;}
+   if(ctx.state!=="running"){
+    void resumeAudio();
+    if(mode==="mic")status("Audio sospeso: ripristino dell’ascolto in corso...");
+    return;
+   }
+   analyser.getByteFrequencyData(bins);
+   updateDynamics();
+   const rawChroma=chromaFromFFT(bins,ctx.sampleRate,analyser.fftSize);
+   if(silentFrames>=2&&!rawChroma.some(v=>v>.001))releasedSinceLast=true;
+   const chroma=accumulatedChroma(rawChroma);
+   const candidate=liveChordCandidate(scoreItems,activeIndex,chroma,Date.now()-lastAdvance);
+   const signature=candidate?candidate.index+":"+candidate.prediction.chord:"";
+   if(signature&&signature===stableName)stableCount++;
+   else{stableName=signature;stableCount=signature?1:0;}
+   // Two frames for the next chord; four confident frames for resync.
+   if(candidate&&stableCount>=(candidate.skipped?4:2)){
+    match(candidate,chroma);seenAt=Date.now();
+   }
+   if(!signature&&Date.now()-seenAt>2000&&mode==="mic")
+    status(activeIndex<0?"In attesa del primo accordo: "+(scoreItems[0]?.label||"—"):
+     "Live in ascolto · prossimo: "+(scoreItems[activeIndex+1]?.label||"fine")+
+     " · se necessario usa → per saltare un accordo");
+  }catch(err){
+   root.console?.warn?.("Cantoria ascolto live:",err);
+   if(mode==="mic")status("Rilevamento audio momentaneamente interrotto · ripristino in corso...");
+  }finally{
+   // Preserve the detection loop through suspended audio / WebKit exceptions.
+   if(mode==="mic"||mode==="player")timer=root.setTimeout(detect,80);
+  }
  }
  async function ensureContext(){
   const AudioContext=root.AudioContext||root.webkitAudioContext;
   if(!AudioContext)throw new Error("Audio non supportato da questo dispositivo.");
-  if(!ctx){ctx=new AudioContext();analyser=ctx.createAnalyser();analyser.fftSize=8192;analyser.smoothingTimeConstant=.34;bins=new Uint8Array(analyser.frequencyBinCount);wave=new Uint8Array(analyser.fftSize);}
-  await ctx.resume();
+  if(!ctx||ctx.state==="closed"){
+   ctx=new AudioContext();analyser=ctx.createAnalyser();analyser.fftSize=8192;
+   analyser.smoothingTimeConstant=.34;
+   bins=new Uint8Array(analyser.frequencyBinCount);wave=new Uint8Array(analyser.fftSize);
+  }
+  if(ctx.state!=="running")await ctx.resume();
  }
  function stop(){
   const wasDiag=mode==="diagnostic";
-  diagSerial++;
+  diagSerial++;sessionSerial++;lastMicRecovery=-Infinity;mutedSince=0;
   if(timer)root.clearTimeout(timer);timer=0;
   if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
   try{micNode?.disconnect();}catch(_){}
-  micNode=null;
+  micNode=null;releaseWakeLock();
   if(player&&!player.paused)player.pause();
-  mode="idle";resetListeningWindow();markedChroma=null;previousRms=0;silentFrames=0;releasedSinceLast=false;lastMarkAttackCount=attackCount;
+  mode="idle";resetListeningWindow();markedChroma=null;previousRms=0;silentFrames=0;
+  releasedSinceLast=false;lastMarkAttackCount=attackCount;
   status("Rilevamento fermato.");syncControls();
   if(wasDiag)diagNotify({phase:"stopped",message:"Test interrotto.",level:0,chord:diagLast});
   diagCallback=null;
@@ -407,16 +546,18 @@
  async function microphone(){
   if(!root.navigator?.mediaDevices?.getUserMedia)throw new Error("Il microfono non è disponibile.");
   if(!scoreItems.length)throw new Error("Questo brano non contiene accordi riconoscibili. Se è importato, verifica che le sigle siano presenti (DO o C, SOL o G) e crea prima la partitura se contiene solo una foto.");
-  stop();await ensureContext();
+  stop();const serial=sessionSerial;
+  await ensureContext();
+  if(serial!==sessionSerial)return;
   analyser.smoothingTimeConstant=.34;
-  // Arming always begins at the very first chord; the score does not start
-  // until a stable live match marks position zero.
   activeIndex=-1;activeName="";lastAdvance=0;resetListeningWindow();markedChroma=null;refresh();
-  stream=await root.navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false},video:false});
-  micNode=ctx.createMediaStreamSource(stream);micNode.connect(analyser);
-  mode="mic";preferredSource="mic";
+  const captured=await root.navigator.mediaDevices.getUserMedia({audio:{
+   echoCancellation:false,noiseSuppression:false,autoGainControl:false},video:false});
+  if(serial!==sessionSerial){captured.getTracks().forEach(t=>t.stop());return;}
+  stream=captured;micNode=ctx.createMediaStreamSource(stream);micNode.connect(analyser);
+  mode="mic";preferredSource="mic";bindMicrophoneTracks(stream,serial);
   status("In attesa del primo accordo: "+scoreItems[0].label);
-  syncControls();detect();
+  syncControls();keepAwake();detect();
  }
  async function toggle(){
   if(mode!=="idle"){stop();return;}
@@ -430,7 +571,7 @@
   if(mode==="mic")status("In attesa del primo accordo: "+(scoreItems[0]?.label||"—"));
  }
  if(player)player.addEventListener("ended",()=>stop());
- const api={parseChord,chromaFromFFT,recognizeChord,recognizeExpectedChord,diagnoseChroma,startDiagnostic,stopDiagnostic,nextChordIndex,stepChordIndex,setScore,step,loadTrack,play,microphone,toggle,rewind,stop,reset,refresh,syncControls,get mode(){return mode;},get activeIndex(){return activeIndex;},get hasSource(){return preferredSource==="mic"||!!player?.src;}};
+ const api={parseChord,chromaFromFFT,recognizeChord,recognizeExpectedChord,diagnoseChroma,startDiagnostic,stopDiagnostic,nextChordIndex,stepChordIndex,liveChordCandidate,setScore,step,loadTrack,play,microphone,toggle,rewind,stop,reset,refresh,syncControls,get mode(){return mode;},get activeIndex(){return activeIndex;},get hasSource(){return preferredSource==="mic"||!!player?.src;}};
  root.CantoriaAudioFollow=api;
- if(typeof module!=="undefined"&&module.exports)module.exports={parseChord,chromaFromFFT,recognizeChord,recognizeExpectedChord,diagnoseChroma,nextChordIndex,stepChordIndex};
+ if(typeof module!=="undefined"&&module.exports)module.exports={parseChord,chromaFromFFT,recognizeChord,recognizeExpectedChord,diagnoseChroma,nextChordIndex,stepChordIndex,liveChordCandidate};
 })(typeof window!=="undefined"?window:globalThis);

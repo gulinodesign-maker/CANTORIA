@@ -1,6 +1,6 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const ocr=require('../score-ocr.js');
-assert.deepEqual(require('../release.json'),{version:'1.1',build:35});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:36});
 for(const [raw,expected] of [
  ['SOLDO',['SOL','DO']],['SOLDO7',['SOL','DO7']],['MI-LA-',['MI-','LA-']],
  ['FA7+DO',['FA7+','DO']],['RE/LADO',['RE/LA','DO']],

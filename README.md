@@ -1,3 +1,14 @@
+## Cantoria 1.1 (36) — continuità del rilevamento accordi durante il live (22 novembre 2026)
+
+- Microfono ripristinato se la traccia di acquisizione termina oppure resta muta a lungo; AudioContext sospeso riattivato su ritorno in primo piano.
+- Rilevamento a 80 ms sempre pianificato anche dopo sospensione iOS o eccezioni Web Audio; schermo mantenuto acceso attraverso Wake Lock quando supportato, rilasciato a stop.
+- La partitura può riallinearsi ad accordi vicini quando quello precedente non viene riconosciuto: massimo due cambi saltati e solo se il riconoscimento è forte, stabile e distinguibile.
+- Nessun avanzamento inventato per timer durante pause o silenzio. Le frecce avanti/indietro restano disponibili mentre il microfono ascolta.
+- Nuovi test automatici simulano un live prolungato, la sospensione iOS, una traccia microfono terminata e il recupero di un accordo perso.
+- Build 36; firma Apple cloud e controlli contro lo schermo nero invariati.
+
+---
+
 ## Cantoria 1.1 (35) — sfondo verde delle icone Home al 15% (22 novembre 2026)
 
 - I quattro riquadri Home usano background rgba(23,68,55,.15), senza modificare bordi, icone e testo.
