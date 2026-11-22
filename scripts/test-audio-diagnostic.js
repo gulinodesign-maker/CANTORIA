@@ -3,7 +3,7 @@ const html=fs.readFileSync('index.html','utf8');
 const source=fs.readFileSync('audio-follow.js','utf8');
 const audio=require('../audio-follow.js');
 const release=require('../release.json');
-assert.deepEqual(release,{version:'1.1',build:41});
+assert.deepEqual(release,{version:'1.1',build:42});
 new vm.Script(source);
 const inner=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(inner,'Inline app script missing');new vm.Script(inner);
@@ -14,13 +14,14 @@ for(const token of ['Diagnosi riconoscimento accordi','data-action="diagnostic-s
 assert.ok(inner.includes('follower.startDiagnostic(updateDiagnosticPanel)'),'Settings start must call actual microphone diagnosis');
 assert.ok(inner.includes('window.CantoriaAudioFollow?.stopDiagnostic()'),'Settings stop must close mic');
 const reader=inner.slice(inner.indexOf('function readerHTML()'),inner.indexOf('const CATHOLIC_CORNER ='));
-assert.ok(reader.indexOf('data-action="follow-play"')<reader.indexOf('class="reader-chord-nav"'),'Chord arrows must follow Stop');
-assert.ok(reader.includes(' </div>\n </div>\n <div class="reader-title"'),
- 'Chord navigation must be physically inside the left transport group in landscape');
+assert.ok(reader.includes('data-action="follow-play"'),'Playback toggle must remain');
+assert.ok(!reader.includes('reader-chord-nav'),'Manual chord arrows removed from top bar');
+assert.ok(reader.includes(' </div>\n <div class="reader-title"'),'Title follows compact transport controls');
 const css=html.slice(html.indexOf('/* CANTORIA 1.1 (27)'));
 assert.ok(css.includes('@media(orientation:landscape)'));
-assert.ok(css.includes('left:auto!important;bottom:auto!important'),'Landscape navigation must not be positioned over title');
-assert.ok(css.includes('.reader-toolbar-left{position:static!important}'),'Portrait arrows must anchor to full toolbar');
+assert.ok(css.includes('/* CANTORIA 1.1 (42): preserve the whole green-and-gold corner'),'Reader layout protects corner decoration');
+assert.ok(css.includes('left:clamp(115px,13vw,170px)!important'),'Mass back is moved right');
+assert.ok(css.includes('left:clamp(91px,24vw,135px)!important'),'Portrait reader back clears cross');
 
 const profile=(notes)=>Array.from({length:12},(_,i)=>notes.includes(i)?1/notes.length:.0001);
 for(const [expected,notes] of [['DO',[0,4,7]],['LA-',[9,0,4]],['SOL',[7,11,2]],['RE-',[2,5,9]]]){

@@ -1,6 +1,6 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const source=fs.readFileSync('audio-follow.js','utf8');
-assert.deepEqual(require('../release.json'),{version:'1.1',build:41});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:42});
 new vm.Script(source);
 const audio=require('../audio-follow.js');
 const profile=(pcs)=>Array.from({length:12},(_,i)=>pcs.includes(i)?1/pcs.length:0);
@@ -57,24 +57,24 @@ const flush=async()=>{for(let i=0;i<10;i++)await Promise.resolve();};
  firstContext.state='suspended';tick();await flush();
  assert.ok(resumes>=1,'Web Audio context must resume');
  assert.equal(follow.activeIndex,0);
- // A missed DO can be recovered by FA after four stable frames.
+ // A musical change advances exactly one event, even if it is not the next printed chord.
  now+=1500;notes=[349,440,523];
  for(let i=0;i<6;i++)tick();
- assert.equal(follow.activeIndex,2,'Live follow must rejoin after a skipped harmony');
+ assert.equal(follow.activeIndex,1,'A change to FA advances one event without matching printed DO');
  // Ended iOS microphone track triggers reacquisition without resetting the song.
  const old=streams[0].track;
  old.readyState='ended';old.emit('ended');await flush();
  assert.equal(requests,2,'Microphone must be reobtained when track ends');
- assert.equal(follow.mode,'mic');assert.equal(follow.activeIndex,2);
+ assert.equal(follow.mode,'mic');assert.equal(follow.activeIndex,1);
  notes=[440,262,330];tick();tick();
- assert.equal(follow.activeIndex,3,'Audio follow must keep advancing after mic recovery');
+ assert.equal(follow.activeIndex,2,'New harmony advances after mic recovery');
  // A long live performance with no recognisable chords must never stop the loop.
  notes=[];for(let i=0;i<320;i++)tick();
  assert.equal(follow.mode,'mic');
- assert.equal(follow.activeIndex,3,'Silence must not fabricate score progression');
+ assert.equal(follow.activeIndex,2,'Silence must not fabricate score progression');
  assert.equal(follow.step(1),true,'Manual skip stays available in live mode');
- assert.equal(follow.activeIndex,4);
+ assert.equal(follow.activeIndex,3);
  follow.stop();assert.equal(follow.mode,'idle');assert.ok(stopCount>=1);
  assert.ok(!frames.length||typeof frames[0]==='function');
- console.log('PASS: long-lived microphone auto-recovers from iOS suspension/track end, resyncs skipped live chords, does not advance on silence');
+ console.log('PASS: long-lived microphone auto-recovers from iOS suspension/track end, advances on harmonic changes, does not advance on silence');
 })().catch(e=>{console.error(e);process.exitCode=1});
