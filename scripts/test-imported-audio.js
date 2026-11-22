@@ -78,6 +78,7 @@ const fake={
 const audioSource=fs.readFileSync('audio-follow.js','utf8');
 vm.runInNewContext(audioSource,{window:fake,Date:{now(){return now;}},module:{exports:{}}});
 const follower=fake.CantoriaAudioFollow;
+follower.setTolerance(0); // Existing imported-song test verifies rapid mode; default is intentionally safer.
 (async()=>{
  const pages=[];
  follower.setScore(imported.id,seq,page=>pages.push(page));
