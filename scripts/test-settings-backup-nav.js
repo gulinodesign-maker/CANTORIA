@@ -29,7 +29,7 @@ assert.ok(top.includes('data-action="create-mass"'),'Messa creation must be in t
 assert.ok(top.includes('data-nav="home"'),'Back to home must be in the top left');
 assert.ok(top.indexOf('class="corner-back-button"')<top.indexOf('class="header-section-title"'));
 ctx.state.view='settings';top=ctx.head();
-assert.ok(top.includes('Versione 1.1 (45)'));
+assert.ok(top.includes('Versione 1.1 (46)'));
 assert.ok(!top.includes('create-mass'));
 ctx.state.view='masses';ctx.state.massId='m1';ctx.currentMass=()=>({name:'Messa 1',items:[],date:'',celebratedAt:null});
 top=ctx.head();
