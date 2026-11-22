@@ -166,6 +166,25 @@
   if(!options.length||(options[1]&&options[0].prediction.coverage-options[1].prediction.coverage<.09))return null;
   return options[0];
  }
+ // Build 42: recognize the opening harmony once; subsequently follow
+ // sustained differences in the 12-note spectrum instead of guessing
+ // the identity of every printed chord. Require two stable frames.
+ function changeDrivenCandidate(items,index,chroma,previous,elapsed=0,released=false){
+  if(!Array.isArray(items)||!items.length||!Array.isArray(chroma)||chroma.length!==12)return null;
+  const total=chroma.reduce((sum,v)=>sum+Math.max(0,Number(v)||0),0);
+  if(total<.05||chroma.filter(v=>Number(v)>.085*total).length<2)return null;
+  const label=items[index+1]?.label;
+  if(index<0){
+   const first=items[0]?.label;
+   const recognized=recognizeExpectedChord(chroma,first,[first]);
+   return recognized?{index:0,prediction:recognized,skipped:0}:null;
+  }
+  if(index>=items.length-1||elapsed<170)return null;
+  const novelty=chordProfileChange(previous,chroma);
+  const samePrintedChord=chordIdentity(items[index]?.label)===chordIdentity(label);
+  if(novelty<.20&&!(samePrintedChord&&released&&elapsed>=320))return null;
+  return {index:index+1,prediction:{chord:label,novelty,confidence:Math.min(1,novelty*2)},skipped:0};
+ }
  const player=typeof root.Audio==="function"?new root.Audio():null;
  let ctx=null,analyser=null,mediaNode=null,micNode=null,stream=null,trackURL=null;
  let preferredSource="none",mode="idle",timer=0,bins=null,wave=null,activeIndex=-1,activeName="",stableName="",stableCount=0,lastAdvance=0,seenAt=0,currentSongId="";
@@ -189,7 +208,7 @@
    if(raw.some(v=>v>.0001))silentFrames=0;
    else if(++silentFrames>=2)releasedSinceLast=true;
    const chroma=accumulatedChroma(raw);
-   const candidate=liveChordCandidate(scoreItems,activeIndex,chroma,detectionClock-lastAdvance);
+   const candidate=changeDrivenCandidate(scoreItems,activeIndex,chroma,markedChroma,detectionClock-lastAdvance,releasedSinceLast);
    const signature=candidate?candidate.index+":"+candidate.prediction.chord:"";
    if(signature&&signature===stableName)stableCount++;
    else{stableName=signature;stableCount=signature?1:0;}
@@ -587,18 +606,18 @@
    const rawChroma=chromaFromFFT(bins,ctx.sampleRate,analyser.fftSize);
    if(silentFrames>=2&&!rawChroma.some(v=>v>.001))releasedSinceLast=true;
    const chroma=accumulatedChroma(rawChroma);
-   const candidate=liveChordCandidate(scoreItems,activeIndex,chroma,Date.now()-lastAdvance);
+   const candidate=changeDrivenCandidate(scoreItems,activeIndex,chroma,markedChroma,Date.now()-lastAdvance,releasedSinceLast);
    const signature=candidate?candidate.index+":"+candidate.prediction.chord:"";
    if(signature&&signature===stableName)stableCount++;
    else{stableName=signature;stableCount=signature?1:0;}
-   // Two frames for the next chord; four confident frames for resync.
+   // Two consecutive frames confirm a new harmonic shape.
    if(candidate&&stableCount>=(candidate.skipped?4:2)){
     match(candidate,chroma);seenAt=Date.now();
    }
    if(!signature&&Date.now()-seenAt>2000&&mode==="mic")
     status(activeIndex<0?"In attesa del primo accordo: "+(scoreItems[0]?.label||"—"):
      "Live in ascolto · prossimo: "+(scoreItems[activeIndex+1]?.label||"fine")+
-     " · se necessario usa → per saltare un accordo");
+     " · avanzamento ai cambi armonici");
   }catch(err){
    root.console?.warn?.("Cantoria ascolto live:",err);
    if(mode==="mic")status("Rilevamento audio momentaneamente interrotto · ripristino in corso...");
@@ -690,7 +709,7 @@
   if(mode==="mic")status("In attesa del primo accordo: "+(scoreItems[0]?.label||"—"));
  }
  if(player)player.addEventListener("ended",()=>stop());
- const api={parseChord,chromaFromFFT,recognizeChord,recognizeExpectedChord,diagnoseChroma,startDiagnostic,stopDiagnostic,nextChordIndex,stepChordIndex,liveChordCandidate,setScore,step,loadTrack,play,microphone,toggle,rewind,stop,reset,refresh,syncControls,get mode(){return mode;},get activeIndex(){return activeIndex;},get hasSource(){return preferredSource==="mic"||!!player?.src;}};
+ const api={parseChord,chromaFromFFT,recognizeChord,recognizeExpectedChord,changeDrivenCandidate,diagnoseChroma,startDiagnostic,stopDiagnostic,nextChordIndex,stepChordIndex,liveChordCandidate,setScore,step,loadTrack,play,microphone,toggle,rewind,stop,reset,refresh,syncControls,get mode(){return mode;},get activeIndex(){return activeIndex;},get hasSource(){return preferredSource==="mic"||!!player?.src;}};
  root.CantoriaAudioFollow=api;
- if(typeof module!=="undefined"&&module.exports)module.exports={parseChord,chromaFromFFT,recognizeChord,recognizeExpectedChord,diagnoseChroma,nextChordIndex,stepChordIndex,liveChordCandidate};
+ if(typeof module!=="undefined"&&module.exports)module.exports={parseChord,chromaFromFFT,recognizeChord,recognizeExpectedChord,changeDrivenCandidate,diagnoseChroma,nextChordIndex,stepChordIndex,liveChordCandidate};
 })(typeof window!=="undefined"?window:globalThis);
