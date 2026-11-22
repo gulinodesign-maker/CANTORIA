@@ -215,7 +215,10 @@
    if(serial===sessionSerial&&(mode==="mic"||mode==="diagnostic"))status("Ascolto audio ripristinato.");
   }).catch(()=>{
    if(serial===sessionSerial)status("Audio sospeso da iOS: tieni lo schermo attivo e riavvia l’ascolto se necessario.");
-  }).finally(()=>{resumePromise=null;}) function bindMicrophoneTracks(captured,serial){
+  }).finally(()=>{resumePromise=null;});
+  return resumePromise;
+ }
+ function bindMicrophoneTracks(captured,serial){
   for(const track of captured.getTracks?.()||[]){
    // Do not react to "ended" from the previous track after it was replaced.
    const current=()=>serial===sessionSerial&&stream===captured;
