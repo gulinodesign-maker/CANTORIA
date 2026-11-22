@@ -69,7 +69,7 @@ async function tick(){
 (async()=>{
  follow.setScore('song',[{id:'one',label:'SOL',page:0},
   {id:'two',label:'DO',page:0},{id:'three',label:'FA',page:1}],()=>score.push(follow.activeIndex));
- await follow.microphone();
+ await follow.microphone();await settle();
  assert.equal(starts,1,'iOS must use AVAudioEngine instead of getUserMedia');
  assert.equal(follow.mode,'mic');
  push([7,11,2]);push([7,11,2]);await tick();
