@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
 const cp=require('node:child_process'),vm=require('node:vm');
-assert.deepEqual(require('../release.json'),{version:'1.1',build:42});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:43});
 const prepare=fs.readFileSync('scripts/prepare-ios.sh','utf8');
 const swift=fs.readFileSync('scripts/ios-background-mic.swift','utf8');
 const js=fs.readFileSync('audio-follow.js','utf8');
