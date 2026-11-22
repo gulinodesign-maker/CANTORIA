@@ -1,3 +1,13 @@
+## CANTORIA 1.1 (38) — display sempre acceso quando l'app iOS è attiva (22 novembre 2026)
+
+- Schermo iPhone/iPad mantenuto acceso automaticamente in tutte le sezioni mentre CANTORIA è in primo piano, non soltanto durante il riconoscimento degli accordi.
+- Protezione implementata nativamente con UIApplication.isIdleTimerDisabled e osservatori del ciclo di vita UIKit, per funzionare anche in WKWebView quando navigator.wakeLock non è supportato.
+- Quando CANTORIA diventa inattiva, va in background o il dispositivo viene bloccato, il timer di spegnimento di sistema viene ripristinato.
+- Script idempotente inserito nel percorso di generazione Capacitor dopo npx cap sync ios; verifica di sicurezza obbligatoria e test automatici su template AppDelegate.
+- Versione 1.1 build 38. I controlli contro avvio nero, firma Apple e pubblicazione TestFlight rimangono attivi.
+
+---
+
 ## Cantoria 1.1 (37) — ordine Home e icona Impostazioni a ingranaggio (22 novembre 2026)
 
 - Home, ordine visivo: Acquisisci, Biblioteca, Messe, Impostazioni; in portrait su due righe da due e in landscape su quattro colonne.

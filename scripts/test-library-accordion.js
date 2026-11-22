@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const html=fs.readFileSync('index.html','utf8'),js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(js);new vm.Script(js);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:37});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:38});
 const escape=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const songs=[{id:'1',title:'Signore pietà',author:'Francesco Buttazzo',sections:[{kind:'verse',lines:[]}]},{id:'2',title:'Gloria',author:'',sections:[]}];
 const ctx={state:{filter:'',libraryAuthor:'',librarySort:'title-asc',libraryOpenId:null},store:{songs},escape,escapeAttr:escape,CATHOLIC_CORNER:'<svg></svg>',Intl};

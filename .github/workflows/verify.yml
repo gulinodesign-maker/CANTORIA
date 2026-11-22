@@ -43,6 +43,7 @@ jobs:
           node scripts/test-library-landscape.js
           node scripts/test-release-pipeline.js
           node scripts/test-ios-launch-retry.js
+          node scripts/test-ios-screen-awake.js
       - name: Check inline JS and generate a sample PDF
         run: |
           node - <<'NODE'

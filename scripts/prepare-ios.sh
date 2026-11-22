@@ -33,6 +33,12 @@ if [[ ! -d ios/App/App.xcodeproj ]]; then
 fi
 npx cap sync ios
 
+# Cantoria is a live score reader. Keep the display awake throughout the
+# foreground iOS session, not only while listening for chords. This patch
+# must be applied after Capacitor generates AppDelegate on each CI build.
+python3 scripts/ios-screen-awake.py ios/App/App/AppDelegate.swift
+python3 scripts/ios-screen-awake.py --verify ios/App/App/AppDelegate.swift
+
 # Preserve Capacitor's stock controller; never replace the startup storyboard.
 if ! grep -q 'customClass="CAPBridgeViewController" customModule="Capacitor"' ios/App/App/Base.lproj/Main.storyboard; then
  echo "Unsafe controller. Refusing build." >&2; exit 1
