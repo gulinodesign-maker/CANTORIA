@@ -211,7 +211,7 @@
  .home-tile:hover{border-color:#bba16d;}
  .home-tile:before{content:"";position:absolute;top:10px;left:50%;transform:translateX(-50%);height:2px;width:34px;background:#c1a06180;border-radius:6px;}
  .home-tile-icon{color:#225241;background:#e8ede2;border:1px solid #d2ddcc;}
- .home-tile:nth-child(4) .home-tile-icon{color:#946724;background:#f4ebd9;border-color:#e6d5ab;}
+ .home-tile[data-nav="masses"] .home-tile-icon{color:#946724;background:#f4ebd9;border-color:#e6d5ab;}
  .home-footnote{color:#8a795e;line-height:1.5;margin-top:27px;}
  .page-heading .eyebrow,.eyebrow{letter-spacing:1.9px;}
  .reader-layer .reader-toolbar{background:#173d33;border-bottom:2px solid #bb9553;}
@@ -364,7 +364,7 @@
  .home-grid .home-tile:hover,.home-grid .home-tile:active{background:transparent!important;border-color:transparent!important;}
  .home-grid .home-tile:active{transform:scale(.96);}
  .home-grid .home-tile-icon{width:70px!important;height:70px!important;font-size:49px!important;background:transparent!important;border:0!important;color:#174636!important;box-shadow:none!important;}
- .home-grid .home-tile:nth-child(4) .home-tile-icon{color:#a87b2f!important;}
+ .home-grid .home-tile[data-nav="masses"] .home-tile-icon{color:#a87b2f!important;}
  .home-grid .home-tile strong{font-size:clamp(19px,3vw,24px)!important;}
  .mass-card-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px;}
  .mass-card-controls button{min-height:42px;}
@@ -399,8 +399,8 @@
  .home-grid .home-tile {display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:clamp(12px,2vh,19px);min-height:0!important;padding:0 1px!important;background:transparent!important;border:0!important;box-shadow:none!important;border-radius:0!important;}
  .home-grid .home-tile-icon {width:min(100%,clamp(110px,33vw,164px))!important;height:auto!important;aspect-ratio:1 / 1;display:grid;place-items:center;flex:0 0 auto;border:1.7px solid #b4a991!important;border-radius:clamp(33px,8vw,49px)!important;background:#f9f4eb!important;box-shadow:none!important;color:#235b49!important;font-size:initial!important;transition:background .15s ease,border-color .15s ease,transform .15s ease;}
  .home-grid .home-tile-icon svg {width:47%;height:47%;display:block;overflow:visible;}
- .home-grid .home-tile:nth-child(2) .home-tile-icon,.home-grid .home-tile:nth-child(4) .home-tile-icon {color:#ae7f2b!important;background:#faf2e5!important;border-color:#c1ae8d!important;}
- .home-grid .home-tile:nth-child(3) .home-tile-icon {color:#416f60!important;}
+ .home-grid .home-tile[data-nav="capture"] .home-tile-icon,.home-grid .home-tile[data-nav="masses"] .home-tile-icon {color:#ae7f2b!important;background:#faf2e5!important;border-color:#c1ae8d!important;}
+ .home-grid .home-tile[data-nav="settings"] .home-tile-icon {color:#416f60!important;}
  .home-grid .home-tile strong {font:650 clamp(17px,3.2vw,23px)/1.15 ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;letter-spacing:-.35px;color:#1c3930;text-align:center;white-space:nowrap;}
  .home-grid .home-tile:active {transform:none!important;}
  .home-grid .home-tile:active .home-tile-icon {transform:scale(.965);background:#efe8da!important;}
@@ -1267,8 +1267,8 @@
 /* CANTORIA 1.1 (35): 15% green Home icon backgrounds and centered Mass heading. */
 @media screen {
  .home-grid .home-tile .home-tile-icon,
- .home-grid .home-tile:nth-child(2) .home-tile-icon,
- .home-grid .home-tile:nth-child(4) .home-tile-icon,
+ .home-grid .home-tile[data-nav="capture"] .home-tile-icon,
+ .home-grid .home-tile[data-nav="masses"] .home-tile-icon,
  .home-grid .home-tile:active .home-tile-icon {
   background:rgba(23,68,55,.15)!important;
  }
@@ -1654,10 +1654,10 @@ const CATHOLIC_CORNER = '<svg class="corner-ornament" viewBox="0 0 300 245" pres
 function homeHTML(){
  const iconProps='viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true"';
  const tiles=[
-  {icon:`<svg ${iconProps}><path d="M32 52V15C24 10 16 10 8 13v34c8-3 16-3 24 5Z"/><path d="M32 52V15c8-5 16-5 24-2v34c-8-3-16-3-24 5Z"/></svg>`,title:'Biblioteca',view:'library'},
   {icon:`<svg ${iconProps}><rect x="8" y="19" width="48" height="34" rx="7"/><path d="m19 19 5-8h16l5 8"/><circle cx="32" cy="36" r="9"/></svg>`,title:'Acquisisci',view:'capture'},
-  {icon:`<svg ${iconProps}><path d="M10 17h20m12 0h12M10 32h6m12 0h26M10 47h28m12 0h4"/><circle cx="36" cy="17" r="6"/><circle cx="22" cy="32" r="6"/><circle cx="44" cy="47" r="6"/></svg>`,title:'Impostazioni',view:'settings'},
-  {icon:`<svg ${iconProps}><rect x="10" y="14" width="44" height="40" rx="7"/><path d="M21 10v9m22-9v9M10 26h44M32 32v16m-8-8h16"/></svg>`,title:'Messe',view:'masses'}
+  {icon:`<svg ${iconProps}><path d="M32 52V15C24 10 16 10 8 13v34c8-3 16-3 24 5Z"/><path d="M32 52V15c8-5 16-5 24-2v34c-8-3-16-3-24 5Z"/></svg>`,title:'Biblioteca',view:'library'},
+  {icon:`<svg ${iconProps}><rect x="10" y="14" width="44" height="40" rx="7"/><path d="M21 10v9m22-9v9M10 26h44M32 32v16m-8-8h16"/></svg>`,title:'Messe',view:'masses'},
+  {icon:`<svg ${iconProps}><path d="M28 7h8l1.8 6.7a20 20 0 0 1 4.5 2l6.2-3.5 5.6 5.6-3.5 6.2a20 20 0 0 1 2 4.5L59 30v8l-6.4 1.8a20 20 0 0 1-2 4.5l3.5 6.2-5.6 5.6-6.2-3.5a20 20 0 0 1-4.5 2L36 61h-8l-1.8-6.4a20 20 0 0 1-4.5-2l-6.2 3.5-5.6-5.6 3.5-6.2a20 20 0 0 1-2-4.5L5 38v-8l6.4-1.8a20 20 0 0 1 2-4.5l-3.5-6.2 5.6-5.6 6.2 3.5a20 20 0 0 1 4.5-2L28 7Z"/><circle cx="32" cy="34" r="9"/></svg>`,title:'Impostazioni',view:'settings'}
  ];
  return `<div class="home-screen"><div class="home-grid">${tiles.map(t=>`<button type="button" class="home-tile" data-nav="${t.view}" aria-label="Apri ${t.title}"><span class="home-tile-icon">${t.icon}</span><strong>${t.title}</strong></button>`).join('')}</div></div>`;
 }
@@ -2103,7 +2103,7 @@ function modalHTML(){const m=state.modal;
   const song=currentSong();if(!song?.photoData)return '';
   return `<div class="modal-shade"><div class="modal-card" role="alertdialog" aria-modal="true" aria-label="Conferma ricalcolo accordi"><h2>Ricalcolare gli accordi?</h2><p>La partitura verrà ricalcolata dalla fotografia originale con le coordinate OCR. Le modifiche manuali fatte sulle sillabe e sugli accordi saranno sostituite. La fotografia originale resterà disponibile.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button type="button" class="primary-btn" data-action="reparse-photo">Ricalcola accordi</button></div></div></div>`;
  }
- if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (36)</h2><p>Ripristino automatico dell’ascolto quando iOS sospende il microfono o interrompe la traccia audio. Durante la riproduzione live, se un accordo viene saltato, il riconoscimento può riallinearsi ai successivi senza bloccare la partitura. Le frecce rimangono disponibili per avanzare manualmente e non si procede in automatico nel silenzio.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
+ if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (37)</h2><p>La Home presenta i tasti nell’ordine Acquisisci, Biblioteca, Messe e Impostazioni. Le Impostazioni hanno ora un ingranaggio stilizzato. Restano invariati lo sfondo verde semitrasparente, le funzioni e il riconoscimento live degli accordi.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
 
 
  if(m.type==='key-analysis'){

@@ -1,3 +1,13 @@
+## Cantoria 1.1 (37) — ordine Home e icona Impostazioni a ingranaggio (22 novembre 2026)
+
+- Home, ordine visivo: Acquisisci, Biblioteca, Messe, Impostazioni; in portrait su due righe da due e in landscape su quattro colonne.
+- L'icona Impostazioni diventa un ingranaggio stilizzato in SVG a contorno, mantenendo colori, bordo e sfondo semitrasparente verde al 15%.
+- I colori degli altri tasti sono associati alla funzione (data-nav) invece che alla posizione, così non si alterano quando vengono riordinati.
+- Nessun cambiamento al motore di rilevamento degli accordi e alla scaletta delle Messe.
+- Build 37, aggiornamento della cache offline, test specifico e rilascio TestFlight automatico.
+
+---
+
 ## Cantoria 1.1 (36) — continuità del rilevamento accordi durante il live (22 novembre 2026)
 
 - Microfono ripristinato se la traccia di acquisizione termina oppure resta muta a lungo; AudioContext sospeso riattivato su ritorno in primo piano.
