@@ -1712,11 +1712,6 @@ function headerHTML(){
  return `<header class="topbar topbar-section topbar-standard">${CATHOLIC_CORNER}${back()}<strong class="header-section-title">${titles[state.view]||'Cantoria'}${sub}</strong>${right}</header>`;
 }
 function navHTML(){const nav=Object.keys(labels);return `<nav class="sidenav">${nav.map(k=>`<button class="nav-item ${state.view===k?'active':''}" data-nav="${k}"><span class="ico">${icons[k]}</span>${labels[k]}</button>`).join('')}<div class="nav-helper">La tua biblioteca è salvata in questo dispositivo.<br><strong>Il cloud verrà aggiunto in una prossima versione.</strong></div></nav><nav class="bottom-nav">${nav.map(k=>`<button class="bottom-item ${state.view===k?'active':''}" data-nav="${k}"><span class="ico">${icons[k]}</span>${labels[k]}</button>`).join('')}</nav>`;}
-function liturgicalMoment(song,item=null,archived=false){
- const raw=archived?(item?.label||item?.archiveLiturgicalRole||song?.liturgicalRole):
-  (item?.label||song?.liturgicalRole||song?.liturgicalFunction||'');
- return String(raw||'').trim().slice(0,90);
-}
 function libraryHTML(){
  const collator=new Intl.Collator('it',{sensitivity:'base',numeric:true});
  const query=String(state.filter||'').trim().toLocaleLowerCase('it');
@@ -1756,8 +1751,9 @@ function libraryHTML(){
   <div class="tiles library-song-list">${songs.map(song=>{
    const expanded=state.libraryOpenId===song.id;
    const hasAuthor=!!String(song.author||'').trim();
+   const moment=String(song.liturgicalRole||song.liturgicalFunction||'').trim().slice(0,90);
    return `<article class="song-card library-song-card ${expanded?'library-card-expanded':'library-card-collapsed'} ${hasAuthor?'library-has-author':''}" role="button" tabindex="0" data-action="toggle-library-card" data-song="${escapeAttr(song.id)}" aria-expanded="${expanded?'true':'false'}" aria-label="${expanded?'Chiudi':'Espandi'} le azioni per ${escapeAttr(song.title)}">
-     <div class="song-cover">${CATHOLIC_CORNER}<div class="cover-content"><div class="cover-label">${escape(song.title)}</div>${hasAuthor?`<div class="cover-author">(${escape(String(song.author).trim())})</div>`:''}${liturgicalMoment(song)?`<div class="cover-liturgical">${escape(liturgicalMoment(song))}</div>`:''}</div>
+     <div class="song-cover">${CATHOLIC_CORNER}<div class="cover-content"><div class="cover-label">${escape(song.title)}</div>${hasAuthor?`<div class="cover-author">(${escape(String(song.author).trim())})</div>`:''}${moment?`<div class="cover-liturgical">${escape(moment)}</div>`:''}</div>
      ${expanded?`<button class="card-delete-btn" type="button" data-action="ask-delete-song" data-song="${escapeAttr(song.id)}" title="Elimina brano" aria-label="Elimina ${escapeAttr(song.title)}">×</button>`:`<svg class="library-disclosure" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>`}
      </div>
      ${expanded?`<div class="card-body library-card-actions-only"><div class="card-actions" role="group" aria-label="Azioni brano">
@@ -1799,7 +1795,7 @@ function massDetailHTML(){
   const title=done?(item.archiveTitle||song?.title||'Canto non disponibile'):(song?.title||'Canto non disponibile');
   const used=!!item.usedAt;
   const author=String((done?(item.archiveAuthor||song?.author):song?.author)||'').trim();
-  const moment=liturgicalMoment(song,item,done);
+  const moment=String((done?(item.archiveLiturgicalRole||item.label||song?.liturgicalRole):(item.label||song?.liturgicalRole||song?.liturgicalFunction))||'').trim().slice(0,90);
   return `<article class="song-card mass-song-card ${done?'mass-song-archived':used?'mass-song-used':''}" role="button" tabindex="0" data-action="read-mass-song" data-item="${escapeAttr(item.id)}" ${!done?`data-reorder-item="${escapeAttr(item.id)}"`:''} aria-label="Apri ${escapeAttr(title)}">
     <div class="song-cover">${CATHOLIC_CORNER}<div class="cover-content"><div class="cover-label">${escape(title)}</div>${author?`<div class="cover-author">(${escape(author)})</div>`:''}${moment?`<div class="cover-liturgical">${escape(moment)}</div>`:''}</div>
     ${!done&&used?`<button type="button" class="mass-song-reset" data-action="reset-mass-item-used" data-item="${escapeAttr(item.id)}" title="Rendi di nuovo disponibile" aria-label="Rendi di nuovo disponibile ${escapeAttr(title)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10a8 8 0 1 1 0 6"/><path d="M4 4v6h6"/></svg></button>`:''}
