@@ -2103,7 +2103,7 @@ function modalHTML(){const m=state.modal;
   const song=currentSong();if(!song?.photoData)return '';
   return `<div class="modal-shade"><div class="modal-card" role="alertdialog" aria-modal="true" aria-label="Conferma ricalcolo accordi"><h2>Ricalcolare gli accordi?</h2><p>La partitura verrà ricalcolata dalla fotografia originale con le coordinate OCR. Le modifiche manuali fatte sulle sillabe e sugli accordi saranno sostituite. La fotografia originale resterà disponibile.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button type="button" class="primary-btn" data-action="reparse-photo">Ricalcola accordi</button></div></div></div>`;
  }
- if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (38)</h2><p>Schermo sempre acceso mentre CANTORIA è attiva in primo piano su iPhone o iPad: lo spartito rimane visibile durante tutta la celebrazione, anche senza toccare il display. Quando si esce dall’app o si blocca il dispositivo, il risparmio energetico iOS torna normale.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
+ if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (39)</h2><p>Ripristino automatico dell’ascolto degli accordi quando si ritorna nell’app, senza perdere il punto nel canto. Schermo sempre acceso mentre CANTORIA è attiva in primo piano su iPhone o iPad: lo spartito rimane visibile durante tutta la celebrazione, anche senza toccare il display. Quando si esce dall’app o si blocca il dispositivo, il risparmio energetico iOS torna normale.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
 
 
  if(m.type==='key-analysis'){
@@ -3188,7 +3188,7 @@ let startX=0,startY=0;root.addEventListener('touchstart',e=>{if(!e.target.closes
 root.addEventListener('touchend',e=>{if(!e.target.closest('#readerPaper'))return;const t=e.changedTouches[0],dx=t.clientX-startX,dy=t.clientY-startY;if(window.innerWidth>window.innerHeight&&Math.abs(dx)>65&&Math.abs(dx)>Math.abs(dy)*1.4){state.page+=dx<0?1:-1;state.page=Math.max(0,Math.min(pageList(currentSong()).length-1,state.page));render();}},{passive:true});
 window.addEventListener('resize',()=>{if(state.songId){state.page=0;render();}});
 window.addEventListener('beforeprint',()=>{const holder=document.querySelector('#print-sheet');if(holder&&currentSong()&&!holder.innerHTML)holder.innerHTML=`<div class="print-body"><div class="print-head">${escape(currentSong().title)}</div>${sectionsAllHTML(currentSong(),true)}</div>`;alignChords(holder||document);});
-window.addEventListener('pagehide',()=>window.CantoriaAudioFollow?.stop());
+// The mic module handles app suspension; backgrounding is not Stop.
 if('serviceWorker'in navigator&&location.protocol.startsWith('http'))window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 render();
 // Both TestFlight's CFBundleVersion and Settings read the same release.json.

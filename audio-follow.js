@@ -172,7 +172,7 @@
  let scoreItems=[],showPage=null,previousRms=0,silentFrames=0,releasedSinceLast=false,attackCount=0,lastMarkAttackCount=0,lastAttackAt=0;
  let chromaHistory=[],markedChroma=null;
  let diagSerial=0,diagCallback=null,diagLast="",diagStable="",diagFrames=0;
- let sessionSerial=0,micRecovery=null,lastMicRecovery=-Infinity,mutedSince=0,resumePromise=null,wakeLock=null;
+ let sessionSerial=0,micRecovery=null,lastMicRecovery=-Infinity,mutedSince=0,resumePromise=null,wakeLock=null,foregroundCaptureDirty=false;
  const $=selector=>root.document?.querySelector(selector);
  function status(message){
   const element=$("#audioFollowStatus");
@@ -220,59 +220,106 @@
  }
  function bindMicrophoneTracks(captured,serial){
   for(const track of captured.getTracks?.()||[]){
+   // Do not react to "ended" from the previous track after it was replaced.
+   const current=()=>serial===sessionSerial&&stream===captured;
    track.addEventListener?.("ended",()=>{
-    if(serial===sessionSerial&&mode==="mic")void recoverMicrophone();
+    if(current()&&(mode==="mic"||mode==="diagnostic"))void recoverMicrophone();
    });
-   track.addEventListener?.("mute",()=>{if(serial===sessionSerial)mutedSince=Date.now();});
-   track.addEventListener?.("unmute",()=>{if(serial===sessionSerial)mutedSince=0;});
+   track.addEventListener?.("mute",()=>{if(current())mutedSince=Date.now();});
+   track.addEventListener?.("unmute",()=>{if(current())mutedSince=0;});
   }
  }
- function recoverMicrophone(){
-  if(mode!=="mic"||micRecovery||Date.now()-lastMicRecovery<3500)return micRecovery;
+ function recoverMicrophone(force=false){
+  const sourceMode=mode;
+  if(sourceMode!=="mic"&&sourceMode!=="diagnostic")return null;
+  if(micRecovery)return micRecovery;
+  if(!force&&Date.now()-lastMicRecovery<3500)return null;
   lastMicRecovery=Date.now();
-  const serial=sessionSerial;
-  status("Connessione microfono interrotta: tentativo di ripristino...");
+  const serial=sessionSerial,diagnosticSerial=diagSerial;
+  const current=()=>serial===sessionSerial&&diagnosticSerial===diagSerial&&mode===sourceMode;
+  if(sourceMode==="mic")status("Ripristino del microfono in corso...");
+  else diagNotify({phase:"requesting",message:"Ripristino del microfono in corso..."});
   micRecovery=(async()=>{
    let captured=null;
    try{
-    await ensureContext();
-    if(serial!==sessionSerial||mode!=="mic")return;
+    // A WebKit track can still say "live" while iOS has stopped delivering
+    // samples. A foreground transition must reopen the actual capture.
+    if(force){
+     const old=stream;
+     stream=null;
+     try{micNode?.disconnect();}catch(_){}
+     micNode=null;
+     old?.getTracks?.().forEach(t=>t.stop());
+    }
+    // Do not block on a WebKit AudioContext whose resume() may be stalled.
+    if(!ctx||ctx.state==="closed")await ensureContext();
+    else if(ctx.state!=="running")void resumeAudio();
+    if(!current())return;
     captured=await root.navigator.mediaDevices.getUserMedia({audio:{
      echoCancellation:false,noiseSuppression:false,autoGainControl:false},video:false});
-    if(serial!==sessionSerial||mode!=="mic"){captured.getTracks().forEach(t=>t.stop());return;}
-    const node=ctx.createMediaStreamSource(captured);
-    node.connect(analyser);
-    try{micNode?.disconnect();}catch(_){}
-    stream?.getTracks?.().forEach(t=>t.stop());
-    stream=captured;micNode=node;mutedSince=0;
-    resetListeningWindow();bindMicrophoneTracks(stream,serial);
-    status("Microfono riattivato · ascolto live in corso.");
-    syncControls();keepAwake();
+    if(!current()){captured.getTracks?.().forEach(t=>t.stop());return;}
+    const nextAnalyser=ctx.createAnalyser();
+    nextAnalyser.fftSize=8192;
+    nextAnalyser.smoothingTimeConstant=sourceMode==="mic"?.34:.64;
+    const nextNode=ctx.createMediaStreamSource(captured);
+    nextNode.connect(nextAnalyser);
+    const oldStream=stream,oldNode=micNode,oldAnalyser=analyser;
+    if(mediaNode&&oldAnalyser){
+     try{mediaNode.disconnect(oldAnalyser);}catch(_){}
+     try{mediaNode.connect(nextAnalyser);}catch(_){}
+    }
+    stream=captured;micNode=nextNode;analyser=nextAnalyser;
+    bins=new Uint8Array(analyser.frequencyBinCount);
+    wave=new Uint8Array(analyser.fftSize);
+    try{oldNode?.disconnect();}catch(_){}
+    oldStream?.getTracks?.().forEach(t=>t.stop());
+    mutedSince=0;resetListeningWindow();
+    bindMicrophoneTracks(stream,serial);
+    if(sourceMode==="mic"){
+     status("Microfono riattivato · ascolto live in corso.");
+     syncControls();keepAwake();
+    }else{
+     diagStable="";diagFrames=0;
+     diagNotify({phase:"listening",level:0,chord:diagLast,
+      message:"Microfono riattivato: suona un accordo."});
+    }
    }catch(err){
     if(captured&&captured!==stream)captured.getTracks?.().forEach(t=>t.stop());
-    if(serial===sessionSerial&&mode==="mic")
-     status("Microfono non disponibile: tocca Stop e riattiva l’ascolto. "+(err?.message||""));
-   }finally{micRecovery=null;}
+    if(current()){
+     const msg="Microfono non disponibile: tocca Stop e riattiva l’ascolto. "+(err?.message||"");
+     if(sourceMode==="mic"){status(msg);syncControls();}
+     else diagNotify({phase:"error",message:msg,level:0,chord:diagLast});
+    }
+   }finally{
+    if(serial===sessionSerial)micRecovery=null;
+   }
   })();
   return micRecovery;
  }
- function onAudioForeground(){
+ function onAudioBackground(){
   if(mode!=="mic"&&mode!=="diagnostic")return;
+  foregroundCaptureDirty=true;
+  releaseWakeLock();
+ }
+ function onAudioForeground(){
+  if(root.document?.hidden||(mode!=="mic"&&mode!=="diagnostic"))return;
+  const force=foregroundCaptureDirty;
+  foregroundCaptureDirty=false;
   void resumeAudio();
-  if(mode==="mic"){
-   keepAwake();
-   if(needsMicRecovery())void recoverMicrophone();
-   // iOS may discard timers during an interruption: restart just one loop
-   // on return to the foreground instead of depending on the old timeout.
-   if(timer){root.clearTimeout(timer);timer=0;}
-   detect();
-  }
+  if(force||needsMicRecovery())void recoverMicrophone(force);
+  if(timer){root.clearTimeout(timer);timer=0;}
+  if(mode==="mic"){keepAwake();detect();}
+  else diagDetect();
  }
  root.document?.addEventListener?.("visibilitychange",()=>{
-  if(!root.document.hidden)onAudioForeground();
+  if(root.document.hidden)onAudioBackground();
+  else onAudioForeground();
  });
+ root.addEventListener?.("pagehide",onAudioBackground);
+ root.addEventListener?.("blur",onAudioBackground);
  root.addEventListener?.("pageshow",onAudioForeground);
  root.addEventListener?.("focus",onAudioForeground);
+("focus",onAudioForeground);
  function chordProfileChange(before,now){
   if(!Array.isArray(before)||!Array.isArray(now)||before.length!==12||now.length!==12)return 1;
   const a=before.reduce((sum,v)=>sum+Math.max(0,v||0),0)||1;
@@ -309,6 +356,8 @@
  }
  function diagDetect(){
   if(mode!=="diagnostic"||!analyser)return;
+  if(micRecovery){timer=root.setTimeout(diagDetect,180);return;}
+  if(mode==="diagnostic"&&needsMicRecovery()){void recoverMicrophone();timer=root.setTimeout(diagDetect,180);return;}
   if(ctx.state!=="running"){void resumeAudio();diagNotify({phase:"listening",message:"Audio sospeso: ripristino in corso.",chord:diagLast});timer=root.setTimeout(diagDetect,250);return;}
   analyser.getByteFrequencyData(bins);
   const low=Math.ceil(85*analyser.fftSize/ctx.sampleRate);
@@ -353,6 +402,7 @@
    if(token!==diagSerial){mic.getTracks().forEach(t=>t.stop());return;}
    stream=mic;
    micNode=ctx.createMediaStreamSource(stream);micNode.connect(analyser);
+   bindMicrophoneTracks(stream,sessionSerial);
    diagNotify({phase:"listening",message:"Microfono attivo: suona un accordo (es. DO).",level:0,chord:""});
    diagDetect();
   }catch(err){if(token===diagSerial){stop();throw err;}}
@@ -473,6 +523,7 @@
   if((mode!=="mic"&&mode!=="player")||!analyser)return;
   try{
    if(mode==="player"&&player?.paused){status("Audio in pausa");return;}
+   if(mode==="mic"&&micRecovery)return;
    if(mode==="mic"&&needsMicRecovery()){void recoverMicrophone();return;}
    if(ctx.state!=="running"){
     void resumeAudio();
@@ -508,6 +559,7 @@
   const AudioContext=root.AudioContext||root.webkitAudioContext;
   if(!AudioContext)throw new Error("Audio non supportato da questo dispositivo.");
   if(!ctx||ctx.state==="closed"){
+   mediaNode=null;
    ctx=new AudioContext();analyser=ctx.createAnalyser();analyser.fftSize=8192;
    analyser.smoothingTimeConstant=.34;
    bins=new Uint8Array(analyser.frequencyBinCount);wave=new Uint8Array(analyser.fftSize);
@@ -517,6 +569,7 @@
  function stop(){
   const wasDiag=mode==="diagnostic";
   diagSerial++;sessionSerial++;lastMicRecovery=-Infinity;mutedSince=0;
+  micRecovery=null;foregroundCaptureDirty=false;
   if(timer)root.clearTimeout(timer);timer=0;
   if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
   try{micNode?.disconnect();}catch(_){}

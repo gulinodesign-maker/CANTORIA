@@ -3,7 +3,7 @@ const html=fs.readFileSync('index.html','utf8');
 const source=fs.readFileSync('audio-follow.js','utf8');
 const audio=require('../audio-follow.js');
 const release=require('../release.json');
-assert.deepEqual(release,{version:'1.1',build:38});
+assert.deepEqual(release,{version:'1.1',build:39});
 new vm.Script(source);
 const inner=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(inner,'Inline app script missing');new vm.Script(inner);

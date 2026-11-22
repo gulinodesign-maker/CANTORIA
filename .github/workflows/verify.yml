@@ -26,6 +26,7 @@ jobs:
           node scripts/test-imported-audio.js
           node scripts/test-real-microphone.js
           node scripts/test-live-recovery.js
+          node scripts/test-foreground-recovery.js
           node scripts/test-fast-chords.js
           node scripts/test-audio-diagnostic.js
           node scripts/test-library-meta.js
