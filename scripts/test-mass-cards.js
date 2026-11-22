@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const html=fs.readFileSync('index.html','utf8'),js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(js);new vm.Script(js);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:46});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:47});
 const escape=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const song={id:'s1',title:'Ti esalto Dio mio re',author:'Francesco Buttazzo',sections:[]};
 const planned={id:'m1',name:'Messa 1',date:'',items:[{id:'i1',songId:'s1',shift:0,label:'Ingresso'}]};
@@ -91,12 +91,13 @@ assert.ok(headA>=0&&headB>headA);
 ctx.state.view='masses';ctx.state.massId='m1';
 vm.runInNewContext(js.slice(headA,headB)+'this.makeHeader=headerHTML;',ctx);
 const titlebar=ctx.makeHeader();
-for(const token of ['topbar-mass-detail','corner-back-button','mass-topbar-overline','mass-topbar-name','mass-topbar-count','mass-topbar-date','Messa 1','1 canto','Data da definire'])
+for(const token of ['topbar-mass-detail','corner-back-button','mass-topbar-name','mass-topbar-date','Messa 1','Data da definire'])
  assert.ok(titlebar.includes(token),token);
 assert.equal((titlebar.match(/data-action="back-masses"/g)||[]).length,1);
+assert.ok(!titlebar.includes('SCALETTA')&&!titlebar.includes('1 canto')&&!titlebar.includes('mass-topbar-count'),'No Mass count or overline visible');
 ctx.state.massId='m2';const historyBar=ctx.makeHeader();
-assert.ok(historyBar.includes('CELEBRATA')&&historyBar.includes('22/11/2026'));
+assert.ok(historyBar.includes('22/11/2026')&&!historyBar.includes('CELEBRATA'),'Historical Mass header shows name and date only');
 const detailSource=js.slice(js.indexOf('function massDetailHTML()'),js.indexOf('const OCR_JS_URL='));
 for(const duplicate of ['mass-collection-header','mass-detail-title-row','mass-overline','data-action="back-masses"'])
  assert.ok(!detailSource.includes(duplicate),'Duplicate Mass information '+duplicate);
-console.log('Mass topbar retains title, date, count and return without duplicates');
+console.log('Mass topbar retains name, date and return with no redundant count or overline');

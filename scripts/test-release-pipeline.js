@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs');
 const release=require('../release.json');
 assert.equal(release.version,'1.1');
-assert.equal(release.build,46);
+assert.equal(release.build,47);
 const pipeline=fs.readFileSync('.github/workflows/ios-testflight-auto.yml','utf8');
 assert.ok(pipeline.includes('cancel-in-progress: true'),'Older releases must be cancelled');
 assert.ok(!pipeline.includes('run: bash scripts/verify-ios-launch.sh'),'Release must not boot an iPhone Simulator');
@@ -19,5 +19,5 @@ assert.ok(prep.includes("fs.writeFileSync('web/build-info.json'"));
 assert.ok(prep.includes("crypto.createHash('sha256')"));
 const html=fs.readFileSync('index.html','utf8');
 assert.ok(html.includes('class="cover-author"'),'Composer credit absent');
-assert.ok(html.includes('CANTORIA 1.1 (46)'),'Release UI notes not updated');
+assert.ok(html.includes('CANTORIA 1.1 (47)'),'Release UI notes not updated');
 console.log('PASS: stale builds cancelled, exact signed app verified, immutable source fingerprint');

@@ -1911,6 +1911,27 @@
  }
 }
 
+/* CANTORIA 1.1 (47): genuinely LEFT portrait playback controls and clean Mass header. */
+@media screen and (orientation:portrait){
+ .reader-layer.reader-portrait .reader-toolbar-left{
+  left:clamp(38px,6vw,56px)!important;
+  right:auto!important;top:calc(7px + env(safe-area-inset-top,0px))!important;
+  justify-content:flex-start!important;
+  z-index:1000!important
+ }
+}
+@media screen and (orientation:portrait) and (max-width:380px){
+ .reader-layer.reader-portrait .reader-toolbar-left{
+  left:38px!important;right:auto!important;
+ }
+}
+.topbar-section.topbar-mass-detail .mass-topbar-title-block{
+ gap:0!important;align-items:center!important;justify-content:center!important;
+}
+.topbar-section.topbar-mass-detail .mass-topbar-info{
+ justify-content:center!important;align-items:center!important;
+}
+
 </style>
   <title>Cantoria — Canti per la liturgia cattolica</title>
 </head>
@@ -2279,14 +2300,13 @@ function homeHTML(){
 function headerHTML(){
  if(state.view==='home')return `<header class="topbar topbar-home topbar-home-labeled">${CATHOLIC_CORNER}<h1 class="home-topbar-title">Cantoria</h1></header>`;
  if(state.view==='masses'&&state.massId&&currentMass()){
-  const m=currentMass(),done=!!m.celebratedAt,n=(m.items||[]).length;
+  const m=currentMass(),done=!!m.celebratedAt;
   const date=massDateDisplay(m.date||(done?String(m.celebratedAt).slice(0,10):''));
   return `<header class="topbar topbar-section topbar-mass-detail" aria-label="Intestazione scaletta della Messa">
    ${backCornerHTML('back-masses')}
    <div class="mass-topbar-info"><div class="mass-topbar-title-block">
-    <span class="mass-topbar-overline">${done?'CELEBRATA':'SCALETTA'}</span>
     <strong class="mass-topbar-name">${escape(m.name)}</strong>
-   </div><span class="mass-topbar-count">${n} ${n===1?'canto':'canti'}</span></div>
+   </div></div>
    <span class="mass-topbar-date">${escape(date)}</span>
   </header>`;
  }
@@ -2371,13 +2391,11 @@ function massesHTML(){
 }
 function massDetailHTML(){
  const mass=currentMass(),done=!!mass.celebratedAt;
- const count=(mass.items||[]).length;
  const buttons=done?
   `<button class="outline-btn mass-tool" type="button" disabled><span aria-hidden="true">⊕</span><span>Aggiungi canto</span></button><button class="outline-btn mass-tool" type="button" disabled><span aria-hidden="true">✓</span><span>Celebrata</span></button><button class="outline-btn mass-tool" type="button" disabled><span aria-hidden="true">✎</span><span>Rinomina Messa</span></button>`:
   `<button class="primary-btn mass-tool" type="button" data-action="add-to-mass"><span aria-hidden="true">⊕</span><span>Aggiungi canto</span></button><button class="outline-btn mass-tool" type="button" data-action="finish-mass"><span aria-hidden="true">✓</span><span>Segna celebrata</span></button><button class="outline-btn mass-tool" type="button" data-action="rename-mass"><span aria-hidden="true">✎</span><span>Rinomina Messa</span></button>`;
  return `<div class="mass-detail-tools" role="group" aria-label="Gestione Messa">${buttons}</div>
- ${!done&&count>1?'<p class="mass-reorder-help">Tieni premuto un canto e trascinalo per cambiare l’ordine della Messa.</p>':''}
- <div class="tiles mass-song-tiles" ${!done?`data-mass-reorder="${escapeAttr(mass.id)}" aria-label="Scaletta riordinabile tramite pressione prolungata"`:''}>${(mass.items||[]).map((item,i)=>{
+  <div class="tiles mass-song-tiles" ${!done?`data-mass-reorder="${escapeAttr(mass.id)}" aria-label="Scaletta riordinabile tramite pressione prolungata"`:''}>${(mass.items||[]).map((item,i)=>{
   const song=store.songs.find(x=>x.id===item.songId);
   const title=done?(item.archiveTitle||song?.title||'Canto non disponibile'):(song?.title||'Canto non disponibile');
   const used=!!item.usedAt;
@@ -2723,7 +2741,7 @@ function modalHTML(){const m=state.modal;
   const song=currentSong();if(!song?.photoData)return '';
   return `<div class="modal-shade"><div class="modal-card" role="alertdialog" aria-modal="true" aria-label="Conferma ricalcolo accordi"><h2>Ricalcolare gli accordi?</h2><p>La partitura verrà ricalcolata dalla fotografia originale con le coordinate OCR. Le modifiche manuali fatte sulle sillabe e sugli accordi saranno sostituite. La fotografia originale resterà disponibile.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button type="button" class="primary-btn" data-action="reparse-photo">Ricalcola accordi</button></div></div></div>`;
  }
- if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (46)</h2><p>Indietro sulla croce ora usa un'area di tocco più ampia e affidabile su iPad. Riavvolgi e Play sono spostati a sinistra in portrait, subito a destra della croce; in landscape rimangono fuori dallo smusso e cliccabili. Lo smusso verde con la croce non è più ritagliato dai bordi delle top bar. Scaletta Messa ridisegnata con card compatte, titoli leggibili, croce e dettagli verde/oro. Navigazione manuale degli accordi rimossa e top bar Messa più compatta. Funzione liturgica selezionabile durante l’acquisizione, in verde nelle card di Biblioteca e Scaletta. Ascolto live: identificato il primo accordo, avanza ai cambi armonici confermati. Pubblicazione TestFlight senza avvio obbligatorio del simulatore, mantenendo i controlli di compilazione e integrità. Motore microfono nativo iOS: l’ascolto continua mentre l’app è in background. Al ritorno, gli accordi rilevati riallineano lo spartito senza salvare registrazioni audio. Schermo sempre acceso mentre CANTORIA è attiva in primo piano su iPhone o iPad: lo spartito rimane visibile durante tutta la celebrazione, anche senza toccare il display. Quando si esce dall’app o si blocca il dispositivo, il risparmio energetico iOS torna normale.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
+ if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (47)</h2><p>Indietro sulla croce ora usa un'area di tocco più ampia e affidabile su iPad. Riavvolgi e Play sono posizionati ulteriormente a sinistra in portrait, accanto allo smusso; in landscape rimangono fuori dallo smusso e cliccabili. La testata Messa mostra soltanto nome e data: eliminati «SCALETTA», il numero di canti e la spiegazione del trascinamento, mantenendo il riordino. Lo smusso verde con la croce non è più ritagliato dai bordi delle top bar. Scaletta Messa ridisegnata con card compatte, titoli leggibili, croce e dettagli verde/oro. Navigazione manuale degli accordi rimossa e top bar Messa più compatta. Funzione liturgica selezionabile durante l’acquisizione, in verde nelle card di Biblioteca e Scaletta. Ascolto live: identificato il primo accordo, avanza ai cambi armonici confermati. Pubblicazione TestFlight senza avvio obbligatorio del simulatore, mantenendo i controlli di compilazione e integrità. Motore microfono nativo iOS: l’ascolto continua mentre l’app è in background. Al ritorno, gli accordi rilevati riallineano lo spartito senza salvare registrazioni audio. Schermo sempre acceso mentre CANTORIA è attiva in primo piano su iPhone o iPad: lo spartito rimane visibile durante tutta la celebrazione, anche senza toccare il display. Quando si esce dall’app o si blocca il dispositivo, il risparmio energetico iOS torna normale.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
 
 
  if(m.type==='key-analysis'){

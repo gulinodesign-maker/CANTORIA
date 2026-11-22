@@ -36,6 +36,7 @@ jobs:
           node scripts/test-mass-reorder.js
           node scripts/test-mass-landscape.js
           node scripts/test-home-mass-header.js
+          node scripts/test-clean-mass-header.js
           node scripts/test-home-order-gear.js
           node scripts/test-release-info.js
           node scripts/test-settings-backup-nav.js
