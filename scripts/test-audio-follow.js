@@ -149,7 +149,7 @@ const actualRe=Array(12).fill(.001);for(const note of [2,6,9])actualRe[note]=.32
 assert.equal(audio.recognizeExpectedChord(actualRe,'RE7',['RE','RE7']).chord,'RE7',
  'A complete major triad supports a seventh-labelled target when the seventh is omitted');
 assert.equal(audio.parseChord('FA7+').intervals.at(-1),11,'FA7+ must have a major seventh');
-assert.ok(audioSource.includes('recognizeExpectedChord(chroma,expected,sequence().map(x=>x.label))'));
+assert.ok(audioSource.includes('liveChordCandidate(scoreItems,activeIndex,chroma,Date.now()-lastAdvance)'), 'Live follow must check the next expected chord and rejoin confidently recognized nearby chords');
 
 // Integration: simulate frequency bins received by a live microphone over time.
 let clock=0,notes=[392,494,587],scheduled=[],pages=[];
