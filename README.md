@@ -1,3 +1,11 @@
+## Cantoria 1.1 (35) — sfondo verde delle icone Home al 15% (22 novembre 2026)
+
+- I quattro riquadri Home usano background rgba(23,68,55,.15), senza modificare bordi, icone e testo.
+- Il titolo e la data della Messa restano centrati e il conteggio resta a destra.
+- Numero build 35, cache service worker aggiornata, nuova pipeline TestFlight.
+
+---
+
 ## Cantoria 1.1 (34) — Home con sfondo icone verde 50% e titolo Messa centrato (21 novembre 2026)
 
 - I quattro riquadri delle icone Home usano lo sfondo verde rgba(23,68,55,.5); la trasparenza riguarda solo lo sfondo e lascia le icone leggibili.
