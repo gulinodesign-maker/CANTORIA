@@ -29,6 +29,7 @@ jobs:
           node scripts/test-foreground-recovery.js
           node scripts/test-native-background-mic.js
           node scripts/test-fast-chords.js
+          node scripts/test-audio-tolerance.js
           node scripts/test-audio-diagnostic.js
           node scripts/test-library-meta.js
           node scripts/test-library-filters.js

@@ -1,18 +1,19 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const html=fs.readFileSync('index.html','utf8'),js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(js);new vm.Script(js);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:49});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:50});
 const pkg=require('../package.json');
 assert.equal(pkg.dependencies['@capacitor/filesystem'],'8.0.0');
 assert.equal(pkg.dependencies['@capacitor/share'],'8.0.0');
 assert.ok(!html.includes('Modello musicale'));
-const settingsA=js.indexOf('function settingsHTML()'),settingsB=js.indexOf('function appHTML()',settingsA);
+const settingsA=js.indexOf('function followToleranceLabel('),settingsB=js.indexOf('function appHTML()',settingsA);
 assert.ok(settingsA>=0&&settingsB>settingsA);
-const sc={};
+const sc={window:{CantoriaAudioFollow:{getTolerance:()=>65}}};
 vm.runInNewContext(js.slice(settingsA,settingsB)+'this.settings=settingsHTML;',sc);
 const settings=sc.settings();
 for(const marker of ['settings-backup-actions','data-action="backup"','for="backupInput"'])assert.ok(settings.includes(marker));
 assert.ok(!settings.includes('Modello musicale'));
+assert.ok(settings.includes('id="audioFollowTolerance"'),'Tolerance must be visible in Settings');
 const css=html.slice(html.indexOf('/* CANTORIA 1.1 (22):'));
 assert.ok(css.includes('grid-template-columns:repeat(2,minmax(0,1fr))!important'));
 assert.ok(css.includes('width:100%!important'));
@@ -20,7 +21,7 @@ assert.ok(css.includes('.corner-back-button'),'Corner is the universal back cont
 assert.ok(css.includes('.topbar-create-mass'));
 const sourceHeader=js.slice(js.indexOf('function headerHTML()'),js.indexOf('function navHTML()'));
 const ctx={
- state:{view:'masses',massId:null},releaseInfo:{version:'1.1',build:49},
+ state:{view:'masses',massId:null},releaseInfo:{version:'1.1',build:50},
  CATHOLIC_CORNER:'<svg class="corner-ornament"></svg>',backCornerHTML:kind=>kind==='home'?'<button class="corner-back-button" data-nav="home"></button>':'<button class="corner-back-button" data-action="'+kind+'"></button>',escape:s=>s,massDateDisplay:()=>'',currentMass(){return null}
 };
 vm.runInNewContext(sourceHeader+'this.head=headerHTML;',ctx);
@@ -29,7 +30,7 @@ assert.ok(!top.includes('data-action="create-mass"'),'Creation button moves belo
 assert.ok(top.includes('data-nav="home"'),'Back to home must be in the top left');
 assert.ok(top.indexOf('class="corner-back-button"')<top.indexOf('class="header-section-title"'));
 ctx.state.view='settings';top=ctx.head();
-assert.ok(top.includes('Versione 1.1 (49)'));
+assert.ok(top.includes('Versione 1.1 (50)'));
 assert.ok(!top.includes('create-mass'));
 ctx.state.view='masses';ctx.state.massId='m1';ctx.currentMass=()=>({name:'Messa 1',items:[],date:'',celebratedAt:null});
 top=ctx.head();

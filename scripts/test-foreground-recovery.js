@@ -4,7 +4,7 @@ const source=fs.readFileSync('audio-follow.js','utf8');
 const html=fs.readFileSync('index.html','utf8');
 assert.ok(!html.includes("pagehide',()=>window.CantoriaAudioFollow?.stop()"),
  'Backgrounding Cantoria must never act as Stop');
-assert.deepEqual(require('../release.json'),{version:'1.1',build:49});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:50});
 new vm.Script(source);
 
 let requests=0,stops=0,resumes=0,nextTimer=0;
@@ -35,6 +35,7 @@ const root={document:doc,AudioContext:Context,
 };
 vm.runInNewContext(source,{window:root,module:{exports:{}}});
 const follow=root.CantoriaAudioFollow;
+follow.setTolerance(0); // Regression checks recovery with the original rapid two-frame detection.
 const settle=async()=>{for(let i=0;i<12;i++)await Promise.resolve();};
 (async()=>{
  follow.setScore('chant',[{id:'a',label:'SOL',page:0},

@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const html=fs.readFileSync('index.html','utf8'),js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(js);new vm.Script(js);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:49});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:50});
 const marker='/* CANTORIA 1.1 (46): portrait transport LEFT and the whole gold-cross corner visible.';
 const p=html.indexOf(marker);assert.ok(p>html.indexOf('/* CANTORIA 1.1 (45)'),'New overrides must follow old right-side layout');
 const css=html.slice(p,html.indexOf('</style>',p));
@@ -52,5 +52,5 @@ assert.ok(reader.includes("backCornerHTML('close-reader')"),'Reader Back must us
 const left=reader.slice(reader.indexOf('<div class="reader-toolbar-left">'),reader.indexOf(' </div>\n <div class="reader-title"'));
 assert.ok(left.indexOf('data-action="follow-rewind"')>=0&&left.indexOf('data-action="follow-play"')>left.indexOf('data-action="follow-rewind"'),'Rewind and Play in correct left order');
 assert.ok(reader.includes('data-action="follow-source"')&&reader.includes('data-action="song-options"'),'Right-side music and menu preserved');
-assert.ok(html.includes('<h2>CANTORIA 1.1 (49)</h2>'));
+assert.ok(html.includes('<h2>CANTORIA 1.1 (50)</h2>'));
 console.log('PASS: left transport in portrait, landscape cross uncropped, Back still accessible everywhere');

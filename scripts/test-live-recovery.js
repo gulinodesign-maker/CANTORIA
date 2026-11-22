@@ -1,6 +1,6 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const source=fs.readFileSync('audio-follow.js','utf8');
-assert.deepEqual(require('../release.json'),{version:'1.1',build:49});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:50});
 new vm.Script(source);
 const audio=require('../audio-follow.js');
 const profile=(pcs)=>Array.from({length:12},(_,i)=>pcs.includes(i)?1/pcs.length:0);
@@ -44,6 +44,7 @@ const root={
 };
 vm.runInNewContext(source,{window:root,Date:{now(){return now;}},module:{exports:{}}});
 const follow=root.CantoriaAudioFollow;
+follow.setTolerance(0); // Regression checks recovery with the original rapid two-frame detection.
 const tick=()=>{now+=80;const fn=frames.shift();assert.ok(fn,'Live loop must still be scheduled');fn();};
 const flush=async()=>{for(let i=0;i<10;i++)await Promise.resolve();};
 (async()=>{

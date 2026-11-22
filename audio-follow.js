@@ -169,7 +169,37 @@
  // Build 42: recognize the opening harmony once; subsequently follow
  // sustained differences in the 12-note spectrum instead of guessing
  // the identity of every printed chord. Require two stable frames.
- function changeDrivenCandidate(items,index,chroma,previous,elapsed=0,released=false,freshAttack=false){
+ // Build 50: adjustable tolerance for false harmonic changes. The default is
+ // deliberately more conservative than the previous two-frame live detector.
+ const TOLERANCE_KEY="cantoria.followTolerance.v1";
+ const DEFAULT_TOLERANCE=65;
+ function normalizeTolerance(value){
+  const n=Number(value);
+  return Number.isFinite(n)?Math.max(0,Math.min(100,Math.round(n))):DEFAULT_TOLERANCE;
+ }
+ let tolerance=DEFAULT_TOLERANCE;
+ try{
+  const saved=root.localStorage?.getItem(TOLERANCE_KEY);
+  if(saved!==null&&saved!==undefined)tolerance=normalizeTolerance(saved);
+ }catch(_){/* Private or restricted WebView storage; keep safe default. */}
+ function toleranceProfile(value=tolerance){
+  const level=normalizeTolerance(value)/100;
+  return {
+   frames:2+Math.round(3*level),              // 2–5 distinct consistent observations
+   interval:75+Math.round(370*level),       // limit fast repeated changes
+   repeatGap:320+Math.round(450*level),    // repeated printed harmony
+   novelty:.20+.16*level,                  // sustained spectral difference
+   attackNovelty:.055+.15*level            // new strum with smaller harmonic change
+  };
+ }
+ function getTolerance(){return tolerance;}
+ function setTolerance(value){
+  const next=normalizeTolerance(value);
+  if(next!==tolerance){tolerance=next;resetListeningWindow();}
+  try{root.localStorage?.setItem(TOLERANCE_KEY,String(tolerance));}catch(_){}
+  return tolerance;
+ }
+ function changeDrivenCandidate(items,index,chroma,previous,elapsed=0,released=false,freshAttack=false,level=0){
   if(!Array.isArray(items)||!items.length||!Array.isArray(chroma)||chroma.length!==12)return null;
   const total=chroma.reduce((sum,v)=>sum+Math.max(0,Number(v)||0),0);
   if(total<.05||chroma.filter(v=>Number(v)>.085*total).length<2)return null;
@@ -179,13 +209,18 @@
    const recognized=recognizeExpectedChord(chroma,first,[first]);
    return recognized?{index:0,prediction:recognized,skipped:0}:null;
   }
-  if(index>=items.length-1||elapsed<75)return null;
+  const policy=toleranceProfile(level);
+  if(index>=items.length-1||elapsed<policy.interval)return null;
   const novelty=chordProfileChange(previous,chroma);
   const samePrintedChord=chordIdentity(items[index]?.label)===chordIdentity(label);
-  // New strum/piano attack can distinguish harmonies with the same pitch
-  // classes (SOL2 -> RE4). Noise-only loudness changes still cannot step.
-  const attacked=freshAttack&&elapsed>=75&&novelty>.055;
-  if(novelty<.20&&!attacked&&!(samePrintedChord&&released&&elapsed>=320))return null;
+  // Distinguish a genuinely different harmonic profile from dynamic melody,
+  // background noise, and one attack on the same sustained chord.
+  const attacked=freshAttack&&novelty>=policy.attackNovelty;
+  // Repeated chord in the score may follow a clear release, but at stricter
+  // tolerance require extra evidence or an actual new attack.
+  const repeatedRelease=samePrintedChord&&released&&elapsed>=policy.repeatGap&&
+   (level<50||freshAttack||novelty>=policy.attackNovelty);
+  if(novelty<policy.novelty&&!attacked&&!repeatedRelease)return null;
   return {index:index+1,prediction:{chord:label,novelty,confidence:Math.min(1,novelty*2)},skipped:0};
  }
  const player=typeof root.Audio==="function"?new root.Audio():null;
@@ -215,11 +250,11 @@
    if(raw.some(v=>v>.0001))silentFrames=0;
    else if(++silentFrames>=2)releasedSinceLast=true;
    const chroma=accumulatedChroma(raw);
-   const candidate=changeDrivenCandidate(scoreItems,activeIndex,chroma,markedChroma,detectionClock-lastAdvance,releasedSinceLast,attackCount>lastMarkAttackCount);
+   const candidate=changeDrivenCandidate(scoreItems,activeIndex,chroma,markedChroma,detectionClock-lastAdvance,releasedSinceLast,attackCount>lastMarkAttackCount,tolerance);
    const signature=candidate?candidate.index+":"+candidate.prediction.chord:"";
    if(signature&&signature===stableName)stableCount++;
    else{stableName=signature;stableCount=signature?1:0;}
-   if(candidate&&stableCount>=(candidate.skipped?4:2)){
+   if(candidate&&stableCount>=Math.max(candidate.skipped?4:2,toleranceProfile().frames)){
     match(candidate,chroma);seenAt=detectionClock;
    }
   }finally{detectionClock=0;}
@@ -574,7 +609,9 @@
   const next=candidate.index,skipped=candidate.skipped||0;
   const freshAttack=releasedSinceLast||attackCount>lastMarkAttackCount;
   const repeated=activeIndex>=0&&chordIdentity(scoreItems[activeIndex]?.label)===chordIdentity(scoreItems[next]?.label);
-  if(activeIndex>=0&&(detectionClock||Date.now())-lastAdvance<(repeated?320:130))return;
+  const policy=toleranceProfile();
+  if(activeIndex>=0&&(detectionClock||Date.now())-lastAdvance<
+     (repeated?policy.repeatGap:Math.max(130,policy.interval)))return;
   // A sustained chord must not accidentally trigger a future harmony.
   if(activeIndex>=0&&!freshAttack&&chordProfileChange(markedChroma,chroma)<(skipped?.18:.12))return;
   if(!skipped&&nextChordIndex(scoreItems,activeIndex,candidate.prediction.chord,freshAttack)!==next)return;
@@ -613,12 +650,12 @@
    const rawChroma=chromaFromFFT(bins,ctx.sampleRate,analyser.fftSize);
    if(silentFrames>=2&&!rawChroma.some(v=>v>.001))releasedSinceLast=true;
    const chroma=accumulatedChroma(rawChroma);
-   const candidate=changeDrivenCandidate(scoreItems,activeIndex,chroma,markedChroma,Date.now()-lastAdvance,releasedSinceLast,attackCount>lastMarkAttackCount);
+   const candidate=changeDrivenCandidate(scoreItems,activeIndex,chroma,markedChroma,Date.now()-lastAdvance,releasedSinceLast,attackCount>lastMarkAttackCount,tolerance);
    const signature=candidate?candidate.index+":"+candidate.prediction.chord:"";
    if(signature&&signature===stableName)stableCount++;
    else{stableName=signature;stableCount=signature?1:0;}
    // Two consecutive frames confirm a new harmonic shape.
-   if(candidate&&stableCount>=(candidate.skipped?4:2)){
+   if(candidate&&stableCount>=Math.max(candidate.skipped?4:2,toleranceProfile().frames)){
     match(candidate,chroma);seenAt=Date.now();
    }
    if(!signature&&Date.now()-seenAt>2000&&mode==="mic")
@@ -716,7 +753,7 @@
   if(mode==="mic")status("In attesa del primo accordo: "+(scoreItems[0]?.label||"—"));
  }
  if(player)player.addEventListener("ended",()=>stop());
- const api={parseChord,chromaFromFFT,recognizeChord,recognizeExpectedChord,changeDrivenCandidate,diagnoseChroma,startDiagnostic,stopDiagnostic,nextChordIndex,stepChordIndex,liveChordCandidate,setScore,step,loadTrack,play,microphone,toggle,rewind,stop,reset,refresh,syncControls,get mode(){return mode;},get activeIndex(){return activeIndex;},get hasSource(){return preferredSource==="mic"||!!player?.src;}};
+ const api={parseChord,chromaFromFFT,recognizeChord,recognizeExpectedChord,changeDrivenCandidate,toleranceProfile,getTolerance,setTolerance,diagnoseChroma,startDiagnostic,stopDiagnostic,nextChordIndex,stepChordIndex,liveChordCandidate,setScore,step,loadTrack,play,microphone,toggle,rewind,stop,reset,refresh,syncControls,get mode(){return mode;},get activeIndex(){return activeIndex;},get hasSource(){return preferredSource==="mic"||!!player?.src;}};
  root.CantoriaAudioFollow=api;
- if(typeof module!=="undefined"&&module.exports)module.exports={parseChord,chromaFromFFT,recognizeChord,recognizeExpectedChord,changeDrivenCandidate,diagnoseChroma,nextChordIndex,stepChordIndex,liveChordCandidate};
+ if(typeof module!=="undefined"&&module.exports)module.exports={parseChord,chromaFromFFT,recognizeChord,recognizeExpectedChord,changeDrivenCandidate,toleranceProfile,diagnoseChroma,nextChordIndex,stepChordIndex,liveChordCandidate};
 })(typeof window!=="undefined"?window:globalThis);

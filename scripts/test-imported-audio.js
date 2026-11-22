@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const html=fs.readFileSync('index.html','utf8'),source=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(source);new vm.Script(source);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:49});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:50});
 const audio=require('../audio-follow.js');
 for(const [label,root,minor] of [
  ['G',7,false],['C',0,false],['Am',9,true],['F#m',6,true],['Bb',10,false],
@@ -78,6 +78,7 @@ const fake={
 const audioSource=fs.readFileSync('audio-follow.js','utf8');
 vm.runInNewContext(audioSource,{window:fake,Date:{now(){return now;}},module:{exports:{}}});
 const follower=fake.CantoriaAudioFollow;
+follower.setTolerance(0); // Existing imported-song test verifies rapid mode; default is intentionally safer.
 (async()=>{
  const pages=[];
  follower.setScore(imported.id,seq,page=>pages.push(page));

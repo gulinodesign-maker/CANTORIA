@@ -1,8 +1,8 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const source=fs.readFileSync('audio-follow.js','utf8');
-const release=require('../release.json');assert.deepEqual(release,{version:'1.1',build:49});
+const release=require('../release.json');assert.deepEqual(release,{version:'1.1',build:50});
 assert.ok(source.includes('changeDrivenCandidate(scoreItems,activeIndex,chroma,markedChroma'),'Mic and background must follow changes');
-assert.ok(source.includes('stableCount>=(candidate.skipped?4:2)'),'Two-frame agreement guards against noise');
+assert.ok(source.includes('Math.max(candidate.skipped?4:2,toleranceProfile().frames)'),'Configurable stable-frame agreement guards against noise');
 assert.ok(source.includes('root.setTimeout(detect,80)'),'Web mic polling stays fast');
 assert.ok(source.includes('chromaHistory.length>4'),'Keep recent but bounded chord memory');
 let now=1000,timers=[],notes=[392,494,587],tracksStopped=0;
@@ -23,6 +23,7 @@ const window={
 };
 vm.runInNewContext(source,{window,Date:{now(){return now;}},module:{exports:{}}});
 const follow=window.CantoriaAudioFollow;
+follow.setTolerance(0); // Preserve rapid-mode tests; default is more conservative.
 function frame(){now+=80;const fn=timers.shift();assert.ok(fn,'Mic loop must continue');fn();}
 (async()=>{
  const pages=[];
