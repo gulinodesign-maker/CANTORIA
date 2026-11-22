@@ -2,7 +2,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
 const html=fs.readFileSync('index.html','utf8');
 const js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(js);new vm.Script(js);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:47});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:48});
 const head=js.slice(js.indexOf('function headerHTML(){'),js.indexOf('function navHTML(){'));
 const detail=js.slice(js.indexOf('function massDetailHTML(){'),js.indexOf('const OCR_JS_URL='));
 assert.ok(!head.includes('class="mass-topbar-overline"'),'Remove visible SCALETTA overline');
