@@ -4,7 +4,7 @@ assert.ok(js);new vm.Script(js);
 assert.deepEqual(require('../release.json'),{version:'1.1',build:44});
 const marker='/* CANTORIA 1.1 (44) — back is the original cross ornament itself.';
 assert.ok(html.includes(marker),'New corner navigation CSS required');
-const css=html.slice(html.indexOf(marker),html.indexOf('</style>',html.indexOf(marker));
+const css=html.slice(html.indexOf(marker),html.indexOf('</style>',html.indexOf(marker)));
 for(const rule of ['.corner-back-button','clip-path:polygon(', 'z-index:50!important',
  'touch-action:manipulation!important','pointer-events:none!important',
  '.topbar-section .corner-back-button .corner-ornament-cross',
