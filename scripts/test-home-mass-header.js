@@ -2,7 +2,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
 const html=fs.readFileSync('index.html','utf8');
 const code=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(code);new vm.Script(code);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:45});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:46});
 const marker='/* CANTORIA 1.1 (35): 15% green Home icon backgrounds and centered Mass heading. */';
 assert.equal(html.split(marker).length,2,'Missing build 35 design override');
 const css=html.slice(html.indexOf(marker),html.indexOf('</style>',html.indexOf(marker)));
@@ -22,7 +22,7 @@ assert.ok(css.includes('margin-inline:auto!important'),'Header block must center
 const start=code.indexOf('function headerHTML()'),end=code.indexOf('function navHTML()',start);
 assert.ok(start>=0&&end>start);
 const state={view:'masses',massId:'m1'};
-const ctx={state,currentMass:()=>({id:'m1',name:'Messa 1',date:'2026-11-22',items:[{songId:'s1'}]}),massDateDisplay:()=> '22/11/2026',CATHOLIC_CORNER:'<svg></svg>',backCornerHTML:kind=>'<button class="corner-back-button" data-action="'+kind+'"></button>',escape:x=>String(x),releaseInfo:{version:'1.1',build:45}};
+const ctx={state,currentMass:()=>({id:'m1',name:'Messa 1',date:'2026-11-22',items:[{songId:'s1'}]}),massDateDisplay:()=> '22/11/2026',CATHOLIC_CORNER:'<svg></svg>',backCornerHTML:kind=>'<button class="corner-back-button" data-action="'+kind+'"></button>',escape:x=>String(x),releaseInfo:{version:'1.1',build:46}};
 vm.runInNewContext(code.slice(start,end)+'this.header=headerHTML;',ctx);
 const header=ctx.header();
 for(const token of ['class="mass-topbar-title-block"','class="mass-topbar-overline">SCALETTA','class="mass-topbar-name">Messa 1','class="mass-topbar-date">22/11/2026','class="mass-topbar-count">1 canto'])
