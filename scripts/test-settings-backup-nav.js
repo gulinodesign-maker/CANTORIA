@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const html=fs.readFileSync('index.html','utf8'),js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(js);new vm.Script(js);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:45});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:46});
 const pkg=require('../package.json');
 assert.equal(pkg.dependencies['@capacitor/filesystem'],'8.0.0');
 assert.equal(pkg.dependencies['@capacitor/share'],'8.0.0');
@@ -20,7 +20,7 @@ assert.ok(css.includes('.corner-back-button'),'Corner is the universal back cont
 assert.ok(css.includes('.topbar-create-mass'));
 const sourceHeader=js.slice(js.indexOf('function headerHTML()'),js.indexOf('function navHTML()'));
 const ctx={
- state:{view:'masses',massId:null},releaseInfo:{version:'1.1',build:45},
+ state:{view:'masses',massId:null},releaseInfo:{version:'1.1',build:46},
  CATHOLIC_CORNER:'<svg class="corner-ornament"></svg>',backCornerHTML:kind=>kind==='home'?'<button class="corner-back-button" data-nav="home"></button>':'<button class="corner-back-button" data-action="'+kind+'"></button>',escape:s=>s,massDateDisplay:()=>'',currentMass(){return null}
 };
 vm.runInNewContext(sourceHeader+'this.head=headerHTML;',ctx);
