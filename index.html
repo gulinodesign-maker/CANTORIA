@@ -2143,6 +2143,30 @@
  .mass-record-card .mass-record-title-row{padding-left:75px!important;padding-right:44px!important}
 }
 
+
+/* CANTORIA 1.1 (50): live harmonic-change tolerance, persisted on device. */
+.audio-tolerance-panel{display:flex;flex-direction:column;gap:11px}
+.audio-tolerance-panel h3{color:var(--forest);margin:0}
+.audio-tolerance-panel p{color:var(--muted);line-height:1.5}
+.audio-tolerance-panel .audio-tolerance-caption{
+ display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;
+ gap:8px;color:var(--forest);font-weight:700
+}
+.audio-tolerance-panel .audio-tolerance-caption strong{
+ color:#2e7c5b;font-size:clamp(13px,2.2vw,16px);text-align:right
+}
+.audio-tolerance-panel #audioFollowTolerance{
+ display:block;width:100%;height:34px;margin:1px 0 0;padding:0;
+ accent-color:#166044;cursor:pointer;touch-action:pan-y
+}
+.audio-tolerance-panel .audio-tolerance-limits{
+ display:flex;justify-content:space-between;gap:10px;
+ font-size:12px;font-weight:700;color:#60796a
+}
+.audio-tolerance-panel .audio-tolerance-help{
+ margin:0;font-size:12px;line-height:1.5
+}
+
 </style>
   <title>Cantoria — Canti per la liturgia cattolica</title>
 </head>
@@ -2777,7 +2801,21 @@ function updateDiagnosticPanel(data){
  if(data?.guess&&!data?.chord)set('diagnosticCandidate','Possibile accordo: '+data.guess);
  else set('diagnosticCandidate',phase==='requesting'?'Autorizzazione in corso':'');
 }
-function settingsHTML(){return `<div class="form-wrap">
+function followToleranceLabel(value){
+ const n=Number(value)||0;
+ return n<25?'Molto reattivo':n<50?'Reattivo':n<70?'Equilibrato':n<90?'Prudente':'Molto prudente';
+}
+function settingsHTML(){
+ const tolerance=window.CantoriaAudioFollow?.getTolerance?.()??65;
+ return `<div class="form-wrap">
+ <div class="panel audio-tolerance-panel">
+  <h3>Tolleranza avanzamento accordi</h3>
+  <p>Se il canto avanza anche senza suonare un accordo nuovo, sposta il cursore verso <strong>Più prudente</strong>. Il lettore aspetterà un cambio armonico più evidente e stabile.</p>
+  <label class="audio-tolerance-caption" for="audioFollowTolerance">Tolleranza <strong id="audioFollowToleranceValue">${tolerance}% · ${followToleranceLabel(tolerance)}</strong></label>
+  <input id="audioFollowTolerance" type="range" min="0" max="100" step="5" value="${tolerance}" aria-label="Tolleranza cambi di accordo" aria-describedby="audioFollowToleranceHelp">
+  <div class="audio-tolerance-limits"><span>Più reattivo</span><span>Più prudente</span></div>
+  <p class="audio-tolerance-help" id="audioFollowToleranceHelp">Regola la conferma dei cambi, non il volume del microfono. Il valore viene salvato automaticamente e vale anche durante l’ascolto live.</p>
+ </div>
  <div class="panel diagnostic-panel" id="audioDiagnostic" data-phase="stopped">
   <h3>Diagnosi riconoscimento accordi</h3>
   <p>Verifica se il microfono riceve e riconosce gli accordi senza aprire un canto. Premi Avvia test e suona, ad esempio, un DO maggiore: deve comparire DO.</p>
@@ -2950,7 +2988,7 @@ function modalHTML(){const m=state.modal;
   const song=currentSong();if(!song?.photoData)return '';
   return `<div class="modal-shade"><div class="modal-card" role="alertdialog" aria-modal="true" aria-label="Conferma ricalcolo accordi"><h2>Ricalcolare gli accordi?</h2><p>La partitura verrà ricalcolata dalla fotografia originale con le coordinate OCR. Le modifiche manuali fatte sulle sillabe e sugli accordi saranno sostituite. La fotografia originale resterà disponibile.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button type="button" class="primary-btn" data-action="reparse-photo">Ricalcola accordi</button></div></div></div>`;
  }
- if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (49)</h2><p>Indietro sulla croce ora usa un'area di tocco più ampia e affidabile su iPad. Riavvolgi e Play sono posizionati ulteriormente a sinistra in portrait, accanto allo smusso; in landscape rimangono fuori dallo smusso e cliccabili. Le top bar di Messe e del dettaglio sono più basse, con titolo e data centrati. Il pulsante Nuova Messa è sotto la linea dorata e centrato. Nelle card delle Messe lo smusso verde con la croce torna a sinistra e il pulsante X passa a destra. Le card non mostrano più i titoli dei canti; riordino e apertura restano invariati. Lo smusso verde con la croce non è più ritagliato dai bordi delle top bar. Scaletta Messa ridisegnata con card compatte, titoli leggibili, croce e dettagli verde/oro. Navigazione manuale degli accordi rimossa e top bar Messa più compatta. Funzione liturgica selezionabile durante l’acquisizione, in verde nelle card di Biblioteca e Scaletta. Ascolto live: identificato il primo accordo, avanza ai cambi armonici confermati. Pubblicazione TestFlight senza avvio obbligatorio del simulatore, mantenendo i controlli di compilazione e integrità. Motore microfono nativo iOS: l’ascolto continua mentre l’app è in background. Al ritorno, gli accordi rilevati riallineano lo spartito senza salvare registrazioni audio. Schermo sempre acceso mentre CANTORIA è attiva in primo piano su iPhone o iPad: lo spartito rimane visibile durante tutta la celebrazione, anche senza toccare il display. Quando si esce dall’app o si blocca il dispositivo, il risparmio energetico iOS torna normale.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
+ if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (50)</h2><p>Nuovo cursore di tolleranza nelle Impostazioni: verso destra gli accordi avanzano solo con cambi più marcati e stabili; il valore viene salvato sul dispositivo. Indietro sulla croce ora usa un'area di tocco più ampia e affidabile su iPad. Riavvolgi e Play sono posizionati ulteriormente a sinistra in portrait, accanto allo smusso; in landscape rimangono fuori dallo smusso e cliccabili. Le top bar di Messe e del dettaglio sono più basse, con titolo e data centrati. Il pulsante Nuova Messa è sotto la linea dorata e centrato. Nelle card delle Messe lo smusso verde con la croce torna a sinistra e il pulsante X passa a destra. Le card non mostrano più i titoli dei canti; riordino e apertura restano invariati. Lo smusso verde con la croce non è più ritagliato dai bordi delle top bar. Scaletta Messa ridisegnata con card compatte, titoli leggibili, croce e dettagli verde/oro. Navigazione manuale degli accordi rimossa e top bar Messa più compatta. Funzione liturgica selezionabile durante l’acquisizione, in verde nelle card di Biblioteca e Scaletta. Ascolto live: identificato il primo accordo, avanza ai cambi armonici confermati. Pubblicazione TestFlight senza avvio obbligatorio del simulatore, mantenendo i controlli di compilazione e integrità. Motore microfono nativo iOS: l’ascolto continua mentre l’app è in background. Al ritorno, gli accordi rilevati riallineano lo spartito senza salvare registrazioni audio. Schermo sempre acceso mentre CANTORIA è attiva in primo piano su iPhone o iPad: lo spartito rimane visibile durante tutta la celebrazione, anche senza toccare il display. Quando si esce dall’app o si blocca il dispositivo, il risparmio energetico iOS torna normale.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
 
 
  if(m.type==='key-analysis'){
@@ -3743,7 +3781,14 @@ root.addEventListener('submit',e=>{e.preventDefault();const form=e.target;const 
  }
 });
 root.addEventListener('keydown',e=>{const card=e.target.closest('.library-song-card[data-action="toggle-library-card"],.mass-record-card[data-action="open-mass"],.mass-song-card[data-action="read-mass-song"]');if(!card||e.target!==card||(e.key!=='Enter'&&e.key!==' '))return;e.preventDefault();if(card.dataset.action==='toggle-library-card'){state.libraryOpenId=state.libraryOpenId===card.dataset.song?null:card.dataset.song;render();}else if(card.dataset.action==='open-mass'){state.massId=card.dataset.mass;state.view='masses';render();}else {const item=currentMass()?.items.find(x=>x.id===card.dataset.item);if(item)openSong(item.songId,item.shift,item.id);}});
-root.addEventListener('input',e=>{if(e.target.id==='songTitleEdit'||e.target.id==='songAuthorEdit'||e.target.id==='songLiturgicalRoleEdit'){
+root.addEventListener('input',e=>{
+ if(e.target.id==='audioFollowTolerance'){
+  const level=window.CantoriaAudioFollow?.setTolerance?.(e.target.value)??Number(e.target.value);
+  const label=root.querySelector('#audioFollowToleranceValue');
+  if(label)label.textContent=level+'% · '+followToleranceLabel(level);
+  return;
+ }
+ if(e.target.id==='songTitleEdit'||e.target.id==='songAuthorEdit'||e.target.id==='songLiturgicalRoleEdit'){
  const song=currentSong();if(!song)return;
  const draft=state.songMetaDraft?.songId===song.id?state.songMetaDraft:{songId:song.id,title:song.title||'',author:song.author||'',liturgicalRole:song.liturgicalRole||''};
  draft[e.target.id==='songTitleEdit'?'title':e.target.id==='songAuthorEdit'?'author':'liturgicalRole']=e.target.value;
