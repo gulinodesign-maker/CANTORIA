@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const html=fs.readFileSync('index.html','utf8'),js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(js);new vm.Script(js);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:40});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:41});
 const sections=[
  ['homeHTML','headerHTML'],['libraryHTML','massDateDisplay'],
  ['massesHTML','massDetailHTML'],['captureHTML','settingsHTML'],
