@@ -96,8 +96,8 @@ for(const token of ['topbar-mass-detail','corner-back-button','mass-topbar-name'
 assert.equal((titlebar.match(/data-action="back-masses"/g)||[]).length,1);
 assert.ok(!titlebar.includes('SCALETTA')&&!titlebar.includes('1 canto')&&!titlebar.includes('mass-topbar-count'),'No Mass count or overline visible');
 ctx.state.massId='m2';const historyBar=ctx.makeHeader();
-assert.ok(historyBar.includes('CELEBRATA')&&historyBar.includes('22/11/2026'));
+assert.ok(historyBar.includes('22/11/2026')&&!historyBar.includes('CELEBRATA'),'Historical Mass header shows name and date only');
 const detailSource=js.slice(js.indexOf('function massDetailHTML()'),js.indexOf('const OCR_JS_URL='));
 for(const duplicate of ['mass-collection-header','mass-detail-title-row','mass-overline','data-action="back-masses"'])
  assert.ok(!detailSource.includes(duplicate),'Duplicate Mass information '+duplicate);
-console.log('Mass topbar retains title, date, count and return without duplicates');
+console.log('Mass topbar retains name, date and return with no redundant count or overline');

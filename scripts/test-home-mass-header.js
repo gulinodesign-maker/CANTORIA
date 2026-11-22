@@ -29,4 +29,4 @@ for(const token of ['class="mass-topbar-title-block"','class="mass-topbar-name">
  assert.ok(header.includes(token),'Missing Mass header '+token);
 assert.ok(header.includes('data-action="back-masses"'),'Back button must remain');
 assert.ok(!header.includes('SCALETTA')&&!header.includes('1 canto'),'No overline or count on Mass top bar');
-console.log('PASS: all four Home icon backgrounds 15% green, Mass title/date centered and count/back controls retained');
+console.log('PASS: Home icons unchanged; Mass title/date centered with Back and without count/overline');
