@@ -5,7 +5,7 @@ const release=require('../release.json');assert.deepEqual(release,{version:'1.1'
 assert.ok(js.includes("const releaseInfo={version:'1.1',build:null}"));
 const a=js.indexOf('function headerHTML()'),b=js.indexOf('function navHTML()',a);
 assert.ok(a>=0&&b>a);
-const ctx={releaseInfo:{version:release.version,build:release.build},escape:s=>String(s),state:{view:'settings'},CATHOLIC_CORNER:'<svg></svg>'};
+const ctx={releaseInfo:{version:release.version,build:release.build},escape:s=>String(s),state:{view:'settings'},CATHOLIC_CORNER:'<svg></svg>',backCornerHTML:kind=>kind==='home'?'<button class="corner-back-button" data-nav="home"></button>':'<button class="corner-back-button" data-action="'+kind+'"></button>'};
 vm.runInNewContext(js.slice(a,b)+'this.showHeader=headerHTML;',ctx);
 assert.ok(ctx.showHeader().includes('Versione 1.1 (44)'));
 ctx.releaseInfo.build=45;
