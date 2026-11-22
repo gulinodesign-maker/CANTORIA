@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const html=fs.readFileSync('index.html','utf8'),script=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(script);new vm.Script(script);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:48});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:49});
 const a=script.indexOf('function libraryHTML()'),b=script.indexOf('function massDateDisplay(',a);
 assert.ok(a>=0&&b>a);const library=script.slice(a,b);
 assert.ok(library.includes('class="tiles library-song-list"'),'Library must have dedicated full-width wrapper');
