@@ -1,13 +1,13 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const html=fs.readFileSync('index.html','utf8'),js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(js);new vm.Script(js);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:43});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:44});
 const escape=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const song={id:'s1',title:'Ti esalto Dio mio re',author:'Francesco Buttazzo',sections:[]};
 const planned={id:'m1',name:'Messa 1',date:'',items:[{id:'i1',songId:'s1',shift:0,label:'Ingresso'}]};
 const celebrated={id:'m2',name:'Messa celebrata',date:'2026-11-22',celebratedAt:'2026-11-22T10:00:00Z',items:[{id:'i2',songId:'s1',shift:0,archiveTitle:song.title,archiveAuthor:'Autore archiviato'}]};
 const ctx={store:{songs:[song],masses:[planned,celebrated]},state:{massId:null},escape,escapeAttr:escape,
- CATHOLIC_CORNER:'<svg class="corner-ornament"></svg>',massDateDisplay:d=>!d?'Data da definire':/^\d{4}-\d{2}-\d{2}$/.test(d)?d.slice(8)+'/'+d.slice(5,7)+'/'+d.slice(0,4):d,
+ CATHOLIC_CORNER:'<svg class="corner-ornament"></svg>',backCornerHTML:kind=>'<button class="corner-back-button" data-action="'+kind+'"></button>',massDateDisplay:d=>!d?'Data da definire':/^\d{4}-\d{2}-\d{2}$/.test(d)?d.slice(8)+'/'+d.slice(5,7)+'/'+d.slice(0,4):d,
  massSongSummary:m=>m.items.map(x=>x.archiveTitle||song.title).join(', '),currentMass(){return ctx.store.masses.find(x=>x.id===ctx.state.massId)}};
 const begin=js.indexOf('function massesHTML(){'),end=js.indexOf('const OCR_JS_URL=',begin);
 assert.ok(begin>=0&&end>begin);vm.runInNewContext(js.slice(begin,end)+'this.massList=massesHTML;this.detail=massDetailHTML;',ctx);
@@ -91,7 +91,7 @@ assert.ok(headA>=0&&headB>headA);
 ctx.state.view='masses';ctx.state.massId='m1';
 vm.runInNewContext(js.slice(headA,headB)+'this.makeHeader=headerHTML;',ctx);
 const titlebar=ctx.makeHeader();
-for(const token of ['topbar-mass-detail','app-back-btn','mass-topbar-overline','mass-topbar-name','mass-topbar-count','mass-topbar-date','Messa 1','1 canto','Data da definire'])
+for(const token of ['topbar-mass-detail','corner-back-button','mass-topbar-overline','mass-topbar-name','mass-topbar-count','mass-topbar-date','Messa 1','1 canto','Data da definire'])
  assert.ok(titlebar.includes(token),token);
 assert.equal((titlebar.match(/data-action="back-masses"/g)||[]).length,1);
 ctx.state.massId='m2';const historyBar=ctx.makeHeader();
