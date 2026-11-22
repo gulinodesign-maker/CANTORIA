@@ -17,12 +17,14 @@ for(const fragment of [
  'run_bounded 75 xcrun simctl install',
  'run_bounded 60 xcrun simctl launch',
  'run_bounded 45 xcrun simctl io "$device" screenshot',
- 'run_bounded 90 swift',
+ 'run_bounded 150 xcrun swiftc',
+ 'run_bounded 30 "$RUNNER_TEMP/check-cantoria-screen" "$screens"',
  'print("FAIL: Black iOS screen. Blocking TestFlight upload.")',
  'if [[ "$passed" != true ]]',
  'Refusing TestFlight upload.'
 ])assert.ok(content.includes(fragment),'Missing simulator safety: '+fragment);
-assert.ok(content.indexOf('run_bounded 90 swift')<content.indexOf('if [[ "$passed" != true ]]'));
+assert.ok(content.indexOf('run_bounded 150 xcrun swiftc')<content.indexOf('for attempt in 1 2; do') &&
+ content.indexOf('run_bounded 30 "$RUNNER_TEMP/check-cantoria-screen"')<content.indexOf('if [[ "$passed" != true ]]'));
 assert.ok(workflow.includes('run: bash scripts/verify-ios-launch.sh'));
 assert.ok(workflow.indexOf('Block TestFlight release if iOS starts black')<
  workflow.indexOf('Archive unsigned for Apple cloud distribution signing'));
