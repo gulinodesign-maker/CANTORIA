@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs');
 const content=fs.readFileSync('scripts/verify-ios-launch.sh','utf8');
 const workflow=fs.readFileSync('.github/workflows/ios-testflight-auto.yml','utf8');
-assert.deepEqual(require('../release.json'),{version:'1.1',build:47});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:48});
 for(const fragment of [
  'Building launch-test iOS app (no Apple signing)',
  'run_bounded()',
