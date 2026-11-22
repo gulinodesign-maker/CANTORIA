@@ -169,7 +169,7 @@
  // Build 42: recognize the opening harmony once; subsequently follow
  // sustained differences in the 12-note spectrum instead of guessing
  // the identity of every printed chord. Require two stable frames.
- function changeDrivenCandidate(items,index,chroma,previous,elapsed=0,released=false){
+ function changeDrivenCandidate(items,index,chroma,previous,elapsed=0,released=false,freshAttack=false){
   if(!Array.isArray(items)||!items.length||!Array.isArray(chroma)||chroma.length!==12)return null;
   const total=chroma.reduce((sum,v)=>sum+Math.max(0,Number(v)||0),0);
   if(total<.05||chroma.filter(v=>Number(v)>.085*total).length<2)return null;
@@ -182,7 +182,10 @@
   if(index>=items.length-1||elapsed<75)return null;
   const novelty=chordProfileChange(previous,chroma);
   const samePrintedChord=chordIdentity(items[index]?.label)===chordIdentity(label);
-  if(novelty<.20&&!(samePrintedChord&&released&&elapsed>=320))return null;
+  // New strum/piano attack can distinguish harmonies with the same pitch
+  // classes (SOL2 -> RE4). Noise-only loudness changes still cannot step.
+  const attacked=freshAttack&&elapsed>=75&&novelty>.055;
+  if(novelty<.20&&!attacked&&!(samePrintedChord&&released&&elapsed>=320))return null;
   return {index:index+1,prediction:{chord:label,novelty,confidence:Math.min(1,novelty*2)},skipped:0};
  }
  const player=typeof root.Audio==="function"?new root.Audio():null;
@@ -192,7 +195,7 @@
  let chromaHistory=[],markedChroma=null;
  let diagSerial=0,diagCallback=null,diagLast="",diagStable="",diagFrames=0;
  let sessionSerial=0,micRecovery=null,lastMicRecovery=-Infinity,mutedSince=0,resumePromise=null,wakeLock=null,foregroundCaptureDirty=false;
- let nativeMicActive=false,nativeSeq=0,nativePolling=false,detectionClock=0;
+ let nativeMicActive=false,nativeSeq=0,nativePolling=false,detectionClock=0,nativePrevLevel=0;
  function nativeMicPlugin(){
   const cap=root.Capacitor;
   if(cap?.getPlatform?.()!=="ios")return null;
@@ -205,10 +208,14 @@
   if(!raw||raw.length!==12)return;
   detectionClock=Number(frame.at)||Date.now();
   try{
+   const level=Math.max(0,Number(frame.level)||0);
+   if(level>8&&level>nativePrevLevel*1.55&&level-nativePrevLevel>8&&
+     detectionClock-lastAttackAt>280){attackCount++;lastAttackAt=detectionClock;}
+   nativePrevLevel=level;
    if(raw.some(v=>v>.0001))silentFrames=0;
    else if(++silentFrames>=2)releasedSinceLast=true;
    const chroma=accumulatedChroma(raw);
-   const candidate=changeDrivenCandidate(scoreItems,activeIndex,chroma,markedChroma,detectionClock-lastAdvance,releasedSinceLast);
+   const candidate=changeDrivenCandidate(scoreItems,activeIndex,chroma,markedChroma,detectionClock-lastAdvance,releasedSinceLast,attackCount>lastMarkAttackCount);
    const signature=candidate?candidate.index+":"+candidate.prediction.chord:"";
    if(signature&&signature===stableName)stableCount++;
    else{stableName=signature;stableCount=signature?1:0;}
@@ -606,7 +613,7 @@
    const rawChroma=chromaFromFFT(bins,ctx.sampleRate,analyser.fftSize);
    if(silentFrames>=2&&!rawChroma.some(v=>v>.001))releasedSinceLast=true;
    const chroma=accumulatedChroma(rawChroma);
-   const candidate=changeDrivenCandidate(scoreItems,activeIndex,chroma,markedChroma,Date.now()-lastAdvance,releasedSinceLast);
+   const candidate=changeDrivenCandidate(scoreItems,activeIndex,chroma,markedChroma,Date.now()-lastAdvance,releasedSinceLast,attackCount>lastMarkAttackCount);
    const signature=candidate?candidate.index+":"+candidate.prediction.chord:"";
    if(signature&&signature===stableName)stableCount++;
    else{stableName=signature;stableCount=signature?1:0;}
@@ -642,7 +649,7 @@
   diagSerial++;sessionSerial++;lastMicRecovery=-Infinity;mutedSince=0;
   micRecovery=null;foregroundCaptureDirty=false;
   const wasNativeMic=nativeMicActive;
-  nativeMicActive=false;nativeSeq=0;nativePolling=false;detectionClock=0;
+  nativeMicActive=false;nativeSeq=0;nativePolling=false;detectionClock=0;nativePrevLevel=0;
   if(wasNativeMic)try{void nativeMicPlugin().stop().catch(err=>root.console?.warn?.("Stop microfono nativo:",err));}catch(_){}
   if(timer)root.clearTimeout(timer);timer=0;
   if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
