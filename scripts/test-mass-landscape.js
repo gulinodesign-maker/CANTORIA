@@ -11,7 +11,7 @@ assert.match(css,/\.tiles\.mass-song-tiles\s*\{[^}]*display:grid!important;[^}]*
 assert.match(css,/\.tiles\.mass-song-tiles>\.mass-song-card\s*\{[^}]*grid-column:1\/-1!important;[^}]*width:100%!important;/);
 assert.match(css,/\.tiles\.mass-song-tiles>\.mass-song-card \.song-cover\s*\{[^}]*min-height:72px!important;/);
 assert.match(css,/\.tiles\.mass-song-tiles>\.mass-song-card \.song-cover \.cover-content \.cover-label\s*\{[^}]*word-break:normal!important;/);
-assert.ok(!css.includes('@media(orientation:portrait)'),'Portrait style must remain unchanged');
+assert.ok(css.includes('@media(orientation:portrait)'),'Build 41 also adjusts the portrait top bar intentionally');
 assert.ok(css.includes('.mass-song-remove')&&css.includes('.mass-song-reset'),'Card buttons must retain room');
 const masses=js.slice(js.indexOf('function massDetailHTML(){'),js.indexOf('const OCR_JS_URL='));
 assert.ok(masses.includes('class="tiles mass-song-tiles"'),'Mass detail must use one-column target wrapper');
@@ -25,4 +25,4 @@ assert.ok(drag.includes('insertBefore(drag.card,before)'),'Live reordering must 
 assert.ok(drag.includes('saveStore(store)'),'Drag release must still persist');
 const library=html.slice(html.indexOf('/* CANTORIA 1.1 (21):'),html.indexOf('/* CANTORIA 1.1 (22):'));
 assert.ok(library.includes('.tiles.library-song-list'),'Library layout must stay untouched');
-console.log('PASS: landscape Mass songs are full-width single rows with compact cards, portrait unchanged and reorder intact');
+console.log('PASS: landscape Mass songs are full-width single rows with compact cards, portrait top bar adjusted and reorder intact');
