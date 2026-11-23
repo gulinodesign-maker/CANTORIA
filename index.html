@@ -3364,9 +3364,7 @@ function modalHTML(){const m=state.modal;
         ${['Ingresso','Atto penitenziale','Gloria','Salmo','Alleluia','Offertorio','Santo','Agnello di Dio','Comunione','Ringraziamento','Canto finale'].map(role=>`<option value="${escapeAttr(role)}" ${draft.liturgicalRole===role?'selected':''}>${escape(role)}</option>`).join('')}
       </select></label>
     </div>
-    <fieldset class="liturgical-seasons"><legend>Periodi liturgici adatti</legend><div class="liturgical-season-grid">
-      ${[['all',"Tutto l'anno"],['advent','Avvento'],['christmas','Natale'],['lent','Quaresima'],['easter','Pasqua'],['pentecost','Pentecoste'],['afterPentecost','Dopo Pentecoste'],['ordinary','Tempo Ordinario']].map(([id,name])=>`<label><input type="checkbox" name="liturgicalSeason" value="${id}" ${(Array.isArray(song.liturgicalSeasons)?song.liturgicalSeasons:[]).includes(id)?'checked':''}><span>${name}</span></label>`).join('')}
-    </div></fieldset>
+    
     <div class="song-options-grid">
       <button type="button" class="song-option-tile" data-action="choose-section-text"${noScore}><span aria-hidden="true">✎</span><span>Modifica testo delle strofe</span></button>
       <button type="button" class="song-option-tile" data-action="band-colors"${noScore}><span aria-hidden="true">◒</span><span>Colori pill e accordi</span></button>
@@ -4067,11 +4065,11 @@ root.addEventListener('click',e=>{
    const liturgicalRole=String(root.querySelector('#songLiturgicalRoleEdit')?.value??draft?.liturgicalRole??song.liturgicalRole??'').trim();
    if(!title){notify('Inserisci un titolo prima di salvare.');return;}
    const previous={title:song.title,author:song.author,liturgicalRole:song.liturgicalRole,liturgicalSeasons:song.liturgicalSeasons,savedAt:song.savedAt};
-   const liturgicalSeasons=Array.from(root.querySelectorAll?.('input[name="liturgicalSeason"]:checked')||[],x=>x.value);
+
    song.title=title.slice(0,160);
    song.author=author.slice(0,160);
    song.liturgicalRole=liturgicalRole.slice(0,90);
-   song.liturgicalSeasons=liturgicalSeasons;
+
    song.savedAt=new Date().toISOString();
    if(!saveStore(store)){
     Object.assign(song,previous);
