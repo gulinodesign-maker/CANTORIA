@@ -2291,6 +2291,35 @@
 </style>
   <link rel="stylesheet" href="./liturgical-theme.css?v=52" />
   <title>Cantoria — Canti per la liturgia cattolica</title>
+
+<style id="cantoria-unified-corner-56">
+/* One compact corner size in every view and orientation. */
+:root{--cantoria-corner-width:96px;--cantoria-corner-height:78px}
+.corner-ornament,
+.topbar-home-labeled>.corner-back-button,
+.topbar-section>.corner-back-button,
+.reader-layer .reader-toolbar>.corner-back-button,
+.corner-back-button{
+  width:var(--cantoria-corner-width)!important;
+  min-width:var(--cantoria-corner-width)!important;
+  max-width:var(--cantoria-corner-width)!important;
+  height:var(--cantoria-corner-height)!important;
+  min-height:var(--cantoria-corner-height)!important;
+  max-height:var(--cantoria-corner-height)!important;
+  left:0!important;top:0!important;margin:0!important;transform:none!important;
+}
+.corner-back-button>.corner-ornament,
+.reader-layer .reader-toolbar>.corner-back-button>.corner-ornament{
+ width:100%!important;height:100%!important;min-width:0!important;min-height:0!important;
+}
+@media(orientation:landscape){
+ .corner-ornament,.topbar-home-labeled>.corner-back-button,
+ .topbar-section>.corner-back-button,
+ .reader-layer .reader-toolbar>.corner-back-button,.corner-back-button{
+ top:0!important;left:0!important;margin-top:0!important;transform:none!important;
+ }
+}
+</style>
 </head>
 <body>
   <div id="app"></div>
