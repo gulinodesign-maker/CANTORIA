@@ -2288,6 +2288,16 @@
  }
  .reader-layer .reader-stage{top:64px!important}
 }
+
+/* Build 58: independent Home control, after the fixed cross ornament. */
+.topbar-section,.reader-layer .reader-toolbar{position:relative!important}
+.cantoria-home-button{position:absolute!important;left:calc(var(--cantoria-corner-width,96px) + 8px)!important;top:calc(env(safe-area-inset-top,0px) + 8px)!important;display:grid!important;place-items:center!important;width:38px!important;height:38px!important;min-width:38px!important;min-height:38px!important;padding:7px!important;border:0!important;border-radius:11px!important;background:rgba(255,255,255,.13)!important;color:inherit!important;z-index:55!important;cursor:pointer!important;touch-action:manipulation!important;-webkit-tap-highlight-color:transparent!important}
+.cantoria-home-button svg{display:block;width:23px;height:23px;pointer-events:none}
+.cantoria-home-button:focus-visible{outline:2px solid currentColor!important;outline-offset:2px}
+.topbar-section.topbar-standard>.header-section-title{padding-left:42px!important}
+.topbar-section.topbar-mass-detail>.mass-topbar-info{padding-left:42px!important}
+.reader-layer .reader-toolbar>.cantoria-home-button{top:8px!important}
+@media screen and (orientation:landscape){.reader-layer .reader-toolbar>.cantoria-home-button{top:8px!important}}
 </style>
   <link rel="stylesheet" href="./liturgical-theme.css?v=52" />
   <title>Cantoria — Canti per la liturgia cattolica</title>
@@ -2660,7 +2670,7 @@ function entriesHTML(entries){if(!entries.length)return '<p>Questo canto non ha 
 function readerColumns(){const w=window.innerWidth,h=window.innerHeight;return ((w>=650&&w>h)||w>=760)?2:1;}
 function photoReaderHTML(song){
  return `<div class="reader-layer reader-portrait reader-photo" id="readerLayer" data-song="${escapeAttr(song.id)}">
- <header class="reader-toolbar">${backCornerHTML('close-reader')}
+ <header class="reader-toolbar">${backCornerHTML('close-reader')}${homeTopbarButtonHTML()}
  
  <div class="reader-title" title="${escapeAttr(song.title)}"><div class="reader-title-line"><strong>${escape(song.title)}</strong></div></div>
  <div class="reader-toolbar-right">
@@ -2685,7 +2695,7 @@ function readerHTML(){
  const perColumnWidth=(window.innerWidth-(cols===2?67:30))/cols;
  const font=Math.max(15,Math.min(26,perColumnWidth*(horizontal?.051:.058)));
  return `<div class="reader-layer ${horizontal?'reader-landscape':'reader-portrait'}" id="readerLayer" data-song="${escapeAttr(song.id)}" style="--reader-font:${font.toFixed(1)}px">
- <header class="reader-toolbar">${backCornerHTML('close-reader')}
+ <header class="reader-toolbar">${backCornerHTML('close-reader')}${homeTopbarButtonHTML()}
  
  <div class="reader-title" title="${escapeAttr(song.title)}"><div class="reader-title-line"><strong>${escape(song.title)}</strong></div><small id="readerVerification">${horizontal?(state.page+1)+' / '+pages.length:''}${song.verified?'':' · DA VERIFICARE'}</small><small id="audioFollowStatus" class="reader-follow-status" hidden></small></div>
  <div class="reader-toolbar-right">
@@ -2713,13 +2723,14 @@ function homeHTML(){
  ];
  return `<div class="home-screen"><div class="home-grid">${tiles.map(t=>`<button type="button" class="home-tile" data-nav="${t.view}" aria-label="Apri ${t.title}"><span class="home-tile-icon">${t.icon}</span><strong>${t.title}</strong></button>`).join('')}</div><div class="home-liturgical-status" id="homeLiturgicalStatus" aria-live="polite"><span class="liturgical-status-line" aria-hidden="true"></span><strong>Calendario liturgico</strong></div></div>`;
 }
+function homeTopbarButtonHTML(){return '<button type="button" class="cantoria-home-button" data-nav="home" aria-label="Vai alla Home" title="Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg></button>';}
 function headerHTML(){
  if(state.view==='home')return `<header class="topbar topbar-home topbar-home-labeled">${CATHOLIC_CORNER}<h1 class="home-topbar-title">Cantoria</h1></header>`;
  if(state.view==='masses'&&state.massId&&currentMass()){
   const m=currentMass(),done=!!m.celebratedAt;
   const date=massDateDisplay(m.date||(done?String(m.celebratedAt).slice(0,10):''));
   return `<header class="topbar topbar-section topbar-mass-detail" aria-label="Intestazione scaletta della Messa">
-   ${backCornerHTML('back-masses')}
+   ${backCornerHTML('back-masses')}${homeTopbarButtonHTML()}
    <div class="mass-topbar-info"><div class="mass-topbar-title-block">
     <strong class="mass-topbar-name">${escape(m.name)}</strong>
    </div></div>
@@ -2730,7 +2741,7 @@ function headerHTML(){
  const buildLabel=Number.isInteger(releaseInfo.build)?'Versione '+escape(releaseInfo.version)+' ('+releaseInfo.build+')':'Versione 1.1';
  const sub=state.view==='settings'?`<small class="header-build">${buildLabel}</small>`:'';
  const right='<span class="topbar-right-spacer" aria-hidden="true"></span>';
- return `<header class="topbar topbar-section topbar-standard${state.view==='masses'?' topbar-masses':''}">${backCornerHTML('home')}<strong class="header-section-title">${titles[state.view]||'Cantoria'}${sub}</strong>${right}</header>`;
+ return `<header class="topbar topbar-section topbar-standard${state.view==='masses'?' topbar-masses':''}">${backCornerHTML('home')}${homeTopbarButtonHTML()}<strong class="header-section-title">${titles[state.view]||'Cantoria'}${sub}</strong>${right}</header>`;
 }
 function navHTML(){const nav=Object.keys(labels);return `<nav class="sidenav">${nav.map(k=>`<button class="nav-item ${state.view===k?'active':''}" data-nav="${k}"><span class="ico">${icons[k]}</span>${labels[k]}</button>`).join('')}<div class="nav-helper">La tua biblioteca è salvata in questo dispositivo.<br><strong>Il cloud verrà aggiunto in una prossima versione.</strong></div></nav><nav class="bottom-nav">${nav.map(k=>`<button class="bottom-item ${state.view===k?'active':''}" data-nav="${k}"><span class="ico">${icons[k]}</span>${labels[k]}</button>`).join('')}</nav>`;}
 function libraryHTML(){
