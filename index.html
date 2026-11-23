@@ -3762,10 +3762,12 @@ root.addEventListener('click',e=>{
    const author=String(root.querySelector('#songAuthorEdit')?.value??draft?.author??song.author??'').trim();
    const liturgicalRole=String(root.querySelector('#songLiturgicalRoleEdit')?.value??draft?.liturgicalRole??song.liturgicalRole??'').trim();
    if(!title){notify('Inserisci un titolo prima di salvare.');return;}
-   const previous={title:song.title,author:song.author,liturgicalRole:song.liturgicalRole,savedAt:song.savedAt};
+   const previous={title:song.title,author:song.author,liturgicalRole:song.liturgicalRole,liturgicalSeasons:song.liturgicalSeasons,savedAt:song.savedAt};
+   const liturgicalSeasons=Array.from(root.querySelectorAll?.('input[name="liturgicalSeason"]:checked')||[],x=>x.value);
    song.title=title.slice(0,160);
    song.author=author.slice(0,160);
    song.liturgicalRole=liturgicalRole.slice(0,90);
+   song.liturgicalSeasons=liturgicalSeasons;
    song.savedAt=new Date().toISOString();
    if(!saveStore(store)){
     Object.assign(song,previous);
@@ -3773,7 +3775,7 @@ root.addEventListener('click',e=>{
    }
    state.songMetaDraft=null;
    state.modal=null;
-   notify('Dati e momento liturgico salvati in Biblioteca.');return;
+   notify('Dati e periodi liturgici salvati in Biblioteca.');return;
   }
  if(action==='show-key-analysis'){state.modal={type:'key-analysis'};render();return;}
  if(action==='edit-tonality'){state.modal={type:'tonality-edit'};render();return;}
@@ -3784,6 +3786,7 @@ root.addEventListener('click',e=>{
  if(action==='print'){state.modal={type:'pdf-export'};render();return;}
  if(action==='pdf-preview'||action==='pdf-share'||action==='pdf-download'){exportPdf(action.slice(4));return;}
  if(action==='create-mass'){state.modal={type:'new-mass'};render();return;}
+ if(action==='edit-mass-liturgical'){const mass=currentMass();if(mass){state.modal={type:'mass-liturgical',massId:mass.id};render();}return;}
  if(action==='close-modal'){state.modal=null;state.songMetaDraft=null;render();return;}
  if(action==='open-mass'){if(store.masses.some(x=>x.id===el.dataset.mass)){state.massId=el.dataset.mass;state.view='masses';render();}return;}
  if(action==='ask-delete-mass'){const mass=store.masses.find(x=>x.id===el.dataset.mass);if(mass){state.modal={type:'delete-mass-confirm',massId:mass.id};render();}return;}
@@ -3829,8 +3832,9 @@ root.addEventListener('click',e=>{
  if(action==='backup'){exportJSON(store).catch(err=>{console.error('Backup:',err);notify(err?.message||'Esportazione del backup non riuscita.');});return;}
 });
 root.addEventListener('submit',e=>{e.preventDefault();const form=e.target;const f=new FormData(form);
- if(form.id==='newMassForm'){const name=String(f.get('massName')||'').trim();if(!name)return;const mass={id:makeId(),name,date:String(f.get('massDate')||''),items:[]};store.masses.unshift(mass);state.massId=mass.id;state.view='masses';state.modal=null;persist();render();return;}
+ if(form.id==='newMassForm'){const name=String(f.get('massName')||'').trim();if(!name)return;const mass={id:makeId(),name,date:String(f.get('massDate')||''),liturgicalColor:String(f.get('liturgicalColor')||''),items:[]};store.masses.unshift(mass);state.massId=mass.id;state.view='masses';state.modal=null;persist();render();return;}
 
+ if(form.id==='massLiturgicalForm'){const mass=store.masses.find(x=>x.id===state.modal?.massId);if(!mass)return;const previous={date:mass.date,liturgicalColor:mass.liturgicalColor};mass.date=String(f.get('massDate')||'');mass.liturgicalColor=String(f.get('liturgicalColor')||'');if(!saveStore(store)){Object.assign(mass,previous);notify('Salvataggio non riuscito.');return;}state.modal=null;render();return;}
  if(form.id==='reuseMassForm'){const source=store.masses.find(x=>x.id===state.modal?.massId);const name=String(f.get('massName')||'').trim();if(!source||!name)return;const copy={id:makeId(),name,date:String(f.get('massDate')||''),items:(source.items||[]).map(item=>({id:makeId(),songId:item.songId,label:item.label,shift:item.shift||0}))};store.masses.unshift(copy);state.massId=copy.id;state.view='masses';state.modal=null;persist();render();return;}
  if(form.id==='songInfoForm'){const song=currentSong(),title=String(f.get('title')||'').trim(),author=String(f.get('author')||'').trim();if(!song||!title)return;song.title=title;song.author=author;persist();state.modal={type:'song-options'};render();return;}
  if(form.id==='lyricEditForm'){
@@ -3907,6 +3911,8 @@ root.addEventListener('input',e=>{
  state.songMetaDraft=draft;return;
 }if(e.target.id==='photoSongTitle'){state.photoTitle=e.target.value;return;}if(e.target.id==='photoSongAuthor'){state.photoAuthor=e.target.value;return;}if(e.target.id==='photoOcrText'){state.ocrText=e.target.value.slice(0,20000);return;}if(e.target.id==='search'){state.filter=e.target.value;const pos=e.target.selectionStart;render();const s=root.querySelector('#search');s?.focus();if(s?.setSelectionRange)s.setSelectionRange(pos,pos);}});
 root.addEventListener('change',async e=>{
+ if(e.target.id==='liturgicalRite'){liturgicalRite=e.target.value==='ambrosian'?'ambrosian':'roman';try{localStorage.setItem(LITURGICAL_RITE_KEY,liturgicalRite);}catch(_){}render();return;}
+ if(e.target.closest('#addToMassForm')&&(e.target.name==='label'||e.target.name==='massId')){updateMassSongSuggestions();return;}
  if(e.target.id==='photoSongLiturgicalRole'){state.photoLiturgicalRole=e.target.value;return;}
  if(e.target.id==='libraryAuthorFilter'){state.libraryAuthor=e.target.value;render();return;}
  if(e.target.id==='librarySort'){state.librarySort=e.target.value;render();return;}
