@@ -23,7 +23,7 @@ assert.ok(!detail.includes('1 canto'));
 assert.ok(detail.includes('mass-detail-tools'));
 assert.ok(detail.includes('class="cover-author">(Francesco Buttazzo)</div>'));
 assert.ok(detail.indexOf('Ti esalto Dio mio re')<detail.indexOf('(Francesco Buttazzo)'));
-for(const action of ['add-to-mass','finish-mass','rename-mass'])assert.ok(detail.includes('data-action="'+action+'"'),action);
+for(const action of ['add-to-mass','finish-mass','edit-mass-liturgical'])assert.ok(detail.includes('data-action="'+action+'"'),action);
 assert.equal((detail.match(/class="(?:primary-btn|outline-btn) mass-tool"/g)||[]).length,3);
 assert.equal((detail.match(/class="song-card mass-song-card/g)||[]).length,1);
 for(const unwanted of ['mass-shift-down','mass-shift-up','move-up','move-down','mass-card-action-groups','card-delete-btn','mass-card-open'])
