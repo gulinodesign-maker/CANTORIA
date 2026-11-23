@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const html=fs.readFileSync('index.html','utf8'),js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(js);new vm.Script(js);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:52});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:53});
 const marker='/* CANTORIA 1.1 (45): iPad touch-safe corner, transport layout, refined compact Mass cards.';
 const idx=html.indexOf(marker);assert.ok(idx>=0);
 const css=html.slice(idx,html.indexOf('</style>',idx));
