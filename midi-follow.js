@@ -33,11 +33,10 @@ function status(){
  document.getElementById('readerLayer')?.classList.toggle('midi-play-mode',running);
 }
 function highlight(){
- document.querySelectorAll('.audio-chord-active,.midi-chord-current,.midi-chord-next').forEach(e=>e.classList.remove('audio-chord-active','midi-chord-current','midi-chord-next'));
- const elements=[...document.querySelectorAll('[data-follow-id]')];
- const item=score[cursor],next=score[cursor+1];
- if(item)elements.find(x=>x.dataset.followId===item.id)?.classList.add('midi-chord-current');
- if(next&&running)elements.find(x=>x.dataset.followId===next.id)?.classList.add('midi-chord-next');
+ document.querySelectorAll('.audio-chord-active,.midi-chord-current').forEach(e=>e.classList.remove('audio-chord-active','midi-chord-current'));
+ const item=score[cursor];if(!item)return;
+ const el=[...document.querySelectorAll('[data-follow-id]')].find(x=>x.dataset.followId===item.id);
+ if(el)el.classList.add('midi-chord-current');
 }
 function setCursor(index){
  if(index<0||index>=score.length)return false;
@@ -135,10 +134,10 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden)poll()});
 window.CantoriaMIDIFollow={
  parseChord,isPlaying,get connected(){return connected;},
  setScore(id,items,callback){if(songID!==id){songID=id;cursor=0;candidate=-1;}score=items||[];pageCallback=callback;cursor=clamp(cursor,0,Math.max(0,score.length-1));highlight();},
- refresh(){status();highlight();},reset(){running=false;active.clear();cursor=0;status();highlight();},
+ refresh(){status();highlight();},reset(){running=false;active.clear();cursor=0;status();},
  rewind(){setCursor(0);},seekToChord(id){const i=score.findIndex(x=>x.id===id);return setCursor(i);},
- async toggle(){await poll();if(!connected)throw Error('Nessuna tastiera MIDI collegata. Controlla il cavo USB e la connessione iOS.');running=!running;candidate=-1;active.clear();status();highlight();},
- stop(){running=false;active.clear();status();highlight();},
+ async toggle(){await poll();if(!connected)throw Error('Nessuna tastiera MIDI collegata. Controlla il cavo USB e la connessione iOS.');running=!running;candidate=-1;active.clear();status();},
+ stop(){running=false;active.clear();status();},
  arm(key,done){armed={key,done};poll();},cancelArm(){armed=null;},
  unbind(key){delete bindings[key];try{localStorage.setItem('cantoria-midi-bindings',JSON.stringify(bindings));}catch(_){}},
 };
