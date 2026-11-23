@@ -1,6 +1,6 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const source=fs.readFileSync('audio-follow.js','utf8');
-const release=require('../release.json');assert.deepEqual(release,{version:'1.1',build:51});
+const release=require('../release.json');assert.deepEqual(release,{version:'1.1',build:52});
 assert.ok(source.includes('changeDrivenCandidate(scoreItems,activeIndex,chroma,markedChroma'),'Mic and background must follow changes');
 assert.ok(source.includes('Math.max(candidate.skipped?4:2,toleranceProfile().frames)'),'Configurable stable-frame agreement guards against noise');
 assert.ok(source.includes('root.setTimeout(detect,80)'),'Web mic polling stays fast');
