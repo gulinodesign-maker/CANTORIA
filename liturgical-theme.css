@@ -1,4 +1,4 @@
-/* CANTORIA 1.1 (51) — liturgical colours throughout the existing UI.
+/* CANTORIA 1.1 (52) — liturgical colours except the original ivory/gold headers.
  * CSS variables are set from the offline calendar; keep the established layout
  * and the 15% opacity of the four Home icons.
  */
@@ -11,26 +11,13 @@
   --liturgical-soft:rgba(23,70,56,.15);
   --liturgical-border:#a9bcad;
  }
- .topbar,
- .reader-layer .reader-toolbar {
-  background:var(--liturgical-primary)!important;
-  color:var(--liturgical-on-primary)!important;
- }
- .topbar .header-section-title,
- .topbar .home-topbar-title,
- .topbar .header-build,
- .reader-layer .reader-title,
- .reader-layer .reader-title strong,
- .reader-layer .reader-toolbar .reader-toolbar-left,
- .reader-layer .reader-toolbar .reader-toolbar-right,
- .reader-layer .reader-toolbar button:not(.corner-back-button) {
-  color:var(--liturgical-on-primary)!important;
- }
- .reader-layer .reader-toolbar .reader-title small {
-  color:var(--liturgical-on-primary)!important;opacity:.76;
- }
- .corner-ornament path:first-child{fill:var(--liturgical-primary)!important}
- :root[data-liturgical-color="white"] .corner-ornament path:first-child {
+ /* Headers and reader toolbar retain their original ivory, forest text and gold rules. */
+ .song-cover .corner-ornament path:first-child,
+ .mass-record-card .corner-ornament path:first-child,
+ .mass-card .corner-ornament path:first-child{fill:var(--liturgical-primary)!important}
+ :root[data-liturgical-color="white"] .song-cover .corner-ornament path:first-child,
+ :root[data-liturgical-color="white"] .mass-record-card .corner-ornament path:first-child,
+ :root[data-liturgical-color="white"] .mass-card .corner-ornament path:first-child {
   stroke:#b99c63;stroke-width:1;
  }
  .home-grid .home-tile .home-tile-icon,
@@ -62,21 +49,17 @@
   display:block;width:clamp(80px,23vw,160px);height:2px;
   background:var(--liturgical-accent);opacity:.55;margin-bottom:3px
  }
- .topbar-home::after,
- .topbar-section::after,
- .home-liturgical-rule::before,
- .home-liturgical-rule::after{
-  border-color:var(--liturgical-accent)!important;
- }
- .primary-btn,.mass-create-btn,.gold-btn,
+ .primary-btn,.mass-create-btn,
  .app-shell .nav-item.active,
  .app-shell .bottom-item.active {
   background:var(--liturgical-primary)!important;
   color:var(--liturgical-on-primary)!important;
   border-color:var(--liturgical-border)!important;
  }
- .outline-btn,.text-btn,.mass-card-controls button,
- .mass-song-card .mass-song-reset {
+ .workspace .outline-btn,.workspace .text-btn,
+ .modal-card .outline-btn,.modal-card .text-btn,
+ .reader-pagination .outline-btn,.reader-pagination .text-btn,
+ .mass-card-controls button,.mass-song-card .mass-song-reset {
   color:var(--liturgical-accent)!important;
   border-color:var(--liturgical-border)!important;
  }
@@ -120,10 +103,6 @@
  .liturgical-season-grid input{width:17px;height:17px;flex:0 0 auto}
  .mass-liturgical-hint{font-weight:650;color:var(--liturgical-accent)!important;margin:5px 0 10px!important}
  .mass-song-recommendation{font-size:12px;margin:5px 0;color:var(--liturgical-accent)}
- :root[data-liturgical-color="white"] .topbar,
- :root[data-liturgical-color="white"] .reader-toolbar {
-  border-bottom:2px solid #bda26a!important;
- }
  @media(orientation:landscape) and (max-height:350px){
   .home-liturgical-status{margin-top:7px;gap:1px}
   .home-liturgical-status strong{font-size:12px}
