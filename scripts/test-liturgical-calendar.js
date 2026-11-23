@@ -4,7 +4,7 @@ const vm=require('node:vm');
 const lit=require('../liturgical-calendar.js');
 const html=fs.readFileSync('index.html','utf8');
 const release=require('../release.json');
-assert.deepEqual(release,{version:'1.1',build:53});
+assert.deepEqual(release,{version:'1.1',build:54});
 assert.equal(lit.asKey(lit.easter(2026)),'2026-04-05');
 assert.equal(lit.asKey(lit.romanAdvent(2026)),'2026-11-29');
 assert.equal(lit.asKey(lit.ambrosianAdvent(2026)),'2026-11-15');

@@ -1,6 +1,6 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const source=fs.readFileSync('audio-follow.js','utf8');
-assert.deepEqual(require('../release.json'),{version:'1.1',build:53});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:54});
 new vm.Script(source);
 const audio=require('../audio-follow.js');
 const profile=(pcs)=>Array.from({length:12},(_,i)=>pcs.includes(i)?1/pcs.length:0);
