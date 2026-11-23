@@ -2400,6 +2400,23 @@
 .library-song-card .library-card-actions-only .card-actions{display:flex!important;flex-wrap:wrap!important;justify-content:center!important;gap:8px!important}
 .library-song-card .library-card-actions-only .card-actions>.outline-btn{flex:1 1 120px!important;min-width:0!important}
 </style>
+
+<style id="cantoria-build-61">
+/* Build 61: all reader actions share one right-aligned flex group. */
+.reader-layer .reader-toolbar>.reader-toolbar-right{right:12px!important;left:auto!important;top:8px!important;padding:0!important;display:flex!important;align-items:center!important;gap:8px!important}
+.reader-layer .reader-toolbar>.cantoria-home-button{right:12px!important;left:auto!important;top:8px!important;width:40px!important;height:40px!important}
+.reader-layer .reader-toolbar>.reader-toolbar-right{right:60px!important}
+@media screen and (orientation:portrait){.reader-layer .reader-toolbar>.reader-toolbar-right,.reader-layer .reader-toolbar>.cantoria-home-button{top:calc(env(safe-area-inset-top,0px) + 8px)!important}}
+/* Five equal compact actions, never wrap in portrait or landscape. */
+.song-card .library-card-actions-only .card-actions,.library-song-card .library-card-actions-only .card-actions{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:clamp(2px,1vw,8px)!important;flex-wrap:nowrap!important;width:100%!important}
+.song-card .library-card-actions-only .card-actions>.outline-btn,.library-song-card .library-card-actions-only .card-actions>.outline-btn{box-sizing:border-box!important;width:100%!important;min-width:0!important;max-width:100%!important;min-height:48px!important;padding:6px 1px!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:3px!important;font-size:clamp(8px,2.15vw,13px)!important;line-height:1.1!important;white-space:nowrap!important}
+.song-card .library-card-actions-only .card-actions>.outline-btn span:first-child{font-size:clamp(15px,3.5vw,23px)!important}
+/* Clock and build belong to the app header, never over the iOS system status clock. */
+.topbar-home-labeled .cantoria-home-heading{position:absolute;left:50%;transform:translateX(-50%);bottom:9px;display:flex;flex-direction:column;align-items:center;gap:1px;white-space:nowrap}
+.topbar-home-labeled .cantoria-home-heading .home-topbar-title{position:static!important;transform:none!important;margin:0!important}
+.topbar-home-labeled .cantoria-home-clock{font:600 12px/1.2 system-ui,sans-serif;color:#8c7a60;letter-spacing:.05em}
+.topbar-home-labeled .cantoria-home-build{position:absolute;right:14px;bottom:15px;font:600 11px/1.2 system-ui,sans-serif;color:#947d56;white-space:nowrap}
+</style>
 </head>
 <body>
   <div id="app"></div>
@@ -2763,7 +2780,7 @@ function homeHTML(){
 }
 function homeTopbarButtonHTML(){return '<button type="button" class="cantoria-home-button" data-nav="home" aria-label="Vai alla Home" title="Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg></button>';}
 function headerHTML(){
- if(state.view==='home')return `<header class="topbar topbar-home topbar-home-labeled">${CATHOLIC_CORNER}<h1 class="home-topbar-title">Cantoria</h1></header>`;
+ if(state.view==='home')return `<header class="topbar topbar-home topbar-home-labeled">${CATHOLIC_CORNER}<div class="cantoria-home-heading"><h1 class="home-topbar-title">Cantoria</h1><time id="cantoriaHomeClock" class="cantoria-home-clock">${escape(new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"}))}</time></div><span class="cantoria-home-build" aria-label="Build corrente">${Number.isInteger(releaseInfo.build)?"Build "+releaseInfo.build:"Build…"}</span></header>`;
  if(state.view==='masses'&&state.massId&&currentMass()){
   const m=currentMass(),done=!!m.celebratedAt;
   const date=massDateDisplay(m.date||(done?String(m.celebratedAt).slice(0,10):''));
@@ -3226,7 +3243,7 @@ function modalHTML(){const m=state.modal;
   const song=currentSong();if(!song?.photoData)return '';
   return `<div class="modal-shade"><div class="modal-card" role="alertdialog" aria-modal="true" aria-label="Conferma ricalcolo accordi"><h2>Ricalcolare gli accordi?</h2><p>La partitura verrà ricalcolata dalla fotografia originale con le coordinate OCR. Le modifiche manuali fatte sulle sillabe e sugli accordi saranno sostituite. La fotografia originale resterà disponibile.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button type="button" class="primary-btn" data-action="reparse-photo">Ricalcola accordi</button></div></div></div>`;
  }
- if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (55)</h2><ul><li>Rimossi Play e Riavvolgi: l'ascolto parte dal pulsante con le note.</li><li>Tocca qualsiasi accordo per riprendere da quel punto, anche durante l'ascolto; il primo riporta all'inizio.</li><li>Barra del lettore più compatta, titolo centrato in landscape e linguetta verde aderente al bordo.</li><li>Più spazio alla partitura in portrait e landscape.</li></ul><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
+ if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA ${escape(releaseInfo.version)} (${Number.isInteger(releaseInfo.build)?releaseInfo.build:'…'})</h2><ul><li>Home allineato a Note e Impostazioni in landscape.</li><li>Cinque pulsanti delle card dei brani su una sola riga.</li><li>Ora sotto Cantoria nella Home e numero build sincronizzato con Impostazioni.</li></ul><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
 
 
  if(m.type==='key-analysis'){
@@ -3532,6 +3549,7 @@ function refreshLiturgicalDate(){
 if(typeof document!=='undefined'&&typeof document.addEventListener==='function')document.addEventListener('visibilitychange',refreshLiturgicalDate);
 if(typeof window!=='undefined'&&typeof window.addEventListener==='function')window.addEventListener('focus',refreshLiturgicalDate);
 if(typeof setInterval==='function')setInterval(refreshLiturgicalDate,60000);
+if(typeof setInterval==='function')setInterval(()=>{const el=document.querySelector('#cantoriaHomeClock');if(el)el.textContent=new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});},15000);
 
 function render(){
  const oldStage=document.querySelector('#readerStage'),oldReader=document.querySelector('#readerLayer');
@@ -4430,7 +4448,7 @@ fetch('./release.json',{cache:'no-store'}).then(async response=>{
  const info=await response.json();
  if(info.version!=='1.1'||!Number.isSafeInteger(info.build)||info.build<1)throw new Error('Invalid release info');
  releaseInfo.version=info.version;releaseInfo.build=info.build;
- if(state.view==='settings'&&!state.songId)render();
+ if(!state.songId)render();
 }).catch(err=>console.warn('Impossibile leggere la build:',err));
 </script>
 <script src="./audio-follow.js"></script>
