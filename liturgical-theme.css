@@ -1,0 +1,136 @@
+/* CANTORIA 1.1 (51) — liturgical colours throughout the existing UI.
+ * CSS variables are set from the offline calendar; keep the established layout
+ * and the 15% opacity of the four Home icons.
+ */
+@media screen {
+ :root {
+  --liturgical-primary:#174638;
+  --liturgical-accent:#174638;
+  --liturgical-secondary:#326353;
+  --liturgical-on-primary:#fff;
+  --liturgical-soft:rgba(23,70,56,.15);
+  --liturgical-border:#a9bcad;
+ }
+ .topbar,
+ .reader-layer .reader-toolbar {
+  background:var(--liturgical-primary)!important;
+  color:var(--liturgical-on-primary)!important;
+ }
+ .topbar .header-section-title,
+ .topbar .home-topbar-title,
+ .topbar .header-build,
+ .reader-layer .reader-title,
+ .reader-layer .reader-title strong,
+ .reader-layer .reader-toolbar .reader-toolbar-left,
+ .reader-layer .reader-toolbar .reader-toolbar-right,
+ .reader-layer .reader-toolbar button:not(.corner-back-button) {
+  color:var(--liturgical-on-primary)!important;
+ }
+ .reader-layer .reader-toolbar .reader-title small {
+  color:var(--liturgical-on-primary)!important;opacity:.76;
+ }
+ .corner-ornament path:first-child{fill:var(--liturgical-primary)!important}
+ :root[data-liturgical-color="white"] .corner-ornament path:first-child {
+  stroke:#b99c63;stroke-width:1;
+ }
+ .home-grid .home-tile .home-tile-icon,
+ .home-grid .home-tile[data-nav="capture"] .home-tile-icon,
+ .home-grid .home-tile[data-nav="masses"] .home-tile-icon,
+ .home-grid .home-tile:active .home-tile-icon {
+  background:var(--liturgical-soft)!important;
+  border-color:var(--liturgical-border)!important;
+  color:var(--liturgical-accent)!important;
+ }
+ .home-grid .home-tile[data-nav="settings"] .home-tile-icon,
+ .home-grid .home-tile[data-nav="library"] .home-tile-icon {
+  color:var(--liturgical-accent)!important;
+ }
+ .home-grid .home-tile strong{color:var(--liturgical-accent)!important}
+ .home-liturgical-status{
+  display:flex;flex-direction:column;justify-content:center;align-items:center;
+  gap:4px;margin:clamp(14px,2.6vh,28px) auto 0;
+  max-width:min(94vw,540px);text-align:center;
+  font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  line-height:1.3;
+ }
+ .home-liturgical-status strong{
+  color:var(--liturgical-accent);font-size:clamp(13px,2.1vw,17px);
+  font-weight:750;letter-spacing:.035em;text-transform:uppercase;
+ }
+ .home-liturgical-status small{color:#65716a;font-size:clamp(11px,1.7vw,13px)}
+ .home-liturgical-status .liturgical-status-line{
+  display:block;width:clamp(80px,23vw,160px);height:2px;
+  background:var(--liturgical-accent);opacity:.55;margin-bottom:3px
+ }
+ .topbar-home::after,
+ .topbar-section::after,
+ .home-liturgical-rule::before,
+ .home-liturgical-rule::after{
+  border-color:var(--liturgical-accent)!important;
+ }
+ .primary-btn,.mass-create-btn,.gold-btn,
+ .app-shell .nav-item.active,
+ .app-shell .bottom-item.active {
+  background:var(--liturgical-primary)!important;
+  color:var(--liturgical-on-primary)!important;
+  border-color:var(--liturgical-border)!important;
+ }
+ .outline-btn,.text-btn,.mass-card-controls button,
+ .mass-song-card .mass-song-reset {
+  color:var(--liturgical-accent)!important;
+  border-color:var(--liturgical-border)!important;
+ }
+ .modal-card h2,.page-heading h1,.panel h3,.section-kicker,
+ .mass-record-card h3,.mass-record-card .mass-record-date,
+ .song-card .song-cover .cover-content .cover-label,
+ .song-card .song-cover .cover-content .cover-liturgical,
+ .tiles.mass-song-tiles>.mass-song-card .song-cover .cover-content>.cover-label,
+ .tiles.mass-song-tiles>.mass-song-card .song-cover .cover-liturgical,
+ .capture-liturgical-field select,.audio-tolerance-panel .audio-tolerance-caption strong {
+  color:var(--liturgical-accent)!important;
+ }
+ .app-shell input[type="range"],.app-shell progress,
+ .app-shell input[type="checkbox"],.app-shell input[type="radio"]{
+  accent-color:var(--liturgical-accent)!important;
+ }
+ .mass-record-card .mass-record-corner .corner-ornament path:first-child{
+  fill:var(--liturgical-primary)!important;
+ }
+ .mass-record-card,.song-card,
+ .mass-song-card,.modal-card,.panel{
+  --liturgical-border:var(--liturgical-border);
+ }
+ .mass-liturgical-banner{
+  display:flex;flex-wrap:wrap;justify-content:center;align-items:center;
+  gap:7px 12px;font-size:12px;color:var(--liturgical-accent);
+  font-weight:700;padding:6px 10px;margin:4px auto 8px;
+ }
+ .mass-liturgical-banner button{
+  border:0;background:none;color:var(--liturgical-accent);
+  text-decoration:underline;text-underline-offset:3px;
+  font-size:12px;padding:4px;cursor:pointer;
+ }
+ .liturgical-settings{display:grid;gap:12px}
+ .liturgical-settings select,
+ .liturgical-season-field select{width:100%;min-height:44px}
+ .liturgical-settings p{font-size:13px;line-height:1.5}
+ .liturgical-seasons{
+  border:1px solid var(--liturgical-border);border-radius:12px;
+  padding:10px 12px;margin:8px 0 0;
+ }
+ .liturgical-seasons legend{color:var(--liturgical-accent);font-size:12px;font-weight:750;padding:0 5px}
+ .liturgical-season-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px 6px}
+ .liturgical-season-grid label{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;min-width:0}
+ .liturgical-season-grid input{width:17px;height:17px;flex:0 0 auto}
+ .mass-liturgical-hint{font-weight:650;color:var(--liturgical-accent)!important;margin:5px 0 10px!important}
+ .mass-song-recommendation{font-size:12px;margin:5px 0;color:var(--liturgical-accent)}
+ :root[data-liturgical-color="white"] .topbar,
+ :root[data-liturgical-color="white"] .reader-toolbar {
+  border-bottom:2px solid #bda26a!important;
+ }
+ @media(orientation:landscape) and (max-height:350px){
+  .home-liturgical-status{margin-top:7px;gap:1px}
+  .home-liturgical-status strong{font-size:12px}
+  .home-liturgical-status small{font-size:10px}
+ }
+}
