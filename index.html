@@ -3215,6 +3215,94 @@ function alignChords(scope=document){
   for(const p of positions)p.label.style.left=Math.max(0,p.x).toFixed(2)+'px';
  }
 }
+
+/* CANTORIA 1.1 (51): keep theme and song selection coherent without network calls. */
+let renderedLiturgicalDay='';
+function liturgicalContextFor(mass){
+ const api=window.CantoriaLiturgical;
+ return api.forDate(mass?.date||new Date(),liturgicalRite);
+}
+function updateMassSongSuggestions(){
+ const api=window.CantoriaLiturgical,form=root.querySelector('#addToMassForm');
+ if(!api||!form)return;
+ const mass=store.masses.find(x=>x.id===form.querySelector('[name="massId"]')?.value)
+   ||store.masses.find(x=>x.id===state.modal?.massId);
+ const ctx=liturgicalContextFor(mass),rules=api.roleNotes(ctx);
+ const songSelect=form.querySelector('[name="songId"]'),moment=form.querySelector('[name="label"]');
+ if(!songSelect||!moment)return;
+ const opts=Array.from(moment.options);
+ const gloria=opts.find(x=>x.value==='Gloria'),alleluia=opts.find(x=>x.value==='Alleluia');
+ if(gloria){gloria.disabled=rules.skipGloria;gloria.textContent=rules.skipGloria?'Gloria (normalmente omesso)':'Gloria';}
+ if(alleluia){alleluia.disabled=rules.skipAlleluia;alleluia.textContent=rules.skipAlleluia?'Alleluia (non previsto)':'Alleluia';}
+ let gospel=opts.find(x=>x.value==='Acclamazione al Vangelo');
+ if(rules.skipAlleluia&&!gospel){gospel=document.createElement('option');gospel.value='Acclamazione al Vangelo';gospel.textContent='Acclamazione al Vangelo (senza Alleluia)';alleluia?.after(gospel);}
+ if(!rules.skipAlleluia&&gospel)gospel.remove();
+ if(moment.selectedOptions[0]?.disabled)moment.value=rules.skipAlleluia&&moment.value==='Alleluia'?'Acclamazione al Vangelo':'Ingresso';
+ const note=form.querySelector('#massLiturgicalHint');
+ if(note)note.textContent=(ctx.celebration||ctx.label)+' · '+api.COLORS[mass?.liturgicalColor||ctx.color].name+' · '+(liturgicalRite==='ambrosian'?'Rito ambrosiano':'Rito romano')+'. '+rules.hint;
+ const existing=Array.from(songSelect.options);
+ const selected=state.modal?.songId||songSelect.value;
+ const role=moment.value;
+ const ranked=existing.map((opt,index)=>{
+  const song=store.songs.find(x=>x.id===opt.value);
+  return {opt,index,rank:api.score(song,ctx,role),song};
+ }).sort((a,b)=>b.rank-a.rank||a.index-b.index);
+ for(const item of ranked){
+  item.opt.textContent=(item.rank>=4?'★ ':'')+(item.song?.title||'Brano sconosciuto')+(item.rank>=4?' · consigliato':'');
+  songSelect.appendChild(item.opt);
+ }
+ const selectedExists=ranked.some(r=>r.opt.value===selected);
+ songSelect.value=selectedExists?selected:(ranked[0]?.opt.value||'');
+ const recommendation=form.querySelector('#massSongRecommendation');
+ if(recommendation){
+  const n=ranked.filter(x=>x.rank>=4).length;
+  recommendation.textContent=n?n+' '+(n===1?'canto suggerito':'canti suggeriti')+' per questo momento e periodo.':'Nessun canto ancora classificato per questo momento: puoi scegliere liberamente.';
+ }
+}
+function applyLiturgicalUI(){
+ const api=window.CantoriaLiturgical;
+ if(!api)return;
+ const mass=(state.view==='masses'&&state.massId)?currentMass():null;
+ const ctx=liturgicalContextFor(mass);
+ const color=mass?.liturgicalColor||ctx.color;
+ api.theme(document.documentElement,color);
+ renderedLiturgicalDay=api.asKey(new Date());
+ const themeMeta=document.querySelector('meta[name="theme-color"]');
+ if(themeMeta)themeMeta.content=api.COLORS[color]?.primary||'#174638';
+ const home=root.querySelector('#homeLiturgicalStatus');
+ if(home){
+  const heading=home.querySelector('strong');
+  if(heading)heading.textContent=ctx.celebration||ctx.label;
+  const subtitle=document.createElement('small');
+  subtitle.textContent=(liturgicalRite==='ambrosian'?'Rito ambrosiano':'Rito romano')+' · '+api.COLORS[color].name;
+  home.appendChild(subtitle);
+ }
+ const rite=root.querySelector('#liturgicalRite');
+ if(rite)rite.value=liturgicalRite;
+ const banner=root.querySelector('#massLiturgicalBanner');
+ if(banner&&mass){
+  const label=document.createElement('span');
+  label.textContent=(ctx.celebration||ctx.label)+' · '+api.COLORS[color].name+' · '+(liturgicalRite==='ambrosian'?'Ambrosiano':'Romano');
+  const edit=document.createElement('button');edit.type='button';edit.dataset.action='edit-mass-liturgical';edit.textContent='Modifica data o colore';
+  banner.append(label,edit);
+ }
+ for(const card of root.querySelectorAll('.mass-record-card[data-mass]')){
+  const item=store.masses.find(x=>x.id===card.dataset.mass);if(!item)continue;
+  const record=liturgicalContextFor(item);
+  api.theme(card,item.liturgicalColor||record.color);
+  card.setAttribute('aria-description',record.celebration||record.label);
+ }
+ updateMassSongSuggestions();
+}
+function refreshLiturgicalDate(){
+ const api=window.CantoriaLiturgical;
+ if(!api||document.hidden)return;
+ if(renderedLiturgicalDay&&api.asKey(new Date())!==renderedLiturgicalDay)render();
+}
+document.addEventListener('visibilitychange',refreshLiturgicalDate);
+window.addEventListener('focus',refreshLiturgicalDate);
+setInterval(refreshLiturgicalDate,60000);
+
 function render(){
  const oldStage=document.querySelector('#readerStage'),oldReader=document.querySelector('#readerLayer');
  const oldSong=oldReader?.dataset.song,oldScroll=oldStage?.scrollTop||0;
