@@ -2,7 +2,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
 const html=fs.readFileSync('index.html','utf8');
 const js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(js);new vm.Script(js);
-assert.equal(require('../release.json').build,54);
+assert.equal(require('../release.json').build,55);
 assert.ok(html.includes('CANTORIA 1.1 (54): iOS-safe corner and unified Mass editor.'));
 assert.ok(html.includes('top:calc(env(safe-area-inset-top,0px) + 4px)!important'));
 assert.ok(html.includes('box-shadow:none!important'));

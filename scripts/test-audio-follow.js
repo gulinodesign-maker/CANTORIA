@@ -1,9 +1,9 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const html=fs.readFileSync('index.html','utf8'),inline=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(inline);new vm.Script(inline);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:54});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:55});
 assert.equal(require('../package.json').version,'1.1.0');
-for(const text of ['releaseInfo.build','data-action="follow-source"','data-action="choose-section-text"','data-action="recognize-photo"','data-action="follow-play"','data-action="follow-rewind"','data-follow-chord=','audio-follow.js','library-action-icon','song-options-grid'])assert.ok(html.includes(text),text);
+for(const text of ['releaseInfo.build','data-action="follow-source"','data-action="choose-section-text"','data-action="recognize-photo"','data-follow-chord=','audio-follow.js','library-action-icon','song-options-grid'])assert.ok(html.includes(text),text);
 for(const text of ['Apple Intelligence','recognize-apple','cantoriaAI'])assert.ok(!html.includes(text),text);
 const prep=fs.readFileSync('scripts/prepare-ios.sh','utf8');
 assert.ok(!prep.includes('FoundationModels'));
@@ -22,9 +22,9 @@ console.log('CANTORIA 1.1 (14): UI, audio, OCR and version validated.');
 
 // 1.1 (5): precisely two audio buttons in reader topbar; follow before settings.
 const bar=html.slice(html.indexOf('function readerHTML()'),html.indexOf('const CATHOLIC_CORNER ='));
-assert.ok(bar.includes('reader-toolbar-left')&&bar.includes('reader-toolbar-right'));
-assert.equal((bar.match(/data-action="follow-play"/g)||[]).length,1);
-assert.equal((bar.match(/data-action="follow-rewind"/g)||[]).length,1);
+assert.ok(bar.includes('reader-toolbar-right'));
+assert.equal((bar.match(/data-action="follow-play"/g)||[]).length,0);
+assert.equal((bar.match(/data-action="follow-rewind"/g)||[]).length,0);
 assert.ok(bar.indexOf('data-action="follow-source"')<bar.indexOf('data-action="song-options"'));
 assert.ok(!bar.includes('audio-follow-bar'));
 const menu=html.slice(html.indexOf("if(m.type==='song-options')"),html.indexOf("if(m.type==='photo-source')"));

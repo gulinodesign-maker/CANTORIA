@@ -2233,6 +2233,61 @@
  .reader-layer .reader-toolbar{min-height:calc(116px + env(safe-area-inset-top,0px))!important;height:calc(116px + env(safe-area-inset-top,0px))!important}
 }
 
+
+/* CANTORIA 1.1 (55): score-first compact toolbar, full-bleed corner. */
+.reader-layer .reader-toolbar{
+ position:relative!important;
+ min-height:calc(64px + env(safe-area-inset-top,0px))!important;
+ height:calc(64px + env(safe-area-inset-top,0px))!important;
+ padding:env(safe-area-inset-top,0px) 12px 0!important;
+ display:flex!important;align-items:center!important;justify-content:center!important;
+ overflow:visible!important;
+}
+.reader-layer .reader-toolbar>.corner-back-button{
+ position:absolute!important;top:0!important;left:0!important;
+ width:clamp(92px,21vw,116px)!important;min-width:0!important;
+ height:clamp(76px,18vw,94px)!important;min-height:0!important;
+ margin:0!important;transform:none!important
+}
+.reader-layer .reader-toolbar-right{
+ position:absolute!important;right:12px!important;
+ top:calc(env(safe-area-inset-top,0px) + 8px)!important;
+ margin:0!important;z-index:1001!important
+}
+.reader-layer .reader-title{
+ position:relative!important;inset:auto!important;transform:none!important;
+ margin:0 auto!important;padding:0 104px!important;
+ text-align:center!important;max-width:100%!important;
+ pointer-events:none!important;z-index:4!important
+}
+.reader-layer .reader-title-line,.reader-layer .reader-title strong{
+ text-align:center!important;max-width:100%!important
+}
+.reader-layer .reader-stage{top:calc(64px + env(safe-area-inset-top,0px))!important}
+.reader-layer .reader-toolbar-left{display:none!important}
+.reader-layer .chord-label[data-follow-id]{cursor:pointer!important;touch-action:manipulation}
+@media screen and (orientation:landscape){
+ .reader-layer .reader-toolbar{
+  height:64px!important;min-height:64px!important;
+  padding:0 12px!important
+ }
+ .reader-layer .reader-toolbar>.corner-back-button{
+  top:0!important;left:0!important;
+  width:116px!important;height:94px!important;
+  border:0!important
+ }
+ .reader-layer .reader-toolbar .corner-ornament{
+  left:0!important;top:0!important;margin:0!important
+ }
+ .reader-layer .reader-toolbar-right{top:8px!important;right:12px!important}
+ .reader-layer .reader-title{
+  position:absolute!important;left:50%!important;top:50%!important;
+  width:min(52vw,660px)!important;max-width:52vw!important;
+  transform:translate(-50%,-50%)!important;padding:0!important;
+  margin:0!important;text-align:center!important
+ }
+ .reader-layer .reader-stage{top:64px!important}
+}
 </style>
   <link rel="stylesheet" href="./liturgical-theme.css?v=52" />
   <title>Cantoria — Canti per la liturgia cattolica</title>
@@ -2545,10 +2600,7 @@ function readerColumns(){const w=window.innerWidth,h=window.innerHeight;return (
 function photoReaderHTML(song){
  return `<div class="reader-layer reader-portrait reader-photo" id="readerLayer" data-song="${escapeAttr(song.id)}">
  <header class="reader-toolbar">${backCornerHTML('close-reader')}
- <div class="reader-toolbar-left">
- <button class="reader-audio-btn" type="button" data-action="follow-rewind" title="Torna all’inizio" aria-label="Torna all’inizio del brano"><svg class="reader-transport-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3.5 5v14" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" fill="none"/><path d="M12 6v12L5 12zM21 6v12l-7-6z" fill="currentColor"/></svg></button>
- <button class="reader-audio-btn reader-play-toggle" type="button" disabled data-action="follow-play" title="Play / Stop" aria-label="Play"><svg class="reader-transport-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 4v16l13-8z" fill="currentColor"/></svg></button>
- </div>
+ 
  <div class="reader-title" title="${escapeAttr(song.title)}"><div class="reader-title-line"><strong>${escape(song.title)}</strong></div></div>
  <div class="reader-toolbar-right">
  <button class="reader-follow-btn" type="button" disabled data-action="follow-source" title="Segui accordi" aria-label="Segui accordi">♫</button>
@@ -2573,10 +2625,7 @@ function readerHTML(){
  const font=Math.max(15,Math.min(26,perColumnWidth*(horizontal?.051:.058)));
  return `<div class="reader-layer ${horizontal?'reader-landscape':'reader-portrait'}" id="readerLayer" data-song="${escapeAttr(song.id)}" style="--reader-font:${font.toFixed(1)}px">
  <header class="reader-toolbar">${backCornerHTML('close-reader')}
- <div class="reader-toolbar-left">
- <button class="reader-audio-btn" type="button" data-action="follow-rewind" title="Torna all’inizio" aria-label="Torna all’inizio del brano"><svg class="reader-transport-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3.5 5v14" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" fill="none"/><path d="M12 6v12L5 12zM21 6v12l-7-6z" fill="currentColor"/></svg></button>
- <button class="reader-audio-btn reader-play-toggle" type="button" data-action="follow-play" title="Play / Stop" aria-label="Play"><svg class="reader-transport-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 4v16l13-8z" fill="currentColor"/></svg></button>
- </div>
+ 
  <div class="reader-title" title="${escapeAttr(song.title)}"><div class="reader-title-line"><strong>${escape(song.title)}</strong></div><small id="readerVerification">${horizontal?(state.page+1)+' / '+pages.length:''}${song.verified?'':' · DA VERIFICARE'}</small><small id="audioFollowStatus" class="reader-follow-status" hidden></small></div>
  <div class="reader-toolbar-right">
  <button class="reader-follow-btn" type="button" data-action="follow-source" title="Segui accordi" aria-label="Segui accordi">♫</button>
@@ -3066,7 +3115,7 @@ function modalHTML(){const m=state.modal;
   const song=currentSong();if(!song?.photoData)return '';
   return `<div class="modal-shade"><div class="modal-card" role="alertdialog" aria-modal="true" aria-label="Conferma ricalcolo accordi"><h2>Ricalcolare gli accordi?</h2><p>La partitura verrà ricalcolata dalla fotografia originale con le coordinate OCR. Le modifiche manuali fatte sulle sillabe e sugli accordi saranno sostituite. La fotografia originale resterà disponibile.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button type="button" class="primary-btn" data-action="reparse-photo">Ricalcola accordi</button></div></div></div>`;
  }
- if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (54)</h2><p>Home e barre superiori senza separazioni, angoli con croce uniformati e distanziati dall’orologio iOS; editor unico per nome, data e colore della Messa. Calendario liturgico romano e ambrosiano con tema automatico per tutta l’app, periodo in Home, colori delle Messe e suggerimenti di canti adatti a periodo e momento liturgico. Si può correggere il colore delle singole Messe. Nuovo cursore di tolleranza nelle Impostazioni: verso destra gli accordi avanzano solo con cambi più marcati e stabili; il valore viene salvato sul dispositivo. Indietro sulla croce ora usa un'area di tocco più ampia e affidabile su iPad. Riavvolgi e Play sono posizionati ulteriormente a sinistra in portrait, accanto allo smusso; in landscape rimangono fuori dallo smusso e cliccabili. Le top bar di Messe e del dettaglio sono più basse, con titolo e data centrati. Il pulsante Nuova Messa è sotto la linea dorata e centrato. Nelle card delle Messe lo smusso verde con la croce torna a sinistra e il pulsante X passa a destra. Le card non mostrano più i titoli dei canti; riordino e apertura restano invariati. Lo smusso verde con la croce non è più ritagliato dai bordi delle top bar. Scaletta Messa ridisegnata con card compatte, titoli leggibili, croce e dettagli verde/oro. Navigazione manuale degli accordi rimossa e top bar Messa più compatta. Funzione liturgica selezionabile durante l’acquisizione, in verde nelle card di Biblioteca e Scaletta. Ascolto live: identificato il primo accordo, avanza ai cambi armonici confermati. Pubblicazione TestFlight senza avvio obbligatorio del simulatore, mantenendo i controlli di compilazione e integrità. Motore microfono nativo iOS: l’ascolto continua mentre l’app è in background. Al ritorno, gli accordi rilevati riallineano lo spartito senza salvare registrazioni audio. Schermo sempre acceso mentre CANTORIA è attiva in primo piano su iPhone o iPad: lo spartito rimane visibile durante tutta la celebrazione, anche senza toccare il display. Quando si esce dall’app o si blocca il dispositivo, il risparmio energetico iOS torna normale.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
+ if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (55)</h2><ul><li>Rimossi Play e Riavvolgi: l'ascolto parte dal pulsante con le note.</li><li>Tocca qualsiasi accordo per riprendere da quel punto, anche durante l'ascolto; il primo riporta all'inizio.</li><li>Barra del lettore più compatta, titolo centrato in landscape e linguetta verde aderente al bordo.</li><li>Più spazio alla partitura in portrait e landscape.</li></ul><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
 
 
  if(m.type==='key-analysis'){
@@ -3877,8 +3926,8 @@ root.addEventListener('click',e=>{
  }
  if(action==='mass-shift-up'||action==='mass-shift-down'){if(currentMass()?.celebratedAt)return;modifyMassItem(el.dataset.item,item=>{item.shift=Math.max(-11,Math.min(11,item.shift+(action==='mass-shift-up'?1:-1)));});return;}
  if(action==='rename-mass'){const m=currentMass();if(m?.celebratedAt)return;const n=prompt('Nome della Messa',m?.name||'');if(n&&m){m.name=n.trim();persist();render();}return;}
- if(action==='edit-chord'){openChordModal(+el.dataset.section,+el.dataset.line,+el.dataset.chord);return;}
-  if(action==='edit-chord-only'){state.modal={type:'chord-only-edit',si:+el.dataset.section,rowIndex:+el.dataset.rowIndex,ai:+el.dataset.chord};render();return;}
+ if(action==='edit-chord'){const id=el.dataset.followId;if(id&&window.CantoriaAudioFollow?.seekToChord(id)){return;}openChordModal(+el.dataset.section,+el.dataset.line,+el.dataset.chord);return;}
+  if(action==='edit-chord-only'){const id=el.dataset.followId;if(id&&window.CantoriaAudioFollow?.seekToChord(id))return;state.modal={type:'chord-only-edit',si:+el.dataset.section,rowIndex:+el.dataset.rowIndex,ai:+el.dataset.chord};render();return;}
   if(action==='delete-chord-only'){
    const m=state.modal,sec=currentSong()?.sections[m?.si];
    const row=m?.rowIndex<0?sec?.chordsOnly:sec?.chordRows?.[m.rowIndex];

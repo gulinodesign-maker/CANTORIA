@@ -747,13 +747,23 @@
   if(player?.src)return play();
   return microphone();
  }
+ function seekToChord(id){
+  const index=scoreItems.findIndex(item=>item.id===String(id||""));
+  if(index<0)return false;
+  // Explicit user seek overrides the automatic harmonic gate, without stopping the microphone.
+  resetListeningWindow();markedChroma=null;
+  lastAdvance=0;lastMarkAttackCount=attackCount;
+  releasedSinceLast=false;mark(index);
+  status("Ripresa dall’accordo "+scoreItems[index].label);
+  return true;
+ }
  function rewind(){
   if(player?.src)try{player.currentTime=0;}catch(_){}
   activeIndex=-1;activeName="";lastAdvance=0;attackCount=0;lastMarkAttackCount=0;previousRms=0;silentFrames=0;releasedSinceLast=false;resetListeningWindow();markedChroma=null;refresh();
   if(mode==="mic")status("In attesa del primo accordo: "+(scoreItems[0]?.label||"—"));
  }
  if(player)player.addEventListener("ended",()=>stop());
- const api={parseChord,chromaFromFFT,recognizeChord,recognizeExpectedChord,changeDrivenCandidate,toleranceProfile,getTolerance,setTolerance,diagnoseChroma,startDiagnostic,stopDiagnostic,nextChordIndex,stepChordIndex,liveChordCandidate,setScore,step,loadTrack,play,microphone,toggle,rewind,stop,reset,refresh,syncControls,get mode(){return mode;},get activeIndex(){return activeIndex;},get hasSource(){return preferredSource==="mic"||!!player?.src;}};
+ const api={parseChord,chromaFromFFT,recognizeChord,recognizeExpectedChord,changeDrivenCandidate,toleranceProfile,getTolerance,setTolerance,diagnoseChroma,startDiagnostic,stopDiagnostic,nextChordIndex,stepChordIndex,liveChordCandidate,setScore,step,seekToChord,loadTrack,play,microphone,toggle,rewind,stop,reset,refresh,syncControls,get mode(){return mode;},get activeIndex(){return activeIndex;},get hasSource(){return preferredSource==="mic"||!!player?.src;}};
  root.CantoriaAudioFollow=api;
  if(typeof module!=="undefined"&&module.exports)module.exports={parseChord,chromaFromFFT,recognizeChord,recognizeExpectedChord,changeDrivenCandidate,toleranceProfile,diagnoseChroma,nextChordIndex,stepChordIndex,liveChordCandidate};
 })(typeof window!=="undefined"?window:globalThis);
