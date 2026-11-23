@@ -38,51 +38,39 @@ function highlight(){
  const el=[...document.querySelectorAll('[data-follow-id]')].find(x=>x.dataset.followId===item.id);
  if(el)el.classList.add('midi-chord-current');
 }
-function setCursor(index){
+function setCursor(index,manual=true){
  if(index<0||index>=score.length)return false;
- cursor=index;candidate=-1;candidateAt=0;lastHarmony='';lastHarmonyAt=0;active.clear();sustain.clear();lastAdvance=time();
+ clearAttacks();awaitingSelected=manual;cursor=index;candidate=-1;candidateAt=0;lastHarmony='';lastHarmonyAt=0;active.clear();sustain.clear();lastAdvance=time();
  const item=score[cursor];if(item&&typeof pageCallback==='function')pageCallback(item.page);
  highlight();return true;
 }
-function notesForHarmony(){
- const t=time(),notes=[...active].filter(([key,v])=>t-v.at<12000).map(([key,v])=>({note:v.note,at:v.at,channel:v.channel})).sort((a,b)=>a.note-b.note);
- if(notes.length<2)return [];
- // Infer a split only when there are separate low and high note clusters.
- const gaps=notes.slice(1).map((n,i)=>({gap:n.note-notes[i].note,index:i}));
- const gap=gaps.filter(x=>x.gap>=5&&x.index>=1&&x.index<notes.length-2).sort((a,b)=>b.gap-a.gap)[0];
- if(gap){const proposed=(notes[gap.index].note+notes[gap.index+1].note)/2;splitSamples.push(proposed);if(splitSamples.length>14)splitSamples.shift();const sorted=[...splitSamples].sort((a,b)=>a-b);split=clamp(sorted[Math.floor(sorted.length/2)],45,76);}
- let low=notes.filter(x=>x.note<=split);
- if(low.length<2){low=notes.slice(0,Math.min(4,Math.max(2,Math.ceil(notes.length*.6))));}
- // Prefer bass notes and simultaneous chord tones; melody-only high notes must not drive changes.
- return low;
-}
+// Recognize fresh attacks independently of held and sustained notes.
+const attacks=new Map();
+let attackTimer=null, awaitingSelected=true;
+function clearAttacks(){attacks.clear();if(attackTimer!==null){clearTimeout(attackTimer);attackTimer=null;}}
 function evaluate(){
- if(!running||!connected||cursor>=score.length-1)return;
- const t=time(),notes=notesForHarmony();
- if(notes.length<2)return;
- const pcs=new Set(notes.map(x=>x.note%12));
- const bass=notes[0].note%12;
- const current=parseChord(score[cursor]?.label);
- const possible=[];
- for(let index=cursor;index<Math.min(score.length,cursor+4);index++){
-  const chord=parseChord(score[index].label);if(!chord)continue;
-  const hits=chord.filter(pc=>pcs.has(pc)).length;
-  const extras=[...pcs].filter(pc=>!chord.includes(pc)).length;
-  const confidence=hits/chord.length-.14*extras+(chord.includes(bass)?.12:0);
-  possible.push({index,hits,confidence,chord});
- }
- possible.sort((a,b)=>b.confidence-a.confidence||a.index-b.index);
- const best=possible[0],present=possible.find(x=>x.index===cursor);
- if(!best||best.index<=cursor||best.hits<2||best.confidence<.66)return;
- // Never advance on a pitch set also explained by the current chord.
- if(present&&best.confidence-present.confidence<.17)return;
- if(candidate!==best.index){candidate=best.index;candidateAt=t;return;}
- if(t-candidateAt<90||t-lastAdvance<140)return;
- setCursor(best.index);
+ if(!running||!connected||!score.length)return;
+ const t=time();
+ for(const [key,v] of attacks)if(t-v.at>100)attacks.delete(key);
+ const notes=[...attacks.values()].sort((a,b)=>a.note-b.note);
+ const pcs=new Set(notes.map(v=>v.note%12));
+ if(pcs.size<2)return;
+ const expected=awaitingSelected?cursor:cursor+1;
+ if(expected>=score.length)return;
+ const chord=parseChord(score[expected]?.label);
+ if(!chord)return;
+ const hits=chord.filter(pc=>pcs.has(pc)).length;
+ const extras=[...pcs].filter(pc=>!chord.includes(pc)).length;
+ // Require a fresh complete triad (or three tones of a seventh).
+ // Held notes from the previous harmony cannot veto a new attack.
+ if(hits<Math.min(3,chord.length)||extras>1)return;
+ if(awaitingSelected){awaitingSelected=false;clearAttacks();highlight();return;}
+ setCursor(expected,false);
+ awaitingSelected=false;
 }
 function noteKey(channel,note){return channel+':'+note;}
 function midiEvent(e){
- const note=Number(e.note),channel=Number(e.channel)||0,on=e.on===true||e.type==='noteOn'||e.type==='noteon'||e.type==='note_on';
+ const note=Number(e.note),channel=Number(e.channel)||0,on=(e.on===true||e.type==='noteOn'||e.type==='noteon'||e.type==='note_on')&&!(e.velocity!==undefined&&Number(e.velocity)===0);
  if(!Number.isInteger(note)||note<0||note>127)return;
  if(armed&&on){
   const old=Object.keys(bindings).find(k=>bindings[k]?.note===note&&bindings[k]?.channel===channel&&k!==armed.key);
@@ -97,10 +85,9 @@ function midiEvent(e){
   return;
  }
  const key=noteKey(channel,note);
- if(on){active.set(key,{note,channel,at:time()});sustain.delete(key);}
+ if(on){active.set(key,{note,channel,at:time()});sustain.delete(key);if(running){attacks.set(key,{note,channel,at:time()});evaluate();}}
  else if(pedal.get(channel)){sustain.add(key);}
  else{active.delete(key);sustain.delete(key);}
- evaluate();
 }
 function controlEvent(e){
  const channel=Number(e.channel)||0,controller=Number(e.controller);
@@ -133,11 +120,11 @@ setInterval(poll,35);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)poll()});
 window.CantoriaMIDIFollow={
  parseChord,isPlaying,get connected(){return connected;},
- setScore(id,items,callback){if(songID!==id){songID=id;cursor=0;candidate=-1;}score=items||[];pageCallback=callback;cursor=clamp(cursor,0,Math.max(0,score.length-1));highlight();},
- refresh(){status();highlight();},reset(){running=false;active.clear();cursor=0;status();},
+ setScore(id,items,callback){if(songID!==id){songID=id;cursor=0;candidate=-1;awaitingSelected=true;clearAttacks();}score=items||[];pageCallback=callback;cursor=clamp(cursor,0,Math.max(0,score.length-1));highlight();},
+ refresh(){status();highlight();},reset(){running=false;active.clear();clearAttacks();cursor=0;status();},
  rewind(){setCursor(0);},seekToChord(id){const i=score.findIndex(x=>x.id===id);return setCursor(i);},
- async toggle(){await poll();if(!connected)throw Error('Nessuna tastiera MIDI collegata. Controlla il cavo USB e la connessione iOS.');running=!running;candidate=-1;active.clear();status();},
- stop(){running=false;active.clear();status();},
+ async toggle(){await poll();if(!connected)throw Error('Nessuna tastiera MIDI collegata. Controlla il cavo USB e la connessione iOS.');running=!running;candidate=-1;active.clear();clearAttacks();awaitingSelected=true;status();},
+ stop(){running=false;active.clear();clearAttacks();status();},
  arm(key,done){armed={key,done};poll();},cancelArm(){armed=null;},
  unbind(key){delete bindings[key];try{localStorage.setItem('cantoria-midi-bindings',JSON.stringify(bindings));}catch(_){}},
 };
