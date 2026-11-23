@@ -1,13 +1,13 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const html=fs.readFileSync('index.html','utf8'),js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(js);new vm.Script(js);
-const release=require('../release.json');assert.deepEqual(release,{version:'1.1',build:53});
+const release=require('../release.json');assert.deepEqual(release,{version:'1.1',build:54});
 assert.ok(js.includes("const releaseInfo={version:'1.1',build:null}"));
 const a=js.indexOf('function headerHTML()'),b=js.indexOf('function navHTML()',a);
 assert.ok(a>=0&&b>a);
 const ctx={releaseInfo:{version:release.version,build:release.build},escape:s=>String(s),state:{view:'settings'},CATHOLIC_CORNER:'<svg></svg>',backCornerHTML:kind=>kind==='home'?'<button class="corner-back-button" data-nav="home"></button>':'<button class="corner-back-button" data-action="'+kind+'"></button>'};
 vm.runInNewContext(js.slice(a,b)+'this.showHeader=headerHTML;',ctx);
-assert.ok(ctx.showHeader().includes('Versione 1.1 (53)'));
+assert.ok(ctx.showHeader().includes('Versione 1.1 (54)'));
 ctx.releaseInfo.build=54;
 assert.ok(ctx.showHeader().includes('Versione 1.1 (54)'),'Next build must update automatically');
 assert.ok(js.includes("fetch('./release.json',{cache:'no-store'})"));

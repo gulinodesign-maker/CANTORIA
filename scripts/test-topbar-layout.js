@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const html=fs.readFileSync('index.html','utf8'),js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(js);new vm.Script(js);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:53});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:54});
 const sections=[
  ['homeHTML','headerHTML'],['libraryHTML','massDateDisplay'],
  ['massesHTML','massDetailHTML'],['captureHTML','settingsHTML'],
@@ -58,3 +58,9 @@ const dividerFreeRules=[
 for(const rule of dividerFreeRules)assert.ok(html.includes(rule),'Missing line-free topbar rule '+rule);
 assert.ok(html.includes('box-shadow:0 3px 9px #3e362410!important'),'Original header shadow must stay unchanged');
 console.log('PASS: no bottom divider beneath section and reader top bars');
+
+assert.ok(html.includes('/* CANTORIA 1.1 (54): unified corner'));
+assert.ok(html.includes("subtitle.textContent=(liturgicalRite==='ambrosian'?'Rito ambrosiano':'Rito romano');"));
+assert.ok(html.includes('box-shadow:none!important'));
+assert.ok(html.includes('margin-left:clamp(142px,14vw,164px)!important'));
+console.log('PASS: build 54 home liturgical subtitle, seamless headers and full-sized corners');
