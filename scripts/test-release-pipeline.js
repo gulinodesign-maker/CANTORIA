@@ -19,5 +19,5 @@ assert.ok(prep.includes("fs.writeFileSync('web/build-info.json'"));
 assert.ok(prep.includes("crypto.createHash('sha256')"));
 const html=fs.readFileSync('index.html','utf8');
 assert.ok(html.includes('class="cover-author"'),'Composer credit absent');
-assert.ok(html.includes('CANTORIA 1.1 (50)'),'Release UI notes not updated');
+assert.ok(html.includes('CANTORIA 1.1 (51)'),'Release UI notes not updated');
 console.log('PASS: stale builds cancelled, exact signed app verified, immutable source fingerprint');

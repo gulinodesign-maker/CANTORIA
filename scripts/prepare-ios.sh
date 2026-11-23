@@ -8,7 +8,7 @@ fi
 
 # Bundle the actual web application offline inside the iOS app.
 mkdir -p web
-cp index.html release.json audio-follow.js harmony-analysis.js score-ocr.js score-geometry.js score-metadata.js score-editor.js manifest.webmanifest sw.js web/
+cp index.html release.json liturgical-calendar.js liturgical-theme.css audio-follow.js harmony-analysis.js score-ocr.js score-geometry.js score-metadata.js score-editor.js manifest.webmanifest sw.js web/
 cp -R assets web/assets
 # Stamp the exact commit and HTML hash into the bundled web application.
 node - <<'NODE'

@@ -1,3 +1,13 @@
+## CANTORIA 1.1 (51) — calendario liturgico romano e ambrosiano (23 novembre 2026)
+
+- Il calendario viene calcolato offline dalla data e dal rito selezionato nelle Impostazioni. La Home mostra il periodo sotto i quattro tasti; i colori di linguette, top bar, icone, bordi e pulsanti seguono il colore del periodo.
+- Le Messe con data propria usano il calendario di quella data; si può impostare manualmente il colore per celebrazioni locali non comprese nel calendario generale.
+- La Biblioteca permette di assegnare più periodi a ciascun canto. Nel dialogo Aggiungi alla Messa, i brani pertinenti al rito, al periodo e al momento vengono suggeriti per primi senza nascondere gli altri; il rito romano segnala Gloria normalmente omesso in Avvento e Quaresima e l'acclamazione al Vangelo senza Alleluia in Quaresima.
+- Aggiunti test per Pasqua, Pentecoste, Avvento, colori e scelta dei canti, più packaging Capacitor e service worker offline dei nuovi file.
+- Resta necessaria la verifica dell'ordo diocesano per le feste proprie o trasferite. Il calendario non modifica le registrazioni audio, il riconoscimento degli accordi, le foto o le scalette esistenti.
+
+---
+
 ## CANTORIA 1.1 (38) — display sempre acceso quando l'app iOS è attiva (22 novembre 2026)
 
 - Schermo iPhone/iPad mantenuto acceso automaticamente in tutte le sezioni mentre CANTORIA è in primo piano, non soltanto durante il riconoscimento degli accordi.

@@ -27,7 +27,7 @@ if [[ "$phase" == staged ]]; then
   [[ -s web/build-info.json && -s ios/App/App/public/index.html ]] || {
     echo "::error::Capacitor staging did not copy web assets" >&2; exit 1;
   }
-  for name in index.html release.json sw.js; do
+  for name in index.html release.json liturgical-calendar.js liturgical-theme.css sw.js; do
     cmp -s "$name" "web/$name" || { echo "::error::Web staging differs: $name"; exit 1; }
     cmp -s "$name" "ios/App/App/public/$name" || { echo "::error::iOS staging differs: $name"; exit 1; }
   done
@@ -56,7 +56,7 @@ if [[ "$app_version" != "$version" || "$app_build" != "$build" ]]; then
   echo "::error::Binary is $app_version ($app_build), expected $version ($build)" >&2
   exit 1
 fi
-for name in index.html release.json score-metadata.js sw.js; do
+for name in index.html release.json liturgical-calendar.js liturgical-theme.css score-metadata.js sw.js; do
   if ! cmp -s "$name" "$app/public/$name"; then
     echo "::error::Stale $name in $phase app" >&2
     exit 1
