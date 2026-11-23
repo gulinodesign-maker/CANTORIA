@@ -1,5 +1,5 @@
 (function(){'use strict';
-const plugin=()=>window.Capacitor?.registerPlugin?.('CantoriaMIDI');
+const plugin=()=>{const c=window.Capacitor;if(!c)return null;if(c.Plugins?.CantoriaMIDI)return c.Plugins.CantoriaMIDI;if(typeof c.nativePromise==='function')return {pull:args=>c.nativePromise('CantoriaMIDI','pull',args||{})};if(typeof c.registerPlugin==='function')return c.registerPlugin('CantoriaMIDI');return null;};
 const names={DO:0,RE:2,MI:4,FA:5,SOL:7,LA:9,SI:11};
 const parseChord=s=>{const m=String(s||'').toUpperCase().replaceAll('♯','#').replaceAll('♭','B').match(/^(DO|RE|MI|FA|SOL|LA|SI)(#|B)?(.*)$/);if(!m)return null;const root=(names[m[1]]+(m[2]==='#'?1:m[2]==='B'?-1:0)+12)%12;const tail=m[3]||'';let ints=/DIM|°/.test(tail)?[0,3,6]:/AUG|\+/.test(tail)?[0,4,8]:/MIN|^-|^M(?!AJ)/.test(tail)?[0,3,7]:[0,4,7];if(/SUS2/.test(tail))ints=[0,2,7];if(/SUS4/.test(tail))ints=[0,5,7];if(/7/.test(tail))ints.push(/MAJ7|7M/.test(tail)?11:10);return ints.map(n=>(n+root)%12)};
 let native=null,seq=0,connected=false,running=false,score=[],cursor=0,pageCallback=null,active=new Map(),armed=null,candidate='',candidateAt=0,lastAdvance=0;
