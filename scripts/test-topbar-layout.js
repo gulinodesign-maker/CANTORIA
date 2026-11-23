@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const html=fs.readFileSync('index.html','utf8'),js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(js);new vm.Script(js);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:53});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:54});
 const sections=[
  ['homeHTML','headerHTML'],['libraryHTML','massDateDisplay'],
  ['massesHTML','massDetailHTML'],['captureHTML','settingsHTML'],
@@ -48,7 +48,7 @@ const liturgicalStyles = fs.readFileSync('liturgical-theme.css','utf8');
 assert.ok(!/\.topbar|\.reader-toolbar/.test(liturgicalStyles),'Headers must be excluded from the seasonal palette');
 assert.ok(html.includes('.topbar-section{position:relative;background:#fcf8ef!important'),'Section header retains original ivory');
 
-// Build 53: remove only the thin bottom divider; keep ivory, text, ornaments and layout.
+// Build 54: remove only the thin bottom divider; keep ivory, text, ornaments and layout.
 const dividerFreeRules=[
  '.topbar {background:linear-gradient(110deg,#11372e 0%,#1d4b3c 74%,#244d3d 100%);border-bottom:0;}',
  '.reader-layer .reader-toolbar{background:#173d33;border-bottom:0;}',
