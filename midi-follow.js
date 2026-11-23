@@ -77,7 +77,7 @@ function evaluate(){
  // Never advance on a pitch set also explained by the current chord.
  if(present&&best.confidence-present.confidence<.17)return;
  if(candidate!==best.index){candidate=best.index;candidateAt=t;return;}
- if(t-candidateAt<260||t-lastAdvance<420)return;
+ if(t-candidateAt<90||t-lastAdvance<140)return;
  setCursor(best.index);
 }
 function noteKey(channel,note){return channel+':'+note;}
@@ -129,7 +129,7 @@ async function poll(){
  }catch(err){connected=false;status();if(!webAccess)await setupWebMIDI();}
  finally{pollBusy=false;}
 }
-setInterval(poll,110);
+setInterval(poll,35);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)poll()});
 window.CantoriaMIDIFollow={
  parseChord,isPlaying,get connected(){return connected;},
