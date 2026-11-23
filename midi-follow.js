@@ -40,7 +40,7 @@ function highlight(){
 }
 function setCursor(index,manual=true){
  if(index<0||index>=score.length)return false;
- clearAttacks();awaitingSelected=manual;cursor=index;candidate=-1;candidateAt=0;lastHarmony='';lastHarmonyAt=0;active.clear();sustain.clear();lastAdvance=time();
+ clearAttacks();awaitingSelected=manual;cursor=index;candidate=-1;candidateAt=0;lastHarmony='';lastHarmonyAt=0;if(manual){active.clear();sustain.clear();}lastAdvance=time();
  const item=score[cursor];if(item&&typeof pageCallback==='function')pageCallback(item.page);
  highlight();return true;
 }
@@ -51,26 +51,28 @@ function clearAttacks(){attacks.clear();if(attackTimer!==null){clearTimeout(atta
 function evaluate(){
  if(!running||!connected||!score.length)return;
  const t=time();
- for(const [key,v] of attacks)if(t-v.at>100)attacks.delete(key);
- const notes=[...attacks.values()].sort((a,b)=>a.note-b.note);
- const pcs=new Set(notes.map(v=>v.note%12));
- if(pcs.size<2)return;
+ for(const [key,v] of attacks)if(t-v.at>220)attacks.delete(key);
+ const fresh=new Set([...attacks.values()].map(v=>v.note%12));
+ const held=new Set([...active.values()].map(v=>v.note%12));
  const expected=awaitingSelected?cursor:cursor+1;
  if(expected>=score.length)return;
  const chord=parseChord(score[expected]?.label);
  if(!chord)return;
- const hits=chord.filter(pc=>pcs.has(pc)).length;
- const extras=[...pcs].filter(pc=>!chord.includes(pc)).length;
- // Require a fresh complete triad (or three tones of a seventh).
- // Held notes from the previous harmony cannot veto a new attack.
- if(hits<Math.min(3,chord.length)||extras>1)return;
+ const freshHits=chord.filter(pc=>fresh.has(pc)).length;
+ const totalHits=chord.filter(pc=>held.has(pc)||fresh.has(pc)).length;
+ const previous=awaitingSelected?null:parseChord(score[cursor]?.label);
+ const same=previous&&chord.length===previous.length&&chord.every(pc=>previous.includes(pc));
+ const distinctive=!previous||chord.some(pc=>fresh.has(pc)&&!previous.includes(pc));
+ const fullAttack=freshHits>=Math.min(3,chord.length);
+ const partialAttack=freshHits>=2&&totalHits>=Math.min(3,chord.length)&&(same||distinctive);
+ if(!fullAttack&&!partialAttack)return;
  if(awaitingSelected){awaitingSelected=false;clearAttacks();highlight();return;}
  setCursor(expected,false);
  awaitingSelected=false;
 }
 function noteKey(channel,note){return channel+':'+note;}
 function midiEvent(e){
- const note=Number(e.note),channel=Number(e.channel)||0,on=(e.on===true||e.type==='noteOn'||e.type==='noteon'||e.type==='note_on')&&!(e.velocity!==undefined&&Number(e.velocity)===0);
+ const note=Number(e.note),channel=Number(e.channel)||0,on=e.on===true||(e.on!==false&&['noteOn','noteon','note_on'].includes(e.type)&&Number(e.velocity??1)>0);
  if(!Number.isInteger(note)||note<0||note>127)return;
  if(armed&&on){
   const old=Object.keys(bindings).find(k=>bindings[k]?.note===note&&bindings[k]?.channel===channel&&k!==armed.key);
