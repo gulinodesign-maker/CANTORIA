@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const source=fs.readFileSync('audio-follow.js','utf8');
 const html=fs.readFileSync('index.html','utf8');
-assert.deepEqual(require('../release.json'),{version:'1.1',build:52});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:53});
 new vm.Script(source);
 const inline=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(inline);new vm.Script(inline);
@@ -60,5 +60,5 @@ assert.ok(nativeCall,'Both native mic and Web audio must use the same configured
 assert.equal((source.match(/attackCount>lastMarkAttackCount,tolerance/g)||[]).length,2);
 assert.equal((source.match(/stableCount>=Math\.max\(candidate\.skipped\?4:2,toleranceProfile\(\)\.frames\)/g)||[]).length,2);
 assert.ok(html.includes('/* CANTORIA 1.1 (50): live harmonic-change tolerance'));
-assert.ok(html.includes('<h2>CANTORIA 1.1 (52)</h2>'));
+assert.ok(html.includes('<h2>CANTORIA 1.1 (53)</h2>'));
 console.log('PASS: tolerance slider changes live and native detection, suppresses false changes, persists safely, allows real chords');

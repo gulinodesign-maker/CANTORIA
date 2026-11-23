@@ -4,7 +4,7 @@ const vm=require('node:vm');
 const lit=require('../liturgical-calendar.js');
 const html=fs.readFileSync('index.html','utf8');
 const release=require('../release.json');
-assert.deepEqual(release,{version:'1.1',build:52});
+assert.deepEqual(release,{version:'1.1',build:53});
 assert.equal(lit.asKey(lit.easter(2026)),'2026-04-05');
 assert.equal(lit.asKey(lit.romanAdvent(2026)),'2026-11-29');
 assert.equal(lit.asKey(lit.ambrosianAdvent(2026)),'2026-11-15');
@@ -42,4 +42,4 @@ assert.ok(fs.readFileSync('scripts/prepare-ios.sh','utf8').includes('liturgical-
 assert.ok(fs.readFileSync('scripts/prepare-ios.sh','utf8').includes('liturgical-theme.css'));
 assert.ok(fs.readFileSync('sw.js','utf8').includes('liturgical-calendar.js'));
 assert.ok(fs.readFileSync('sw.js','utf8').includes('liturgical-theme.css'));
-console.log('PASS: Roman/Ambrosian calendar, feasts, theme and recommendations for build 52');
+console.log('PASS: Roman/Ambrosian calendar, feasts, theme and recommendations for build 53');
