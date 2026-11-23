@@ -12,6 +12,6 @@ ctx.releaseInfo.build=52;
 assert.ok(ctx.showHeader().includes('Versione 1.1 (52)'),'Next build must update automatically');
 assert.ok(js.includes("fetch('./release.json',{cache:'no-store'})"));
 assert.ok(js.includes("if(state.view==='settings'&&!state.songId)render()"));
-assert.ok(fs.readFileSync('scripts/prepare-ios.sh','utf8').includes('cp index.html release.json audio-follow.js'));
+assert.ok(fs.readFileSync('scripts/prepare-ios.sh','utf8').includes('cp index.html release.json liturgical-calendar.js liturgical-theme.css audio-follow.js'));
 assert.ok(fs.readFileSync('sw.js','utf8').includes("'./release.json'"));
 console.log('Dynamic Settings build read from release.json, bundled for offline iOS');
