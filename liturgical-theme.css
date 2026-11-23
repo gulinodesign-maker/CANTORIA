@@ -96,10 +96,6 @@
  .mass-record-card .mass-record-corner .corner-ornament path:first-child{
   fill:var(--liturgical-primary)!important;
  }
- .mass-record-card,.song-card,
- .mass-song-card,.modal-card,.panel{
-  --liturgical-border:var(--liturgical-border);
- }
  .mass-liturgical-banner{
   display:flex;flex-wrap:wrap;justify-content:center;align-items:center;
   gap:7px 12px;font-size:12px;color:var(--liturgical-accent);
