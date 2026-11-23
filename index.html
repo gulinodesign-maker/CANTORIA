@@ -2168,11 +2168,13 @@
 }
 
 </style>
+  <link rel="stylesheet" href="./liturgical-theme.css?v=51" />
   <title>Cantoria — Canti per la liturgia cattolica</title>
 </head>
 <body>
   <div id="app"></div>
   <div id="print-sheet"></div>
+  <script src="./liturgical-calendar.js"></script>
   <script src="./harmony-analysis.js"></script>
   <script>/** Core musical model: immutable anchor references to syllable IDs. */
 const NOTE_NAMES = ['DO', 'DO#', 'RE', 'RE#', 'MI', 'FA', 'FA#', 'SOL', 'SOL#', 'LA', 'LA#', 'SI'];
@@ -2338,6 +2340,9 @@ function makeId() { return `${Date.now().toString(36)}-${Math.random().toString(
 const root = document.querySelector('#app');
 const store = loadStore();
 const releaseInfo={version:'1.1',build:null};
+const LITURGICAL_RITE_KEY='cantoria-liturgical-rite-v1';
+let liturgicalRite='roman';
+try{if(localStorage.getItem(LITURGICAL_RITE_KEY)==='ambrosian')liturgicalRite='ambrosian';}catch(_){/* local storage unavailable */}
 const state = { view: 'home', filter: '', libraryAuthor: '', librarySort: 'title-asc', libraryOpenId: null, massId: null, songId: null, massItemId: null, shift: 0, page: 0, modal: null, songMetaDraft: null, photoURL: null, photoTitle: '', photoAuthor: '', photoLiturgicalRole: '', photoMetadata: null, ocrText: '', geometryDraft: null, geometryRawText: '', ocrBusy: false, ocrStatus: '', toast: '', fontScale: 1 };
 let toastTimer;
 const escape = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -2530,7 +2535,7 @@ function homeHTML(){
   {icon:`<svg ${iconProps}><rect x="10" y="14" width="44" height="40" rx="7"/><path d="M21 10v9m22-9v9M10 26h44M32 32v16m-8-8h16"/></svg>`,title:'Messe',view:'masses'},
   {icon:`<svg ${iconProps}><path d="M28 7h8l1.8 6.7a20 20 0 0 1 4.5 2l6.2-3.5 5.6 5.6-3.5 6.2a20 20 0 0 1 2 4.5L59 30v8l-6.4 1.8a20 20 0 0 1-2 4.5l3.5 6.2-5.6 5.6-6.2-3.5a20 20 0 0 1-4.5 2L36 61h-8l-1.8-6.4a20 20 0 0 1-4.5-2l-6.2 3.5-5.6-5.6 3.5-6.2a20 20 0 0 1-2-4.5L5 38v-8l6.4-1.8a20 20 0 0 1 2-4.5l-3.5-6.2 5.6-5.6 6.2 3.5a20 20 0 0 1 4.5-2L28 7Z"/><circle cx="32" cy="34" r="9"/></svg>`,title:'Impostazioni',view:'settings'}
  ];
- return `<div class="home-screen"><div class="home-grid">${tiles.map(t=>`<button type="button" class="home-tile" data-nav="${t.view}" aria-label="Apri ${t.title}"><span class="home-tile-icon">${t.icon}</span><strong>${t.title}</strong></button>`).join('')}</div></div>`;
+ return `<div class="home-screen"><div class="home-grid">${tiles.map(t=>`<button type="button" class="home-tile" data-nav="${t.view}" aria-label="Apri ${t.title}"><span class="home-tile-icon">${t.icon}</span><strong>${t.title}</strong></button>`).join('')}</div><div class="home-liturgical-status" id="homeLiturgicalStatus" aria-live="polite"><span class="liturgical-status-line" aria-hidden="true"></span><strong>Calendario liturgico</strong></div></div>`;
 }
 function headerHTML(){
  if(state.view==='home')return `<header class="topbar topbar-home topbar-home-labeled">${CATHOLIC_CORNER}<h1 class="home-topbar-title">Cantoria</h1></header>`;
@@ -2627,7 +2632,7 @@ function massDetailHTML(){
  const buttons=done?
   `<button class="outline-btn mass-tool" type="button" disabled><span aria-hidden="true">⊕</span><span>Aggiungi canto</span></button><button class="outline-btn mass-tool" type="button" disabled><span aria-hidden="true">✓</span><span>Celebrata</span></button><button class="outline-btn mass-tool" type="button" disabled><span aria-hidden="true">✎</span><span>Rinomina Messa</span></button>`:
   `<button class="primary-btn mass-tool" type="button" data-action="add-to-mass"><span aria-hidden="true">⊕</span><span>Aggiungi canto</span></button><button class="outline-btn mass-tool" type="button" data-action="finish-mass"><span aria-hidden="true">✓</span><span>Segna celebrata</span></button><button class="outline-btn mass-tool" type="button" data-action="rename-mass"><span aria-hidden="true">✎</span><span>Rinomina Messa</span></button>`;
- return `<div class="mass-detail-tools" role="group" aria-label="Gestione Messa">${buttons}</div>
+ return `<div class="mass-liturgical-banner" id="massLiturgicalBanner"></div><div class="mass-detail-tools" role="group" aria-label="Gestione Messa">${buttons}</div>
   <div class="tiles mass-song-tiles" ${!done?`data-mass-reorder="${escapeAttr(mass.id)}" aria-label="Scaletta riordinabile tramite pressione prolungata"`:''}>${(mass.items||[]).map((item,i)=>{
   const song=store.songs.find(x=>x.id===item.songId);
   const title=done?(item.archiveTitle||song?.title||'Canto non disponibile'):(song?.title||'Canto non disponibile');
@@ -2808,6 +2813,13 @@ function followToleranceLabel(value){
 function settingsHTML(){
  const tolerance=window.CantoriaAudioFollow?.getTolerance?.()??65;
  return `<div class="form-wrap">
+ <div class="panel liturgical-settings">
+  <h3>Calendario liturgico</h3>
+  <p>I colori dell'app e i suggerimenti per i canti cambiano automaticamente con la data. Le Messe programmate usano il proprio giorno di celebrazione.</p>
+  <label for="liturgicalRite">Rito liturgico</label>
+  <select id="liturgicalRite" aria-label="Rito liturgico"><option value="roman">Romano</option><option value="ambrosian">Ambrosiano</option></select>
+  <p>Il colore delle feste particolari può essere modificato nella singola Messa. Il calendario generale non sostituisce l'ordo diocesano.</p>
+ </div>
  <div class="panel audio-tolerance-panel">
   <h3>Tolleranza avanzamento accordi</h3>
   <p>Se il canto avanza anche senza suonare un accordo nuovo, sposta il cursore verso <strong>Più prudente</strong>. Il lettore aspetterà un cambio armonico più evidente e stabile.</p>
@@ -2988,7 +3000,7 @@ function modalHTML(){const m=state.modal;
   const song=currentSong();if(!song?.photoData)return '';
   return `<div class="modal-shade"><div class="modal-card" role="alertdialog" aria-modal="true" aria-label="Conferma ricalcolo accordi"><h2>Ricalcolare gli accordi?</h2><p>La partitura verrà ricalcolata dalla fotografia originale con le coordinate OCR. Le modifiche manuali fatte sulle sillabe e sugli accordi saranno sostituite. La fotografia originale resterà disponibile.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button type="button" class="primary-btn" data-action="reparse-photo">Ricalcola accordi</button></div></div></div>`;
  }
- if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (50)</h2><p>Nuovo cursore di tolleranza nelle Impostazioni: verso destra gli accordi avanzano solo con cambi più marcati e stabili; il valore viene salvato sul dispositivo. Indietro sulla croce ora usa un'area di tocco più ampia e affidabile su iPad. Riavvolgi e Play sono posizionati ulteriormente a sinistra in portrait, accanto allo smusso; in landscape rimangono fuori dallo smusso e cliccabili. Le top bar di Messe e del dettaglio sono più basse, con titolo e data centrati. Il pulsante Nuova Messa è sotto la linea dorata e centrato. Nelle card delle Messe lo smusso verde con la croce torna a sinistra e il pulsante X passa a destra. Le card non mostrano più i titoli dei canti; riordino e apertura restano invariati. Lo smusso verde con la croce non è più ritagliato dai bordi delle top bar. Scaletta Messa ridisegnata con card compatte, titoli leggibili, croce e dettagli verde/oro. Navigazione manuale degli accordi rimossa e top bar Messa più compatta. Funzione liturgica selezionabile durante l’acquisizione, in verde nelle card di Biblioteca e Scaletta. Ascolto live: identificato il primo accordo, avanza ai cambi armonici confermati. Pubblicazione TestFlight senza avvio obbligatorio del simulatore, mantenendo i controlli di compilazione e integrità. Motore microfono nativo iOS: l’ascolto continua mentre l’app è in background. Al ritorno, gli accordi rilevati riallineano lo spartito senza salvare registrazioni audio. Schermo sempre acceso mentre CANTORIA è attiva in primo piano su iPhone o iPad: lo spartito rimane visibile durante tutta la celebrazione, anche senza toccare il display. Quando si esce dall’app o si blocca il dispositivo, il risparmio energetico iOS torna normale.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
+ if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (51)</h2><p>Calendario liturgico romano e ambrosiano con tema automatico per tutta l’app, periodo in Home, colori delle Messe e suggerimenti di canti adatti a periodo e momento liturgico. Si può correggere il colore delle singole Messe. Nuovo cursore di tolleranza nelle Impostazioni: verso destra gli accordi avanzano solo con cambi più marcati e stabili; il valore viene salvato sul dispositivo. Indietro sulla croce ora usa un'area di tocco più ampia e affidabile su iPad. Riavvolgi e Play sono posizionati ulteriormente a sinistra in portrait, accanto allo smusso; in landscape rimangono fuori dallo smusso e cliccabili. Le top bar di Messe e del dettaglio sono più basse, con titolo e data centrati. Il pulsante Nuova Messa è sotto la linea dorata e centrato. Nelle card delle Messe lo smusso verde con la croce torna a sinistra e il pulsante X passa a destra. Le card non mostrano più i titoli dei canti; riordino e apertura restano invariati. Lo smusso verde con la croce non è più ritagliato dai bordi delle top bar. Scaletta Messa ridisegnata con card compatte, titoli leggibili, croce e dettagli verde/oro. Navigazione manuale degli accordi rimossa e top bar Messa più compatta. Funzione liturgica selezionabile durante l’acquisizione, in verde nelle card di Biblioteca e Scaletta. Ascolto live: identificato il primo accordo, avanza ai cambi armonici confermati. Pubblicazione TestFlight senza avvio obbligatorio del simulatore, mantenendo i controlli di compilazione e integrità. Motore microfono nativo iOS: l’ascolto continua mentre l’app è in background. Al ritorno, gli accordi rilevati riallineano lo spartito senza salvare registrazioni audio. Schermo sempre acceso mentre CANTORIA è attiva in primo piano su iPhone o iPad: lo spartito rimane visibile durante tutta la celebrazione, anche senza toccare il display. Quando si esce dall’app o si blocca il dispositivo, il risparmio energetico iOS torna normale.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
 
 
  if(m.type==='key-analysis'){
@@ -3207,6 +3219,7 @@ function render(){
  const oldStage=document.querySelector('#readerStage'),oldReader=document.querySelector('#readerLayer');
  const oldSong=oldReader?.dataset.song,oldScroll=oldStage?.scrollTop||0;
  root.innerHTML=appHTML();
+ applyLiturgicalUI();
  const song=state.songId?currentSong():null;
  if(song?.sections?.length){
   window.CantoriaAudioFollow?.setScore(song.id,followScoreSequence(song,state.shift),page=>{
