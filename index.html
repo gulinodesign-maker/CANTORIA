@@ -3310,9 +3310,9 @@ function refreshLiturgicalDate(){
  if(!api||document.hidden)return;
  if(renderedLiturgicalDay&&api.asKey(new Date())!==renderedLiturgicalDay)render();
 }
-document.addEventListener('visibilitychange',refreshLiturgicalDate);
-window.addEventListener('focus',refreshLiturgicalDate);
-setInterval(refreshLiturgicalDate,60000);
+if(typeof document!=='undefined'&&typeof document.addEventListener==='function')document.addEventListener('visibilitychange',refreshLiturgicalDate);
+if(typeof window!=='undefined'&&typeof window.addEventListener==='function')window.addEventListener('focus',refreshLiturgicalDate);
+if(typeof setInterval==='function')setInterval(refreshLiturgicalDate,60000);
 
 function render(){
  const oldStage=document.querySelector('#readerStage'),oldReader=document.querySelector('#readerLayer');
