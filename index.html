@@ -2168,11 +2168,13 @@
 }
 
 </style>
+  <link rel="stylesheet" href="./liturgical-theme.css?v=51" />
   <title>Cantoria — Canti per la liturgia cattolica</title>
 </head>
 <body>
   <div id="app"></div>
   <div id="print-sheet"></div>
+  <script src="./liturgical-calendar.js"></script>
   <script src="./harmony-analysis.js"></script>
   <script>/** Core musical model: immutable anchor references to syllable IDs. */
 const NOTE_NAMES = ['DO', 'DO#', 'RE', 'RE#', 'MI', 'FA', 'FA#', 'SOL', 'SOL#', 'LA', 'LA#', 'SI'];
@@ -2338,6 +2340,9 @@ function makeId() { return `${Date.now().toString(36)}-${Math.random().toString(
 const root = document.querySelector('#app');
 const store = loadStore();
 const releaseInfo={version:'1.1',build:null};
+const LITURGICAL_RITE_KEY='cantoria-liturgical-rite-v1';
+let liturgicalRite='roman';
+try{if(localStorage.getItem(LITURGICAL_RITE_KEY)==='ambrosian')liturgicalRite='ambrosian';}catch(_){/* local storage unavailable */}
 const state = { view: 'home', filter: '', libraryAuthor: '', librarySort: 'title-asc', libraryOpenId: null, massId: null, songId: null, massItemId: null, shift: 0, page: 0, modal: null, songMetaDraft: null, photoURL: null, photoTitle: '', photoAuthor: '', photoLiturgicalRole: '', photoMetadata: null, ocrText: '', geometryDraft: null, geometryRawText: '', ocrBusy: false, ocrStatus: '', toast: '', fontScale: 1 };
 let toastTimer;
 const escape = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -2530,7 +2535,7 @@ function homeHTML(){
   {icon:`<svg ${iconProps}><rect x="10" y="14" width="44" height="40" rx="7"/><path d="M21 10v9m22-9v9M10 26h44M32 32v16m-8-8h16"/></svg>`,title:'Messe',view:'masses'},
   {icon:`<svg ${iconProps}><path d="M28 7h8l1.8 6.7a20 20 0 0 1 4.5 2l6.2-3.5 5.6 5.6-3.5 6.2a20 20 0 0 1 2 4.5L59 30v8l-6.4 1.8a20 20 0 0 1-2 4.5l3.5 6.2-5.6 5.6-6.2-3.5a20 20 0 0 1-4.5 2L36 61h-8l-1.8-6.4a20 20 0 0 1-4.5-2l-6.2 3.5-5.6-5.6 3.5-6.2a20 20 0 0 1-2-4.5L5 38v-8l6.4-1.8a20 20 0 0 1 2-4.5l-3.5-6.2 5.6-5.6 6.2 3.5a20 20 0 0 1 4.5-2L28 7Z"/><circle cx="32" cy="34" r="9"/></svg>`,title:'Impostazioni',view:'settings'}
  ];
- return `<div class="home-screen"><div class="home-grid">${tiles.map(t=>`<button type="button" class="home-tile" data-nav="${t.view}" aria-label="Apri ${t.title}"><span class="home-tile-icon">${t.icon}</span><strong>${t.title}</strong></button>`).join('')}</div></div>`;
+ return `<div class="home-screen"><div class="home-grid">${tiles.map(t=>`<button type="button" class="home-tile" data-nav="${t.view}" aria-label="Apri ${t.title}"><span class="home-tile-icon">${t.icon}</span><strong>${t.title}</strong></button>`).join('')}</div><div class="home-liturgical-status" id="homeLiturgicalStatus" aria-live="polite"><span class="liturgical-status-line" aria-hidden="true"></span><strong>Calendario liturgico</strong></div></div>`;
 }
 function headerHTML(){
  if(state.view==='home')return `<header class="topbar topbar-home topbar-home-labeled">${CATHOLIC_CORNER}<h1 class="home-topbar-title">Cantoria</h1></header>`;
@@ -2627,7 +2632,7 @@ function massDetailHTML(){
  const buttons=done?
   `<button class="outline-btn mass-tool" type="button" disabled><span aria-hidden="true">⊕</span><span>Aggiungi canto</span></button><button class="outline-btn mass-tool" type="button" disabled><span aria-hidden="true">✓</span><span>Celebrata</span></button><button class="outline-btn mass-tool" type="button" disabled><span aria-hidden="true">✎</span><span>Rinomina Messa</span></button>`:
   `<button class="primary-btn mass-tool" type="button" data-action="add-to-mass"><span aria-hidden="true">⊕</span><span>Aggiungi canto</span></button><button class="outline-btn mass-tool" type="button" data-action="finish-mass"><span aria-hidden="true">✓</span><span>Segna celebrata</span></button><button class="outline-btn mass-tool" type="button" data-action="rename-mass"><span aria-hidden="true">✎</span><span>Rinomina Messa</span></button>`;
- return `<div class="mass-detail-tools" role="group" aria-label="Gestione Messa">${buttons}</div>
+ return `<div class="mass-liturgical-banner" id="massLiturgicalBanner"></div><div class="mass-detail-tools" role="group" aria-label="Gestione Messa">${buttons}</div>
   <div class="tiles mass-song-tiles" ${!done?`data-mass-reorder="${escapeAttr(mass.id)}" aria-label="Scaletta riordinabile tramite pressione prolungata"`:''}>${(mass.items||[]).map((item,i)=>{
   const song=store.songs.find(x=>x.id===item.songId);
   const title=done?(item.archiveTitle||song?.title||'Canto non disponibile'):(song?.title||'Canto non disponibile');
@@ -2808,6 +2813,13 @@ function followToleranceLabel(value){
 function settingsHTML(){
  const tolerance=window.CantoriaAudioFollow?.getTolerance?.()??65;
  return `<div class="form-wrap">
+ <div class="panel liturgical-settings">
+  <h3>Calendario liturgico</h3>
+  <p>I colori dell'app e i suggerimenti per i canti cambiano automaticamente con la data. Le Messe programmate usano il proprio giorno di celebrazione.</p>
+  <label for="liturgicalRite">Rito liturgico</label>
+  <select id="liturgicalRite" aria-label="Rito liturgico"><option value="roman">Romano</option><option value="ambrosian">Ambrosiano</option></select>
+  <p>Il colore delle feste particolari può essere modificato nella singola Messa. Il calendario generale non sostituisce l'ordo diocesano.</p>
+ </div>
  <div class="panel audio-tolerance-panel">
   <h3>Tolleranza avanzamento accordi</h3>
   <p>Se il canto avanza anche senza suonare un accordo nuovo, sposta il cursore verso <strong>Più prudente</strong>. Il lettore aspetterà un cambio armonico più evidente e stabile.</p>
@@ -2988,7 +3000,7 @@ function modalHTML(){const m=state.modal;
   const song=currentSong();if(!song?.photoData)return '';
   return `<div class="modal-shade"><div class="modal-card" role="alertdialog" aria-modal="true" aria-label="Conferma ricalcolo accordi"><h2>Ricalcolare gli accordi?</h2><p>La partitura verrà ricalcolata dalla fotografia originale con le coordinate OCR. Le modifiche manuali fatte sulle sillabe e sugli accordi saranno sostituite. La fotografia originale resterà disponibile.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button type="button" class="primary-btn" data-action="reparse-photo">Ricalcola accordi</button></div></div></div>`;
  }
- if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (50)</h2><p>Nuovo cursore di tolleranza nelle Impostazioni: verso destra gli accordi avanzano solo con cambi più marcati e stabili; il valore viene salvato sul dispositivo. Indietro sulla croce ora usa un'area di tocco più ampia e affidabile su iPad. Riavvolgi e Play sono posizionati ulteriormente a sinistra in portrait, accanto allo smusso; in landscape rimangono fuori dallo smusso e cliccabili. Le top bar di Messe e del dettaglio sono più basse, con titolo e data centrati. Il pulsante Nuova Messa è sotto la linea dorata e centrato. Nelle card delle Messe lo smusso verde con la croce torna a sinistra e il pulsante X passa a destra. Le card non mostrano più i titoli dei canti; riordino e apertura restano invariati. Lo smusso verde con la croce non è più ritagliato dai bordi delle top bar. Scaletta Messa ridisegnata con card compatte, titoli leggibili, croce e dettagli verde/oro. Navigazione manuale degli accordi rimossa e top bar Messa più compatta. Funzione liturgica selezionabile durante l’acquisizione, in verde nelle card di Biblioteca e Scaletta. Ascolto live: identificato il primo accordo, avanza ai cambi armonici confermati. Pubblicazione TestFlight senza avvio obbligatorio del simulatore, mantenendo i controlli di compilazione e integrità. Motore microfono nativo iOS: l’ascolto continua mentre l’app è in background. Al ritorno, gli accordi rilevati riallineano lo spartito senza salvare registrazioni audio. Schermo sempre acceso mentre CANTORIA è attiva in primo piano su iPhone o iPad: lo spartito rimane visibile durante tutta la celebrazione, anche senza toccare il display. Quando si esce dall’app o si blocca il dispositivo, il risparmio energetico iOS torna normale.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
+ if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA 1.1 (51)</h2><p>Calendario liturgico romano e ambrosiano con tema automatico per tutta l’app, periodo in Home, colori delle Messe e suggerimenti di canti adatti a periodo e momento liturgico. Si può correggere il colore delle singole Messe. Nuovo cursore di tolleranza nelle Impostazioni: verso destra gli accordi avanzano solo con cambi più marcati e stabili; il valore viene salvato sul dispositivo. Indietro sulla croce ora usa un'area di tocco più ampia e affidabile su iPad. Riavvolgi e Play sono posizionati ulteriormente a sinistra in portrait, accanto allo smusso; in landscape rimangono fuori dallo smusso e cliccabili. Le top bar di Messe e del dettaglio sono più basse, con titolo e data centrati. Il pulsante Nuova Messa è sotto la linea dorata e centrato. Nelle card delle Messe lo smusso verde con la croce torna a sinistra e il pulsante X passa a destra. Le card non mostrano più i titoli dei canti; riordino e apertura restano invariati. Lo smusso verde con la croce non è più ritagliato dai bordi delle top bar. Scaletta Messa ridisegnata con card compatte, titoli leggibili, croce e dettagli verde/oro. Navigazione manuale degli accordi rimossa e top bar Messa più compatta. Funzione liturgica selezionabile durante l’acquisizione, in verde nelle card di Biblioteca e Scaletta. Ascolto live: identificato il primo accordo, avanza ai cambi armonici confermati. Pubblicazione TestFlight senza avvio obbligatorio del simulatore, mantenendo i controlli di compilazione e integrità. Motore microfono nativo iOS: l’ascolto continua mentre l’app è in background. Al ritorno, gli accordi rilevati riallineano lo spartito senza salvare registrazioni audio. Schermo sempre acceso mentre CANTORIA è attiva in primo piano su iPhone o iPad: lo spartito rimane visibile durante tutta la celebrazione, anche senza toccare il display. Quando si esce dall’app o si blocca il dispositivo, il risparmio energetico iOS torna normale.</p><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
 
 
  if(m.type==='key-analysis'){
@@ -3034,6 +3046,9 @@ function modalHTML(){const m=state.modal;
         ${['Ingresso','Atto penitenziale','Gloria','Salmo','Alleluia','Offertorio','Santo','Agnello di Dio','Comunione','Ringraziamento','Canto finale'].map(role=>`<option value="${escapeAttr(role)}" ${draft.liturgicalRole===role?'selected':''}>${escape(role)}</option>`).join('')}
       </select></label>
     </div>
+    <fieldset class="liturgical-seasons"><legend>Periodi liturgici adatti</legend><div class="liturgical-season-grid">
+      ${[['all',"Tutto l'anno"],['advent','Avvento'],['christmas','Natale'],['lent','Quaresima'],['easter','Pasqua'],['pentecost','Pentecoste'],['afterPentecost','Dopo Pentecoste'],['ordinary','Tempo Ordinario']].map(([id,name])=>`<label><input type="checkbox" name="liturgicalSeason" value="${id}" ${(Array.isArray(song.liturgicalSeasons)?song.liturgicalSeasons:[]).includes(id)?'checked':''}><span>${name}</span></label>`).join('')}
+    </div></fieldset>
     <div class="song-options-grid">
       <button type="button" class="song-option-tile" data-action="choose-section-text"${noScore}><span aria-hidden="true">✎</span><span>Modifica testo delle strofe</span></button>
       <button type="button" class="song-option-tile" data-action="band-colors"${noScore}><span aria-hidden="true">◒</span><span>Colori pill e accordi</span></button>
@@ -3058,9 +3073,17 @@ function modalHTML(){const m=state.modal;
  if(m.type==='tonality-edit'){const song=currentSong();const roots=['DO','DO#','RE','MIb','MI','FA','FA#','SOL','LAb','LA','SIb','SI'];const key=String(song?.key||'').toUpperCase();return `<div class="modal-shade"><form class="modal-card" id="tonalityForm"><h2>Tonalità originale</h2><p>Scegli la tonalità originale del brano. I pulsanti + e − mostreranno automaticamente la nuova tonalità.</p><div class="field"><label for="songKeyEdit">Tonalità</label><select id="songKeyEdit" name="songKey"><option value="">Da definire</option>${roots.flatMap(root=>['maggiore','minore'].map(mode=>{const value=root+(mode==='minore'?'-':'');return `<option value="${value}" ${key===value.toUpperCase()?'selected':''}>${root.replace('#',' diesis').replace('b',' bemolle')} ${mode}</option>`;})).join('')}</select></div><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button class="primary-btn">Conferma e salva</button></div></form></div>`;}
 
    if(m.type==='pdf-export')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Esporta spartito PDF"><h2>Esporta spartito PDF</h2><p>Il PDF A4 include tutto il brano e gli accordi trasposti. Su iPhone puoi condividerlo nell'app File oppure aprirlo in Safari.</p><div class="pdf-export-actions"><button type="button" class="primary-btn" data-action="pdf-share">Condividi o salva su File</button><button type="button" class="outline-btn" data-action="pdf-preview">Apri PDF</button><button type="button" class="outline-btn" data-action="pdf-download">Scarica PDF</button><button type="button" class="text-btn" data-action="close-modal">Annulla</button></div></div></div>`;
-if(m.type==='new-mass')return `<div class="modal-shade"><form class="modal-card" id="newMassForm"><h2>Nuova Messa</h2><div class="field"><label for="massName">Nome</label><input id="massName" name="massName" placeholder="Messa domenicale" required autofocus maxlength="160"></div><div class="field"><label for="massDate">Data</label><input type="date" id="massDate" name="massDate"></div><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button class="primary-btn">Crea</button></div></form></div>`;
+if(m.type==='new-mass')return `<div class="modal-shade"><form class="modal-card" id="newMassForm"><h2>Nuova Messa</h2><div class="field"><label for="massName">Nome</label><input id="massName" name="massName" placeholder="Messa domenicale" required autofocus maxlength="160"></div><div class="field"><label for="massDate">Data</label><input type="date" id="massDate" name="massDate"></div><div class="field"><label for="newMassLiturgicalColor">Colore liturgico</label><select id="newMassLiturgicalColor" name="liturgicalColor"><option value="">Automatico dal calendario</option><option value="green">Verde</option><option value="white">Bianco</option><option value="red">Rosso</option><option value="violet">Viola</option><option value="morello">Morello</option><option value="rose">Rosa</option><option value="black">Nero</option></select></div><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button class="primary-btn">Crea</button></div></form></div>`;
  if(m.type==='reuse-mass')return reuseMassFormHTML(m);
- if(m.type==='add-to-mass')return `<div class="modal-shade"><form class="modal-card" id="addToMassForm"><h2>Aggiungi alla Messa</h2><p>Il canto verrà inserito in fondo alla scaletta. Potrai spostarlo successivamente.</p>${m.massId?`<input type="hidden" name="massId" value="${escapeAttr(m.massId)}">`:`<div class="field"><label>Messa</label><select name="massId">${store.masses.map(x=>`<option value="${escapeAttr(x.id)}">${escape(x.name)}</option>`).join('')}</select></div>`}<div class="field"><label>Canto</label><select name="songId">${store.songs.map(s=>`<option value="${escapeAttr(s.id)}" ${s.id===m.songId?'selected':''}>${escape(s.title)}</option>`).join('')}</select></div><div class="field"><label>Momento</label><select name="label">${['Ingresso','Atto penitenziale','Gloria','Salmo','Alleluia','Offertorio','Santo','Agnello di Dio','Comunione','Ringraziamento','Canto finale'].map(role=>`<option value="${escapeAttr(role)}" ${role===(store.songs.find(s=>s.id===m.songId)?.liturgicalRole||'Ingresso')?'selected':''}>${escape(role)}</option>`).join('')}</select></div><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button class="primary-btn">Aggiungi</button></div></form></div>`;
+ if(m.type==='mass-liturgical'){
+  const mass=store.masses.find(x=>x.id===m.massId);if(!mass)return '';
+  return `<div class="modal-shade"><form class="modal-card" id="massLiturgicalForm"><h2>Calendario della Messa</h2><p>Usa il colore automatico o correggilo per una festa locale o una celebrazione particolare.</p>
+   <div class="field"><label for="editMassDate">Data della Messa</label><input type="date" id="editMassDate" name="massDate" value="${escapeAttr(mass.date||'')}"></div>
+   <div class="field"><label for="editMassColor">Colore liturgico</label><select id="editMassColor" name="liturgicalColor">
+   ${[['','Automatico dal calendario'],['green','Verde'],['white','Bianco'],['red','Rosso'],['violet','Viola'],['morello','Morello'],['rose','Rosa'],['black','Nero']].map(([id,name])=>`<option value="${id}" ${mass.liturgicalColor===id?'selected':''}>${name}</option>`).join('')}
+   </select></div><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button class="primary-btn">Salva</button></div></form></div>`;
+ }
+ if(m.type==='add-to-mass')return `<div class="modal-shade"><form class="modal-card" id="addToMassForm"><h2>Aggiungi alla Messa</h2><p>Il canto verrà inserito in fondo alla scaletta. Potrai spostarlo successivamente.</p><p class="mass-liturgical-hint" id="massLiturgicalHint"></p>${m.massId?`<input type="hidden" name="massId" value="${escapeAttr(m.massId)}">`:`<div class="field"><label>Messa</label><select name="massId">${store.masses.map(x=>`<option value="${escapeAttr(x.id)}">${escape(x.name)}</option>`).join('')}</select></div>`}<div class="field"><label>Canto</label><select name="songId">${store.songs.map(s=>`<option value="${escapeAttr(s.id)}" ${s.id===m.songId?'selected':''}>${escape(s.title)}</option>`).join('')}</select><div class="mass-song-recommendation" id="massSongRecommendation" aria-live="polite"></div></div><div class="field"><label>Momento</label><select name="label">${['Ingresso','Atto penitenziale','Gloria','Salmo','Alleluia','Offertorio','Santo','Agnello di Dio','Comunione','Ringraziamento','Canto finale'].map(role=>`<option value="${escapeAttr(role)}" ${role===(store.songs.find(s=>s.id===m.songId)?.liturgicalRole||'Ingresso')?'selected':''}>${escape(role)}</option>`).join('')}</select></div><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button class="primary-btn">Aggiungi</button></div></form></div>`;
  if(m.type==='row-band-color')return rowBandColorModal(m);
  if(m.type==='band-chords')return chordBandEditModal(m);
  if(m.type==='lyric-edit')return lyricTextEditModal(m);
@@ -3203,10 +3226,99 @@ function alignChords(scope=document){
   for(const p of positions)p.label.style.left=Math.max(0,p.x).toFixed(2)+'px';
  }
 }
+
+/* CANTORIA 1.1 (51): keep theme and song selection coherent without network calls. */
+let renderedLiturgicalDay='';
+function liturgicalContextFor(mass){
+ const api=window.CantoriaLiturgical;
+ return api.forDate(mass?.date||new Date(),liturgicalRite);
+}
+function updateMassSongSuggestions(){
+ const api=window.CantoriaLiturgical,form=root.querySelector('#addToMassForm');
+ if(!api||!form)return;
+ const mass=store.masses.find(x=>x.id===form.querySelector('[name="massId"]')?.value)
+   ||store.masses.find(x=>x.id===state.modal?.massId);
+ const ctx=liturgicalContextFor(mass),rules=api.roleNotes(ctx);
+ const songSelect=form.querySelector('[name="songId"]'),moment=form.querySelector('[name="label"]');
+ if(!songSelect||!moment)return;
+ const opts=Array.from(moment.options);
+ const gloria=opts.find(x=>x.value==='Gloria'),alleluia=opts.find(x=>x.value==='Alleluia');
+ if(gloria){gloria.disabled=rules.skipGloria;gloria.textContent=rules.skipGloria?'Gloria (normalmente omesso)':'Gloria';}
+ if(alleluia){alleluia.disabled=rules.skipAlleluia;alleluia.textContent=rules.skipAlleluia?'Alleluia (non previsto)':'Alleluia';}
+ let gospel=opts.find(x=>x.value==='Acclamazione al Vangelo');
+ if(rules.skipAlleluia&&!gospel){gospel=document.createElement('option');gospel.value='Acclamazione al Vangelo';gospel.textContent='Acclamazione al Vangelo (senza Alleluia)';alleluia?.after(gospel);}
+ if(!rules.skipAlleluia&&gospel)gospel.remove();
+ if(moment.selectedOptions[0]?.disabled)moment.value=rules.skipAlleluia&&moment.value==='Alleluia'?'Acclamazione al Vangelo':'Ingresso';
+ const note=form.querySelector('#massLiturgicalHint');
+ if(note)note.textContent=(ctx.celebration||ctx.label)+' · '+api.COLORS[mass?.liturgicalColor||ctx.color].name+' · '+(liturgicalRite==='ambrosian'?'Rito ambrosiano':'Rito romano')+'. '+rules.hint;
+ const existing=Array.from(songSelect.options);
+ const selected=state.modal?.songId||songSelect.value;
+ const role=moment.value;
+ const ranked=existing.map((opt,index)=>{
+  const song=store.songs.find(x=>x.id===opt.value);
+  return {opt,index,rank:api.score(song,ctx,role),song};
+ }).sort((a,b)=>b.rank-a.rank||a.index-b.index);
+ for(const item of ranked){
+  item.opt.textContent=(item.rank>=4?'★ ':'')+(item.song?.title||'Brano sconosciuto')+(item.rank>=4?' · consigliato':'');
+  songSelect.appendChild(item.opt);
+ }
+ const selectedExists=ranked.some(r=>r.opt.value===selected);
+ songSelect.value=selectedExists?selected:(ranked[0]?.opt.value||'');
+ const recommendation=form.querySelector('#massSongRecommendation');
+ if(recommendation){
+  const n=ranked.filter(x=>x.rank>=4).length;
+  recommendation.textContent=n?n+' '+(n===1?'canto suggerito':'canti suggeriti')+' per questo momento e periodo.':'Nessun canto ancora classificato per questo momento: puoi scegliere liberamente.';
+ }
+}
+function applyLiturgicalUI(){
+ const api=window.CantoriaLiturgical;
+ if(!api)return;
+ const mass=(state.view==='masses'&&state.massId)?currentMass():null;
+ const ctx=liturgicalContextFor(mass);
+ const color=mass?.liturgicalColor||ctx.color;
+ api.theme(document.documentElement,color);
+ renderedLiturgicalDay=api.asKey(new Date());
+ const themeMeta=document.querySelector('meta[name="theme-color"]');
+ if(themeMeta)themeMeta.content=api.COLORS[color]?.primary||'#174638';
+ const home=root.querySelector('#homeLiturgicalStatus');
+ if(home){
+  const heading=home.querySelector('strong');
+  if(heading)heading.textContent=ctx.celebration||ctx.label;
+  const subtitle=document.createElement('small');
+  subtitle.textContent=(liturgicalRite==='ambrosian'?'Rito ambrosiano':'Rito romano')+' · '+api.COLORS[color].name;
+  home.appendChild(subtitle);
+ }
+ const rite=root.querySelector('#liturgicalRite');
+ if(rite)rite.value=liturgicalRite;
+ const banner=root.querySelector('#massLiturgicalBanner');
+ if(banner&&mass){
+  const label=document.createElement('span');
+  label.textContent=(ctx.celebration||ctx.label)+' · '+api.COLORS[color].name+' · '+(liturgicalRite==='ambrosian'?'Ambrosiano':'Romano');
+  const edit=document.createElement('button');edit.type='button';edit.dataset.action='edit-mass-liturgical';edit.textContent='Modifica data o colore';
+  banner.append(label,edit);
+ }
+ for(const card of root.querySelectorAll('.mass-record-card[data-mass]')){
+  const item=store.masses.find(x=>x.id===card.dataset.mass);if(!item)continue;
+  const record=liturgicalContextFor(item);
+  api.theme(card,item.liturgicalColor||record.color);
+  card.setAttribute('aria-description',record.celebration||record.label);
+ }
+ updateMassSongSuggestions();
+}
+function refreshLiturgicalDate(){
+ const api=window.CantoriaLiturgical;
+ if(!api||document.hidden)return;
+ if(renderedLiturgicalDay&&api.asKey(new Date())!==renderedLiturgicalDay)render();
+}
+if(typeof document!=='undefined'&&typeof document.addEventListener==='function')document.addEventListener('visibilitychange',refreshLiturgicalDate);
+if(typeof window!=='undefined'&&typeof window.addEventListener==='function')window.addEventListener('focus',refreshLiturgicalDate);
+if(typeof setInterval==='function')setInterval(refreshLiturgicalDate,60000);
+
 function render(){
  const oldStage=document.querySelector('#readerStage'),oldReader=document.querySelector('#readerLayer');
  const oldSong=oldReader?.dataset.song,oldScroll=oldStage?.scrollTop||0;
  root.innerHTML=appHTML();
+ applyLiturgicalUI();
  const song=state.songId?currentSong():null;
  if(song?.sections?.length){
   window.CantoriaAudioFollow?.setScore(song.id,followScoreSequence(song,state.shift),page=>{
@@ -3650,10 +3762,12 @@ root.addEventListener('click',e=>{
    const author=String(root.querySelector('#songAuthorEdit')?.value??draft?.author??song.author??'').trim();
    const liturgicalRole=String(root.querySelector('#songLiturgicalRoleEdit')?.value??draft?.liturgicalRole??song.liturgicalRole??'').trim();
    if(!title){notify('Inserisci un titolo prima di salvare.');return;}
-   const previous={title:song.title,author:song.author,liturgicalRole:song.liturgicalRole,savedAt:song.savedAt};
+   const previous={title:song.title,author:song.author,liturgicalRole:song.liturgicalRole,liturgicalSeasons:song.liturgicalSeasons,savedAt:song.savedAt};
+   const liturgicalSeasons=Array.from(root.querySelectorAll?.('input[name="liturgicalSeason"]:checked')||[],x=>x.value);
    song.title=title.slice(0,160);
    song.author=author.slice(0,160);
    song.liturgicalRole=liturgicalRole.slice(0,90);
+   song.liturgicalSeasons=liturgicalSeasons;
    song.savedAt=new Date().toISOString();
    if(!saveStore(store)){
     Object.assign(song,previous);
@@ -3661,7 +3775,7 @@ root.addEventListener('click',e=>{
    }
    state.songMetaDraft=null;
    state.modal=null;
-   notify('Dati e momento liturgico salvati in Biblioteca.');return;
+   notify('Dati e periodi liturgici salvati in Biblioteca.');return;
   }
  if(action==='show-key-analysis'){state.modal={type:'key-analysis'};render();return;}
  if(action==='edit-tonality'){state.modal={type:'tonality-edit'};render();return;}
@@ -3672,6 +3786,7 @@ root.addEventListener('click',e=>{
  if(action==='print'){state.modal={type:'pdf-export'};render();return;}
  if(action==='pdf-preview'||action==='pdf-share'||action==='pdf-download'){exportPdf(action.slice(4));return;}
  if(action==='create-mass'){state.modal={type:'new-mass'};render();return;}
+ if(action==='edit-mass-liturgical'){const mass=currentMass();if(mass){state.modal={type:'mass-liturgical',massId:mass.id};render();}return;}
  if(action==='close-modal'){state.modal=null;state.songMetaDraft=null;render();return;}
  if(action==='open-mass'){if(store.masses.some(x=>x.id===el.dataset.mass)){state.massId=el.dataset.mass;state.view='masses';render();}return;}
  if(action==='ask-delete-mass'){const mass=store.masses.find(x=>x.id===el.dataset.mass);if(mass){state.modal={type:'delete-mass-confirm',massId:mass.id};render();}return;}
@@ -3717,8 +3832,9 @@ root.addEventListener('click',e=>{
  if(action==='backup'){exportJSON(store).catch(err=>{console.error('Backup:',err);notify(err?.message||'Esportazione del backup non riuscita.');});return;}
 });
 root.addEventListener('submit',e=>{e.preventDefault();const form=e.target;const f=new FormData(form);
- if(form.id==='newMassForm'){const name=String(f.get('massName')||'').trim();if(!name)return;const mass={id:makeId(),name,date:String(f.get('massDate')||''),items:[]};store.masses.unshift(mass);state.massId=mass.id;state.view='masses';state.modal=null;persist();render();return;}
+ if(form.id==='newMassForm'){const name=String(f.get('massName')||'').trim();if(!name)return;const mass={id:makeId(),name,date:String(f.get('massDate')||''),liturgicalColor:String(f.get('liturgicalColor')||''),items:[]};store.masses.unshift(mass);state.massId=mass.id;state.view='masses';state.modal=null;persist();render();return;}
 
+ if(form.id==='massLiturgicalForm'){const mass=store.masses.find(x=>x.id===state.modal?.massId);if(!mass)return;const previous={date:mass.date,liturgicalColor:mass.liturgicalColor};mass.date=String(f.get('massDate')||'');mass.liturgicalColor=String(f.get('liturgicalColor')||'');if(!saveStore(store)){Object.assign(mass,previous);notify('Salvataggio non riuscito.');return;}state.modal=null;render();return;}
  if(form.id==='reuseMassForm'){const source=store.masses.find(x=>x.id===state.modal?.massId);const name=String(f.get('massName')||'').trim();if(!source||!name)return;const copy={id:makeId(),name,date:String(f.get('massDate')||''),items:(source.items||[]).map(item=>({id:makeId(),songId:item.songId,label:item.label,shift:item.shift||0}))};store.masses.unshift(copy);state.massId=copy.id;state.view='masses';state.modal=null;persist();render();return;}
  if(form.id==='songInfoForm'){const song=currentSong(),title=String(f.get('title')||'').trim(),author=String(f.get('author')||'').trim();if(!song||!title)return;song.title=title;song.author=author;persist();state.modal={type:'song-options'};render();return;}
  if(form.id==='lyricEditForm'){
@@ -3795,6 +3911,8 @@ root.addEventListener('input',e=>{
  state.songMetaDraft=draft;return;
 }if(e.target.id==='photoSongTitle'){state.photoTitle=e.target.value;return;}if(e.target.id==='photoSongAuthor'){state.photoAuthor=e.target.value;return;}if(e.target.id==='photoOcrText'){state.ocrText=e.target.value.slice(0,20000);return;}if(e.target.id==='search'){state.filter=e.target.value;const pos=e.target.selectionStart;render();const s=root.querySelector('#search');s?.focus();if(s?.setSelectionRange)s.setSelectionRange(pos,pos);}});
 root.addEventListener('change',async e=>{
+ if(e.target.id==='liturgicalRite'){liturgicalRite=e.target.value==='ambrosian'?'ambrosian':'roman';try{localStorage.setItem(LITURGICAL_RITE_KEY,liturgicalRite);}catch(_){}render();return;}
+ if(e.target.closest('#addToMassForm')&&(e.target.name==='label'||e.target.name==='massId')){updateMassSongSuggestions();return;}
  if(e.target.id==='photoSongLiturgicalRole'){state.photoLiturgicalRole=e.target.value;return;}
  if(e.target.id==='libraryAuthorFilter'){state.libraryAuthor=e.target.value;render();return;}
  if(e.target.id==='librarySort'){state.librarySort=e.target.value;render();return;}

@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const a=require('../audio-follow.js');
 const code=fs.readFileSync('audio-follow.js','utf8');
-assert.deepEqual(require('../release.json'),{version:'1.1',build:50});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:51});
 const rate=44100,fft=8192;
 const tones=[
  ['DO',[261.63,329.63,392]],['SOL',[196,246.94,293.66]],
