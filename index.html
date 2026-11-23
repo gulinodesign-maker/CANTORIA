@@ -2506,6 +2506,11 @@
  width:100%!important;min-height:0!important;margin:0!important;padding:0!important;
  text-align:center!important;line-height:1.25!important
 }
+</style><style id="cantoria-build70-midi-fixes">
+.midi-connection-led:not(.connected){background:#343b39!important;border-color:#555c59!important;box-shadow:none!important;filter:none!important;opacity:.6!important}
+.midi-connection-led.connected{background:#19d34f!important;border-color:#0d9633!important;opacity:1!important;box-shadow:0 0 0 3px #21b94b20,0 0 11px #19d34f!important}
+.reader-layer.midi-play-mode #readerPaper [data-follow-id]{pointer-events:auto!important;cursor:pointer!important;touch-action:manipulation!important}
+.reader-layer.midi-play-mode #readerPaper [data-follow-id] *{pointer-events:none!important}
 </style></head>
 <body>
   <div id="app"></div>
@@ -3906,6 +3911,16 @@ function exportPdf(mode,songOverride=null,shiftOverride=state.shift){
    notify('Non è stato possibile creare il PDF. Riprova da Safari.');
  }
 }
+
+// In Play, chord selection is navigation, never an edit action.
+// Capture it before other delegated handlers can swallow the tap.
+document.addEventListener('click',function(event){
+ const target=event.target?.closest?.('#readerPaper [data-follow-id]');
+ if(!target||!window.CantoriaMIDIFollow?.isPlaying())return;
+ event.preventDefault();event.stopImmediatePropagation();
+ window.CantoriaMIDIFollow.seekToChord(target.dataset.followId);
+},true);
+
 root.addEventListener('click',e=>{
  const el=e.target.closest('[data-nav],[data-action]');if(!el)return;
  if(window.CantoriaMIDIFollow?.isPlaying()&&el.closest('#readerPaper')&&!['edit-chord','edit-chord-only'].includes(el.dataset.action))return;
