@@ -73,16 +73,16 @@ function forDate(value,rite='roman'){
  const pentecost=plus(e,49),dedication=sundayOfMonth(y,10,3);
  let id='ordinary',label='Tempo Ordinario',color='green',celebration='';
  if(amb){
-  if(date>=advent){id='advent';label='Tempo di Avvento';color='morello';}
-  else if(date>=christmas||date<=yearBeginning){id='christmas';label='Tempo di Natale';color='white';}
+  if(date>=christmas||date<=yearBeginning){id='christmas';label='Tempo di Natale';color='white';}
+  else if(date>=advent){id='advent';label='Tempo di Avvento';color='morello';}
   else if(date>=lentStart&&date<e){id='lent';label='Tempo di Quaresima';color='morello';}
   else if(date>=e&&date<pentecost){id='easter';label='Tempo pasquale';color='white';}
   else if(date>=pentecost&&date<dedication){id='afterPentecost';label='Tempo dopo Pentecoste';color='red';}
   else if(date>=dedication&&date<advent){id='ordinary';label='Tempo dopo la Dedicazione';color='green';}
   else{id='ordinary';label="Tempo dopo l'Epifania";color='green';}
  }else{
-  if(date>=advent){id='advent';label='Tempo di Avvento';color='violet';}
-  else if(date>=christmas||date<=yearBeginning){id='christmas';label='Tempo di Natale';color='white';}
+  if(date>=christmas||date<=yearBeginning){id='christmas';label='Tempo di Natale';color='white';}
+  else if(date>=advent){id='advent';label='Tempo di Avvento';color='violet';}
   else if(date>=lentStart&&date<e){id='lent';label='Tempo di Quaresima';color='violet';}
   else if(date>=e&&date<pentecost){id='easter';label='Tempo pasquale';color='white';}
   else{id='ordinary';label='Tempo Ordinario';color='green';}
