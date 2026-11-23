@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs');
 const release=require('../release.json');
 assert.equal(release.version,'1.1');
-assert.equal(release.build,50);
+assert.equal(release.build,51);
 const pipeline=fs.readFileSync('.github/workflows/ios-testflight-auto.yml','utf8');
 assert.ok(pipeline.includes('cancel-in-progress: true'),'Older releases must be cancelled');
 assert.ok(!pipeline.includes('run: bash scripts/verify-ios-launch.sh'),'Release must not boot an iPhone Simulator');
