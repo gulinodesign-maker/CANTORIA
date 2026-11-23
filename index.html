@@ -2447,7 +2447,14 @@
 @media (orientation:portrait){.reader-layer .reader-toolbar>.reader-toolbar-right{top:calc(env(safe-area-inset-top,0px) + 8px)!important}}
 </style>
 <style id="cantoria-build64-midi">.reader-follow-btn{font-size:21px!important}.reader-follow-btn.midi-connected{background:#2e7253!important}.reader-follow-btn.midi-active{background:#bb923a!important;color:#173c30!important}</style>
-</head>
+<style id="cantoria-build66-midi">
+.midi-connection-line{display:flex;align-items:center;gap:11px;margin:12px 0;font-weight:650}
+.midi-connection-led{width:16px;height:16px;flex:none;border-radius:50%;background:#858b86;border:2px solid #6d7771;box-shadow:inset 0 1px 2px #0002}
+.midi-connection-led.connected{background:#19d34f;border-color:#0d9633;box-shadow:0 0 0 3px #21b94b20,0 0 11px #19d34f}
+.reader-layer.midi-play-mode #readerPaper .syllable.clickable,.reader-layer.midi-play-mode #readerPaper .chord-band{cursor:default!important}
+.reader-layer.midi-play-mode #readerPaper [data-follow-id]{cursor:pointer!important}
+.reader-layer #readerPaper .midi-chord-current{outline:2px solid #d3a13c!important;outline-offset:2px;border-radius:4px}
+</style></head>
 <body>
   <div id="app"></div>
   <div id="print-sheet"></div>
@@ -3084,7 +3091,6 @@ function followToleranceLabel(value){
  return n<25?'Molto reattivo':n<50?'Reattivo':n<70?'Equilibrato':n<90?'Prudente':'Molto prudente';
 }
 function settingsHTML(){
- const tolerance=window.CantoriaMIDIFollow?.getTolerance?.()??65;
  return `<div class="form-wrap">
  <div class="panel liturgical-settings">
   <h3>Calendario liturgico</h3>
@@ -3093,7 +3099,7 @@ function settingsHTML(){
   <select id="liturgicalRite" aria-label="Rito liturgico"><option value="roman">Romano</option><option value="ambrosian">Ambrosiano</option></select>
   <p>Il colore delle feste particolari può essere modificato nella singola Messa. Il calendario generale non sostituisce l'ordo diocesano.</p>
  </div>
- <div class="panel"><h3>Tastiera USB MIDI</h3><p>Collega una tastiera USB MIDI all'iPhone o all'iPad. La separazione tra accompagnamento e melodia viene calcolata automaticamente.</p><p id="midiConnectionStatus" role="status">Ricerca tastiera MIDI…</p><p>Tieni premuto un pulsante dell'app per associarlo a un tasto fisico MIDI.</p></div>
+ <div class="panel"><h3>Tastiera USB MIDI</h3><p>Collega una tastiera USB MIDI all'iPhone o all'iPad. La separazione tra accompagnamento e melodia viene calcolata automaticamente.</p><div class="midi-connection-line"><span id="midiConnectionLed" class="midi-connection-led" role="img" aria-label="MIDI disconnesso"></span><span id="midiConnectionStatus" role="status">Ricerca tastiera MIDI…</span></div><p>Tieni premuto un pulsante dell'app per associarlo a un tasto fisico MIDI.</p></div>
  <div class="panel"><h3>Dati e salvataggi</h3><p>Conserva una copia dei brani e delle Messe nell’app File. I dati restano sul dispositivo finché non ripristini un backup.</p><div class="settings-backup-actions"><button type="button" class="outline-btn" data-action="backup">Esporta backup</button><label class="outline-btn settings-restore-btn" for="backupInput">Ripristina backup<input type="file" id="backupInput" accept=".json,application/json" class="visually-hidden-file" aria-label="Seleziona il backup JSON"></label></div></div>
  <div class="panel"><h3>Ultimo aggiornamento</h3><button type="button" class="outline-btn" data-action="show-release-notes">Novità dell'ultima versione</button></div>
  </div>`;}
@@ -3248,7 +3254,7 @@ function modalHTML(){const m=state.modal;
   const song=currentSong();if(!song?.photoData)return '';
   return `<div class="modal-shade"><div class="modal-card" role="alertdialog" aria-modal="true" aria-label="Conferma ricalcolo accordi"><h2>Ricalcolare gli accordi?</h2><p>La partitura verrà ricalcolata dalla fotografia originale con le coordinate OCR. Le modifiche manuali fatte sulle sillabe e sugli accordi saranno sostituite. La fotografia originale resterà disponibile.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button type="button" class="primary-btn" data-action="reparse-photo">Ricalcola accordi</button></div></div></div>`;
  }
- if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA ${escape(releaseInfo.version)} (${Number.isInteger(releaseInfo.build)?releaseInfo.build:'…'})</h2><ul><li>Corretto il collegamento Core MIDI nativo su iOS.</li><li>Ingresso USB MIDI al posto del microfono.</li><li>Separazione armonica automatica e avanzamento del canto.</li><li>Associazione dei pulsanti ai tasti MIDI con pressione prolungata.</li></ul><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
+ if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA ${escape(releaseInfo.version)} (${Number.isInteger(releaseInfo.build)?releaseInfo.build:'…'})</h2><ul><li>LED verde di connessione MIDI, migliore lettura armonica e blocco modifica in Play.</li><li>Corretto il collegamento Core MIDI nativo su iOS.</li><li>Ingresso USB MIDI al posto del microfono.</li><li>Separazione armonica automatica e avanzamento del canto.</li><li>Associazione dei pulsanti ai tasti MIDI con pressione prolungata.</li></ul><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
 
 
  if(m.type==='key-analysis'){
@@ -3850,6 +3856,7 @@ function exportPdf(mode,songOverride=null,shiftOverride=state.shift){
 }
 root.addEventListener('click',e=>{
  const el=e.target.closest('[data-nav],[data-action]');if(!el)return;
+ if(window.CantoriaMIDIFollow?.isPlaying()&&el.closest('#readerPaper')&&!['edit-chord','edit-chord-only'].includes(el.dataset.action))return;
  if(el.dataset.nav){state.massId=null;go(el.dataset.nav);return;}
  const action=el.dataset.action;
  if(action==='delete-lyric-syllable'||action==='delete-lyric-word'){
@@ -4041,8 +4048,8 @@ root.addEventListener('click',e=>{
  }
  if(action==='mass-shift-up'||action==='mass-shift-down'){if(currentMass()?.celebratedAt)return;modifyMassItem(el.dataset.item,item=>{item.shift=Math.max(-11,Math.min(11,item.shift+(action==='mass-shift-up'?1:-1)));});return;}
  if(action==='rename-mass'){const m=currentMass();if(m?.celebratedAt)return;const n=prompt('Nome della Messa',m?.name||'');if(n&&m){m.name=n.trim();persist();render();}return;}
- if(action==='edit-chord'){const id=el.dataset.followId;if(id&&window.CantoriaMIDIFollow?.seekToChord(id)){return;}openChordModal(+el.dataset.section,+el.dataset.line,+el.dataset.chord);return;}
-  if(action==='edit-chord-only'){const id=el.dataset.followId;if(id&&window.CantoriaMIDIFollow?.seekToChord(id))return;state.modal={type:'chord-only-edit',si:+el.dataset.section,rowIndex:+el.dataset.rowIndex,ai:+el.dataset.chord};render();return;}
+ if(action==='edit-chord'){const id=el.dataset.followId;if(window.CantoriaMIDIFollow?.isPlaying()){if(id)window.CantoriaMIDIFollow.seekToChord(id);return;}openChordModal(+el.dataset.section,+el.dataset.line,+el.dataset.chord);return;}
+  if(action==='edit-chord-only'){const id=el.dataset.followId;if(window.CantoriaMIDIFollow?.isPlaying()){if(id)window.CantoriaMIDIFollow.seekToChord(id);return;}state.modal={type:'chord-only-edit',si:+el.dataset.section,rowIndex:+el.dataset.rowIndex,ai:+el.dataset.chord};render();return;}
   if(action==='delete-chord-only'){
    const m=state.modal,sec=currentSong()?.sections[m?.si];
    const row=m?.rowIndex<0?sec?.chordsOnly:sec?.chordRows?.[m.rowIndex];
@@ -4318,13 +4325,14 @@ function setupMIDIBindings(){
  const cancel=()=>{clearTimeout(timer);timer=null;pending=null;};
  root.addEventListener('pointerdown',e=>{const el=e.target.closest('button[data-action],button[data-nav]');if(!el||e.button!==0||state.modal)return;cancel();origin=[e.clientX,e.clientY];pending=el;timer=setTimeout(()=>{const key=el.dataset.action||('nav:'+el.dataset.nav);cancel();suppress=true;state.modal={type:'midi-bind',key};render();window.CantoriaMIDIFollow?.arm(key,()=>{state.modal=null;render();notify('Tasto MIDI associato.');});},650);},true);
  root.addEventListener('pointermove',e=>{if(origin&&(Math.abs(e.clientX-origin[0])>12||Math.abs(e.clientY-origin[1])>12))cancel();},true);
- for(const ev of ['pointerup','pointercancel','pointerleave'])root.addEventListener(ev,cancel,true);
+ for(const ev of ['pointerup','pointercancel'])root.addEventListener(ev,cancel,true);
  root.addEventListener('click',e=>{if(!suppress)return;suppress=false;e.preventDefault();e.stopImmediatePropagation();},true);
 }
 function setupLongPress(){
  let timer=null,x=0,y=0,pending=null;
  const cancel=()=>{if(timer){clearTimeout(timer);timer=null;}pending=null;};
  const activate=(target)=>{
+  if(window.CantoriaMIDIFollow?.isPlaying())return;
   const si=Number(target.dataset.section),li=Number(target.dataset.line);
   if(!Number.isInteger(si)||!currentSong()?.sections?.[si])return;
   // A chord symbol has priority over its parent pill, even when the
@@ -4354,7 +4362,7 @@ function setupLongPress(){
   render();
  };
  root.addEventListener('pointerdown',e=>{
-  if(e.button!==0||state.modal)return;
+  if(e.button!==0||state.modal||window.CantoriaMIDIFollow?.isPlaying())return;
   const target=e.target.closest('#readerPaper .chord-label.editable, #readerPaper .chord-band[data-action="edit-band"], #readerPaper .syllable.clickable');
   if(!target)return;
   cancel();x=e.clientX;y=e.clientY;pending=target;
@@ -4366,7 +4374,7 @@ function setupLongPress(){
   const target=e.target.closest('#readerPaper .chord-label.editable, #readerPaper .chord-band[data-action="edit-band"], #readerPaper .syllable.clickable');
   if(!target)return;
   e.preventDefault();
-  if(!state.modal){cancel();activate(target);}
+  if(!state.modal&&!window.CantoriaMIDIFollow?.isPlaying()){cancel();activate(target);}
  });
  // A single tap on a lyric opens its whole-line editor.
  // Long-press continues to edit one chord or one syllable precisely.
@@ -4374,7 +4382,7 @@ function setupLongPress(){
   const t=e.target.closest('#readerPaper [data-action="edit-chord"], #readerPaper [data-action="edit-chord-only"], #readerPaper [data-action="add-chord"]');
   if(t){e.preventDefault();e.stopImmediatePropagation();}
   const lyric=e.target.closest('#readerPaper .lyric-line[data-section][data-line]');
-  if(lyric&&!state.modal){
+  if(lyric&&!state.modal&&!window.CantoriaMIDIFollow?.isPlaying()){
    e.preventDefault();e.stopImmediatePropagation();
    state.modal={type:'lyric-edit',si:Number(lyric.dataset.section),li:Number(lyric.dataset.line)};
    render();

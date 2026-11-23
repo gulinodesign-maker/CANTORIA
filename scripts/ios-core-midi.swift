@@ -21,6 +21,7 @@ public class CantoriaMIDIPlugin: CAPPlugin, CAPBridgedPlugin {
     private let lock = NSLock()
     private var events: [JSObject] = []
     private var seq = 0
+    private var sourceName = ""
     override public func load() {
         MIDIClientCreateWithBlock("Cantoria MIDI" as CFString, &client) { [weak self] _ in self?.refreshSources() }
         MIDIInputPortCreateWithBlock(client, "Cantoria Input" as CFString, &port) { [weak self] list, _ in
@@ -31,7 +32,11 @@ public class CantoriaMIDIPlugin: CAPPlugin, CAPBridgedPlugin {
                 var i = 0
                 while i < data.count {
                     let status = data[i], kind = status & 0xF0
-                    if (kind == 0x90 || kind == 0x80) && i + 2 < data.count {
+                    if (kind == 0xB0) && i + 2 < data.count {
+                        self.lock.lock(); self.seq += 1
+                        self.events.append(["seq": self.seq, "type": "cc", "controller": Int(data[i+1]), "value": Int(data[i+2]), "channel": Int(status & 0x0F)])
+                        self.lock.unlock(); i += 3
+                    } else if (kind == 0x90 || kind == 0x80) && i + 2 < data.count {
                         let note = Int(data[i+1]), velocity = Int(data[i+2])
                         self.lock.lock(); self.seq += 1
                         self.events.append(["seq": self.seq, "note": note, "channel": Int(status & 0x0F), "on": kind == 0x90 && velocity > 0])
@@ -55,9 +60,12 @@ public class CantoriaMIDIPlugin: CAPPlugin, CAPBridgedPlugin {
             guard source != 0 else { continue }
             current.insert(source)
             if !connectedSources.contains(source) { MIDIPortConnectSource(port, source, nil) }
+            var name: Unmanaged<CFString>?
+            if MIDIObjectGetStringProperty(source, kMIDIPropertyDisplayName, &name) == noErr { sourceName = (name?.takeRetainedValue() as String?) ?? "" }
         }
         for old in connectedSources.subtracting(current) { MIDIPortDisconnectSource(port, old) }
         connectedSources = current
+        if current.isEmpty { sourceName = "" }
     }
     @objc func pull(_ call: CAPPluginCall) {
         refreshSources()
@@ -65,8 +73,9 @@ public class CantoriaMIDIPlugin: CAPPlugin, CAPBridgedPlugin {
         lock.lock()
         let data = events.filter { ($0["seq"] as? Int ?? 0) > after }
         let count = connectedSources.count
+        let name = sourceName
         lock.unlock()
-        call.resolve(["events": data, "connected": count > 0])
+        call.resolve(["events": data, "connected": count > 0, "deviceName": name])
     }
     deinit { if port != 0 { MIDIPortDispose(port) }; if client != 0 { MIDIClientDispose(client) } }
 }
