@@ -8,7 +8,7 @@ fi
 
 # Bundle the actual web application offline inside the iOS app.
 mkdir -p web
-cp index.html release.json liturgical-calendar.js liturgical-theme.css audio-follow.js harmony-analysis.js score-ocr.js score-geometry.js score-metadata.js score-editor.js manifest.webmanifest sw.js web/
+cp index.html release.json liturgical-calendar.js liturgical-theme.css midi-follow.js harmony-analysis.js score-ocr.js score-geometry.js score-metadata.js score-editor.js manifest.webmanifest sw.js web/
 cp -R assets web/assets
 # Stamp the exact commit and HTML hash into the bundled web application.
 node - <<'NODE'
@@ -44,17 +44,15 @@ if ! grep -Eq 'customClass="(CAPBridgeViewController|CantoriaBridgeViewControlle
  echo "Unsafe controller. Refusing build." >&2; exit 1
 fi
 
-# Keep microphone recording active during iOS app suspension.
-# Register a local Capacitor plugin by subclassing its original controller.
-python3 scripts/ios-background-mic.py ios/App/App/AppDelegate.swift ios/App/App/Base.lproj/Main.storyboard ios/App/App/Info.plist
-python3 scripts/ios-background-mic.py --verify ios/App/App/AppDelegate.swift ios/App/App/Base.lproj/Main.storyboard ios/App/App/Info.plist
+# Register the native Core MIDI bridge after Capacitor generates the iOS project.
+python3 scripts/ios-core-midi.py ios/App/App/AppDelegate.swift ios/App/App/Base.lproj/Main.storyboard
+python3 scripts/ios-core-midi.py --verify ios/App/App/AppDelegate.swift ios/App/App/Base.lproj/Main.storyboard
 
 # Required prompts for photo-based song capture on iOS.
 plist="ios/App/App/Info.plist"
 for entry in \
   "NSCameraUsageDescription|Cantoria usa la fotocamera per fotografare gli spartiti." \
-  "NSPhotoLibraryUsageDescription|Cantoria apre le foto degli spartiti che scegli dalla libreria." \
-  "NSMicrophoneUsageDescription|Quando attivi Segui accordi, Cantoria ascolta la musica anche in background fino a quando premi Stop. Non salva registrazioni audio."; do
+  "NSPhotoLibraryUsageDescription|Cantoria apre le foto degli spartiti che scegli dalla libreria."; do
   key="${entry%%|*}"
   value="${entry#*|}"
   /usr/libexec/PlistBuddy -c "Add :$key string $value" "$plist" 2>/dev/null || \

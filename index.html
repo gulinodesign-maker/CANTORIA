@@ -2446,6 +2446,7 @@
 @media (orientation:landscape){.reader-layer .reader-toolbar>.reader-toolbar-right{top:8px!important;right:12px!important}}
 @media (orientation:portrait){.reader-layer .reader-toolbar>.reader-toolbar-right{top:calc(env(safe-area-inset-top,0px) + 8px)!important}}
 </style>
+<style id="cantoria-build64-midi">.reader-follow-btn{font-size:21px!important}.reader-follow-btn.midi-connected{background:#2e7253!important}.reader-follow-btn.midi-active{background:#bb923a!important;color:#173c30!important}</style>
 </head>
 <body>
   <div id="app"></div>
@@ -2478,7 +2479,7 @@ function transposeChord(chord, semitones) {
   const english = italian ? null : normalized.match(/^([A-G])(#|b)?(.*)$/i);
   const m = italian || english;
   // PDF export also invokes this function without a browser or audio engine.
-  // Validate the chord locally, without relying on window.CantoriaAudioFollow.
+  // Validate the chord locally, without relying on window.CantoriaMIDIFollow.
   const quality=String(m?.[3]||'').split('/')[0]
     .replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹]/g,mark=>String("⁰¹²³⁴⁵⁶⁷⁸⁹".indexOf(mark)));
   if (!m || (quality&&!/^(?:-|m(?!aj)|min|maj|M|dim|aug|sus|add|ø|°|[0-9+#()/-])[\da-zA-Z+#°()/-]*$/.test(quality))) return chord;
@@ -2629,7 +2630,7 @@ function notify(message){state.toast=message;clearTimeout(toastTimer);render();t
 function persist(){if(state.songId)refreshDetectedKey(currentSong());if(!saveStore(store))notify('Memoria del browser non disponibile: esporta un backup dei dati.');}
 function currentSong(){return store.songs.find(x=>x.id===state.songId);}
 function currentMass(){return store.masses.find(x=>x.id===state.massId);}
-function go(view){window.CantoriaAudioFollow?.reset();state.view=view;state.songId=null;state.modal=null;render();}
+function go(view){window.CantoriaMIDIFollow?.reset();state.view=view;state.songId=null;state.modal=null;render();}
 function inferSongKey(song){
  return window.CantoriaHarmony?.analyze(song)?.key||'';
 }
@@ -2707,7 +2708,7 @@ function followScoreSequence(song,shift=0){
   })).sort((a,b)=>a.position-b.position||a.original-b.original);
   for(const item of ordered){
    const label=transposeChord(item.chord,shift);
-   if(window.CantoriaAudioFollow?.parseChord&&!window.CantoriaAudioFollow.parseChord(label))continue;
+   if(window.CantoriaMIDIFollow?.parseChord&&!window.CantoriaMIDIFollow.parseChord(label))continue;
    result.push({id:item.id,label,page});
   }
  };
@@ -2721,7 +2722,7 @@ function followScoreSequence(song,shift=0){
    })).sort((a,b)=>a.position-b.position||a.i-b.i);
    for(const {a,i} of ordered){
     const label=transposeChord(a.chord,shift);
-    if(window.CantoriaAudioFollow?.parseChord&&!window.CantoriaAudioFollow.parseChord(label))continue;
+    if(window.CantoriaMIDIFollow?.parseChord&&!window.CantoriaMIDIFollow.parseChord(label))continue;
     result.push({id:`s${e.si}-l${e.li}-${i}`,label,page});
    }
   }
@@ -2758,7 +2759,7 @@ function photoReaderHTML(song){
  
  <div class="reader-title" title="${escapeAttr(song.title)}"><div class="reader-title-line"><strong>${escape(song.title)}</strong></div></div>
  <div class="reader-toolbar-right">
- <button class="reader-follow-btn" type="button" disabled data-action="follow-source" title="Segui accordi" aria-label="Segui accordi">♫</button>
+ <button class="reader-follow-btn" type="button" disabled data-action="follow-source" title="Play MIDI" aria-label="Play MIDI">▶</button>
  <button class="reader-menu-btn" type="button" data-action="song-options" title="Impostazioni brano" aria-label="Impostazioni brano">☰</button>${homeTopbarButtonHTML()}
  </div></header>
  <div class="reader-stage" id="readerStage"><article class="reader-paper photo-viewer" id="readerPaper">
@@ -2783,7 +2784,7 @@ function readerHTML(){
  
  <div class="reader-title" title="${escapeAttr(song.title)}"><div class="reader-title-line"><strong>${escape(song.title)}</strong></div><small id="readerVerification">${horizontal?(state.page+1)+' / '+pages.length:''}${song.verified?'':' · DA VERIFICARE'}</small><small id="audioFollowStatus" class="reader-follow-status" hidden></small></div>
  <div class="reader-toolbar-right">
- <button class="reader-follow-btn" type="button" data-action="follow-source" title="Segui accordi" aria-label="Segui accordi">♫</button>
+ <button class="reader-follow-btn" type="button" data-action="follow-source" title="Play MIDI" aria-label="Play MIDI">▶</button>
  <button class="reader-menu-btn" type="button" data-action="song-options" title="Impostazioni brano" aria-label="Impostazioni brano">☰</button>${homeTopbarButtonHTML()}
  </div></header>
  <div class="reader-stage" id="readerStage"><article class="reader-paper" id="readerPaper" tabindex="0">
@@ -3083,7 +3084,7 @@ function followToleranceLabel(value){
  return n<25?'Molto reattivo':n<50?'Reattivo':n<70?'Equilibrato':n<90?'Prudente':'Molto prudente';
 }
 function settingsHTML(){
- const tolerance=window.CantoriaAudioFollow?.getTolerance?.()??65;
+ const tolerance=window.CantoriaMIDIFollow?.getTolerance?.()??65;
  return `<div class="form-wrap">
  <div class="panel liturgical-settings">
   <h3>Calendario liturgico</h3>
@@ -3092,33 +3093,7 @@ function settingsHTML(){
   <select id="liturgicalRite" aria-label="Rito liturgico"><option value="roman">Romano</option><option value="ambrosian">Ambrosiano</option></select>
   <p>Il colore delle feste particolari può essere modificato nella singola Messa. Il calendario generale non sostituisce l'ordo diocesano.</p>
  </div>
- <div class="panel audio-tolerance-panel">
-  <h3>Tolleranza avanzamento accordi</h3>
-  <p>Se il canto avanza anche senza suonare un accordo nuovo, sposta il cursore verso <strong>Più prudente</strong>. Il lettore aspetterà un cambio armonico più evidente e stabile.</p>
-  <label class="audio-tolerance-caption" for="audioFollowTolerance">Tolleranza <strong id="audioFollowToleranceValue">${tolerance}% · ${followToleranceLabel(tolerance)}</strong></label>
-  <input id="audioFollowTolerance" type="range" min="0" max="100" step="5" value="${tolerance}" aria-label="Tolleranza cambi di accordo" aria-describedby="audioFollowToleranceHelp">
-  <div class="audio-tolerance-limits"><span>Più reattivo</span><span>Più prudente</span></div>
-  <p class="audio-tolerance-help" id="audioFollowToleranceHelp">Regola la conferma dei cambi, non il volume del microfono. Il valore viene salvato automaticamente e vale anche durante l’ascolto live.</p>
- </div>
- <div class="panel diagnostic-panel" id="audioDiagnostic" data-phase="stopped">
-  <h3>Diagnosi riconoscimento accordi</h3>
-  <p>Verifica se il microfono riceve e riconosce gli accordi senza aprire un canto. Premi Avvia test e suona, ad esempio, un DO maggiore: deve comparire DO.</p>
-  <div class="diagnostic-actions">
-   <button type="button" class="primary-btn" id="diagnosticStart" data-action="diagnostic-start">Avvia test</button>
-   <button type="button" class="outline-btn" id="diagnosticStop" data-action="diagnostic-stop" disabled>Ferma test</button>
-  </div>
-  <div class="diagnostic-result" aria-label="Risultato della diagnosi">
-   <span class="diagnostic-overline">Accordo rilevato</span>
-   <strong id="diagnosticChord" class="diagnostic-chord" aria-live="polite">—</strong>
-   <p id="diagnosticMessage" class="diagnostic-message" role="status">Microfono inattivo.</p>
-   <div class="diagnostic-level-row"><label for="diagnosticLevel">Segnale microfono</label><span id="diagnosticLevelValue">0%</span></div>
-   <progress id="diagnosticLevel" max="100" value="0" aria-label="Livello audio ricevuto"></progress>
-   <p id="diagnosticNotes" class="diagnostic-meta">Note rilevate: —</p>
-   <p id="diagnosticMatch" class="diagnostic-meta">Corrispondenza: —</p>
-   <p id="diagnosticCandidate" class="diagnostic-meta"></p>
-  </div>
-  <p class="diagnostic-help">Se la barra non si muove, controlla il permesso Microfono nelle impostazioni di iOS. Se la barra si muove ma non appare l’accordo, il problema è nel riconoscimento delle note.</p>
- </div>
+ <div class="panel"><h3>Tastiera USB MIDI</h3><p>Collega una tastiera USB MIDI all'iPhone o all'iPad. La separazione tra accompagnamento e melodia viene calcolata automaticamente.</p><p id="midiConnectionStatus" role="status">Ricerca tastiera MIDI…</p><p>Tieni premuto un pulsante dell'app per associarlo a un tasto fisico MIDI.</p></div>
  <div class="panel"><h3>Dati e salvataggi</h3><p>Conserva una copia dei brani e delle Messe nell’app File. I dati restano sul dispositivo finché non ripristini un backup.</p><div class="settings-backup-actions"><button type="button" class="outline-btn" data-action="backup">Esporta backup</button><label class="outline-btn settings-restore-btn" for="backupInput">Ripristina backup<input type="file" id="backupInput" accept=".json,application/json" class="visually-hidden-file" aria-label="Seleziona il backup JSON"></label></div></div>
  <div class="panel"><h3>Ultimo aggiornamento</h3><button type="button" class="outline-btn" data-action="show-release-notes">Novità dell'ultima versione</button></div>
  </div>`;}
@@ -3252,6 +3227,7 @@ function bandColorsModal(){
 
 function reuseMassFormHTML(m){const old=store.masses.find(x=>x.id===m.massId);if(!old)return '';return `<div class="modal-shade"><form class="modal-card" id="reuseMassForm"><h2>Riutilizza scaletta</h2><p>${escape(old.name)} · ${(old.items||[]).length} canti</p><div class="field"><label for="reuseMassName">Nome nuova Messa</label><input id="reuseMassName" name="massName" required maxlength="160" value="${escapeAttr(old.name)}"></div><div class="field"><label for="reuseMassDate">Data</label><input id="reuseMassDate" name="massDate" type="date"></div><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button class="primary-btn">Crea copia</button></div></form></div>`;}
 function modalHTML(){const m=state.modal;
+ if(m.type==='midi-bind')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true"><h2>Associa tasto MIDI</h2><p>Premi un tasto fisico della tastiera USB MIDI per associare la funzione <strong>${escape(m.key)}</strong>.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button></div></div></div>`;
  if(m.type==='delete-mass-confirm'){
   const mass=store.masses.find(x=>x.id===m.massId);if(!mass)return '';
   return `<div class="modal-shade"><div class="modal-card" role="alertdialog" aria-modal="true" aria-label="Conferma eliminazione Messa"><h2>Eliminare la Messa?</h2><p><strong>${escape(mass.name)}</strong> e la sua scaletta saranno eliminati. I brani resteranno nella Biblioteca.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button type="button" class="primary-btn" data-action="delete-mass" style="background:#9e3e33">Elimina Messa</button></div></div></div>`;
@@ -3272,7 +3248,7 @@ function modalHTML(){const m=state.modal;
   const song=currentSong();if(!song?.photoData)return '';
   return `<div class="modal-shade"><div class="modal-card" role="alertdialog" aria-modal="true" aria-label="Conferma ricalcolo accordi"><h2>Ricalcolare gli accordi?</h2><p>La partitura verrà ricalcolata dalla fotografia originale con le coordinate OCR. Le modifiche manuali fatte sulle sillabe e sugli accordi saranno sostituite. La fotografia originale resterà disponibile.</p><div class="modal-actions"><button type="button" class="outline-btn" data-action="close-modal">Annulla</button><button type="button" class="primary-btn" data-action="reparse-photo">Ricalcola accordi</button></div></div></div>`;
  }
- if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA ${escape(releaseInfo.version)} (${Number.isInteger(releaseInfo.build)?releaseInfo.build:'…'})</h2><ul><li>Descrizione liturgica sotto Cantoria nella Home.</li><li>Build centrata sotto i quattro pulsanti Home.</li><li>Tre pulsanti del lettore allineati e uguali.</li></ul><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
+ if(m.type==='release-notes')return `<div class="modal-shade"><div class="modal-card" role="dialog" aria-modal="true" aria-label="Novità"><h2>CANTORIA ${escape(releaseInfo.version)} (${Number.isInteger(releaseInfo.build)?releaseInfo.build:'…'})</h2><ul><li>Ingresso USB MIDI al posto del microfono.</li><li>Separazione armonica automatica e avanzamento del canto.</li><li>Associazione dei pulsanti ai tasti MIDI con pressione prolungata.</li></ul><div class="modal-actions"><button type="button" class="primary-btn" data-action="close-modal">Chiudi</button></div></div></div>`;
 
 
  if(m.type==='key-analysis'){
@@ -3587,7 +3563,7 @@ function render(){
  applyLiturgicalUI();
  const song=state.songId?currentSong():null;
  if(song?.sections?.length){
-  window.CantoriaAudioFollow?.setScore(song.id,followScoreSequence(song,state.shift),page=>{
+  window.CantoriaMIDIFollow?.setScore(song.id,followScoreSequence(song,state.shift),page=>{
    if(state.songId===song.id&&window.innerWidth>window.innerHeight&&state.page!==page){
     state.page=page;render();
    }
@@ -3597,7 +3573,7 @@ function render(){
   fitSongToDisplay();alignChords();
   const newStage=document.querySelector('#readerStage'),newReader=document.querySelector('#readerLayer');
   if(newStage&&oldSong===newReader?.dataset.song&&newReader?.classList.contains('reader-portrait'))newStage.scrollTop=oldScroll;
-  window.CantoriaAudioFollow?.refresh();
+  window.CantoriaMIDIFollow?.refresh();
  });
 }
 function compressScorePhoto(file){
@@ -3646,7 +3622,7 @@ function markCurrentMassSongUsed(){
  if(!saveStore(store)){delete item.usedAt;return false;}
  return true;
 }
-function openSong(songId, shift=0, massItemId=null){const song=store.songs.find(x=>x.id===songId);if(!song)return;window.CantoriaAudioFollow?.reset(songId);state.songId=songId;state.ocrText=String(song.ocrText||'');state.ocrStatus='';state.shift=shift;state.page=0;state.massItemId=massItemId;state.modal=null;render();}
+function openSong(songId, shift=0, massItemId=null){const song=store.songs.find(x=>x.id===songId);if(!song)return;window.CantoriaMIDIFollow?.reset(songId);state.songId=songId;state.ocrText=String(song.ocrText||'');state.ocrStatus='';state.shift=shift;state.page=0;state.massItemId=massItemId;state.modal=null;render();}
 function modifyMassItem(id,fn){const m=currentMass(),item=m?.items.find(x=>x.id===id);if(!item)return;fn(item,m);persist();render();}
 function openChordModal(si,li,ai,slot=0){state.modal={type:'chord-edit',si,li,ai,slot};render();}
 function makeCantoriaPdf(song,shift=0){
@@ -3902,14 +3878,6 @@ root.addEventListener('click',e=>{
   state.modal=null;
   notify((m.kind==='word'?'Parola':'Sillaba')+' eliminata.');return;
  }
- if(action==='diagnostic-start'){
-  const follower=window.CantoriaAudioFollow;
-  if(!follower?.startDiagnostic){updateDiagnosticPanel({phase:'error',message:'Strumento di diagnosi non disponibile.'});return;}
-  follower.startDiagnostic(updateDiagnosticPanel).catch(err=>{
-   updateDiagnosticPanel({phase:'error',message:'Impossibile usare il microfono: '+err.message,level:0});
-  });return;
- }
- if(action==='diagnostic-stop'){window.CantoriaAudioFollow?.stopDiagnostic();return;}
  if(action==='show-release-notes'){state.modal={type:'release-notes'};render();return;}
  if(action==='ask-delete-song'){const song=store.songs.find(x=>x.id===(el.dataset.song||currentSong()?.id));if(song){state.modal={type:'delete-song-confirm',songId:song.id};render();}return;}
  if(action==='delete-song'){
@@ -3948,7 +3916,7 @@ root.addEventListener('click',e=>{
  if(action==='show-original-photo'){state.modal={type:'photo-source'};render();return;}
  if(action==='close-reader'){
   const saved=markCurrentMassSongUsed();
-  window.CantoriaAudioFollow?.reset();
+  window.CantoriaMIDIFollow?.reset();
   state.songId=null;state.massItemId=null;state.modal=null;
   render();
   if(!saved)notify('Non è stato possibile segnare il canto come utilizzato.');
@@ -3972,20 +3940,8 @@ root.addEventListener('click',e=>{
  if(action==='read-mass-song'){const x=currentMass()?.items.find(i=>i.id===el.dataset.item);if(x)openSong(x.songId,x.shift,x.id);return;}
  if(action==='next-page'||action==='prev-page'){state.page+=action==='next-page'?1:-1;render();return;}
  if(action==='song-options'){const song=currentSong();if(!song)return;state.songMetaDraft={songId:song.id,title:song.title||'',author:song.author||'',liturgicalRole:song.liturgicalRole||''};state.modal={type:'song-options'};render();return;}
- if(action==='follow-source'){
-  const follower=window.CantoriaAudioFollow;
-  if(!follower)return;
-  if(follower.mode==='mic'){follower.stop();return;}
-  follower.microphone().catch(err=>notify(err.message));return;
- }
- if(action==='follow-play'){
-  window.CantoriaAudioFollow?.toggle().catch(err=>notify(err.message));return;
- }
- if(action==='follow-rewind'){
-  window.CantoriaAudioFollow?.rewind();
-  if(state.page!==0){state.page=0;render();}
-  requestAnimationFrame(()=>document.getElementById('readerStage')?.scrollTo({top:0,behavior:'smooth'}));return;
- }
+ if(action==='follow-source'||action==='follow-play'){window.CantoriaMIDIFollow?.toggle().catch(err=>notify(err.message));return;}
+ if(action==='follow-rewind'){window.CantoriaMIDIFollow?.rewind();if(state.page!==0){state.page=0;render();}requestAnimationFrame(()=>document.getElementById('readerStage')?.scrollTo({top:0,behavior:'smooth'}));return;}
  if(action==='review-chords'){const song=currentSong();for(let si=0;si<(song?.sections||[]).length;si++)for(let li=0;li<(song.sections[si].lines||[]).length;li++){const ai=(song.sections[si].lines[li].anchors||[]).findIndex(a=>(a.needsReview||a.unresolved)&&!a.verified);if(ai>=0){openChordModal(si,li,ai);render();return;}}if(song?.photoData){state.modal={type:'photo-source'};render();}else notify('Nessun accordo incerto trovato.');return;}
  if(action==='choose-section-text'){state.modal={type:'section-text-picker'};render();return;}
  if(action==='open-section-text'){
@@ -4054,7 +4010,7 @@ root.addEventListener('click',e=>{
  if(action==='pdf-preview'||action==='pdf-share'||action==='pdf-download'){exportPdf(action.slice(4));return;}
  if(action==='create-mass'){state.modal={type:'new-mass'};render();return;}
  if(action==='edit-mass-liturgical'){const mass=currentMass();if(mass){state.modal={type:'mass-liturgical',massId:mass.id};render();}return;}
- if(action==='close-modal'){state.modal=null;state.songMetaDraft=null;render();return;}
+ if(action==='close-modal'){window.CantoriaMIDIFollow?.cancelArm();state.modal=null;state.songMetaDraft=null;render();return;}
  if(action==='open-mass'){if(store.masses.some(x=>x.id===el.dataset.mass)){state.massId=el.dataset.mass;state.view='masses';render();}return;}
  if(action==='ask-delete-mass'){const mass=store.masses.find(x=>x.id===el.dataset.mass);if(mass){state.modal={type:'delete-mass-confirm',massId:mass.id};render();}return;}
  if(action==='delete-mass'){
@@ -4085,8 +4041,8 @@ root.addEventListener('click',e=>{
  }
  if(action==='mass-shift-up'||action==='mass-shift-down'){if(currentMass()?.celebratedAt)return;modifyMassItem(el.dataset.item,item=>{item.shift=Math.max(-11,Math.min(11,item.shift+(action==='mass-shift-up'?1:-1)));});return;}
  if(action==='rename-mass'){const m=currentMass();if(m?.celebratedAt)return;const n=prompt('Nome della Messa',m?.name||'');if(n&&m){m.name=n.trim();persist();render();}return;}
- if(action==='edit-chord'){const id=el.dataset.followId;if(id&&window.CantoriaAudioFollow?.seekToChord(id)){return;}openChordModal(+el.dataset.section,+el.dataset.line,+el.dataset.chord);return;}
-  if(action==='edit-chord-only'){const id=el.dataset.followId;if(id&&window.CantoriaAudioFollow?.seekToChord(id))return;state.modal={type:'chord-only-edit',si:+el.dataset.section,rowIndex:+el.dataset.rowIndex,ai:+el.dataset.chord};render();return;}
+ if(action==='edit-chord'){const id=el.dataset.followId;if(id&&window.CantoriaMIDIFollow?.seekToChord(id)){return;}openChordModal(+el.dataset.section,+el.dataset.line,+el.dataset.chord);return;}
+  if(action==='edit-chord-only'){const id=el.dataset.followId;if(id&&window.CantoriaMIDIFollow?.seekToChord(id))return;state.modal={type:'chord-only-edit',si:+el.dataset.section,rowIndex:+el.dataset.rowIndex,ai:+el.dataset.chord};render();return;}
   if(action==='delete-chord-only'){
    const m=state.modal,sec=currentSong()?.sections[m?.si];
    const row=m?.rowIndex<0?sec?.chordsOnly:sec?.chordRows?.[m.rowIndex];
@@ -4165,12 +4121,6 @@ root.addEventListener('submit',e=>{e.preventDefault();const form=e.target;const 
 });
 root.addEventListener('keydown',e=>{const card=e.target.closest('.library-song-card[data-action="toggle-library-card"],.mass-record-card[data-action="open-mass"],.mass-song-card[data-action="read-mass-song"]');if(!card||e.target!==card||(e.key!=='Enter'&&e.key!==' '))return;e.preventDefault();if(card.dataset.action==='toggle-library-card'){state.libraryOpenId=state.libraryOpenId===card.dataset.song?null:card.dataset.song;render();}else if(card.dataset.action==='open-mass'){state.massId=card.dataset.mass;state.view='masses';render();}else {const item=currentMass()?.items.find(x=>x.id===card.dataset.item);if(item)openSong(item.songId,item.shift,item.id);}});
 root.addEventListener('input',e=>{
- if(e.target.id==='audioFollowTolerance'){
-  const level=window.CantoriaAudioFollow?.setTolerance?.(e.target.value)??Number(e.target.value);
-  const label=root.querySelector('#audioFollowToleranceValue');
-  if(label)label.textContent=level+'% · '+followToleranceLabel(level);
-  return;
- }
  if(e.target.id==='songTitleEdit'||e.target.id==='songAuthorEdit'||e.target.id==='songLiturgicalRoleEdit'){
  const song=currentSong();if(!song)return;
  const draft=state.songMetaDraft?.songId===song.id?state.songMetaDraft:{songId:song.id,title:song.title||'',author:song.author||'',liturgicalRole:song.liturgicalRole||''};
@@ -4363,6 +4313,14 @@ function setupMassSongReorder(){
  },true);
  window.addEventListener('pagehide',()=>{clearPending();closeGhost();});
 }
+function setupMIDIBindings(){
+ let timer=null,pending=null,origin=null,suppress=false;
+ const cancel=()=>{clearTimeout(timer);timer=null;pending=null;};
+ root.addEventListener('pointerdown',e=>{const el=e.target.closest('button[data-action],button[data-nav]');if(!el||e.button!==0||state.modal)return;cancel();origin=[e.clientX,e.clientY];pending=el;timer=setTimeout(()=>{const key=el.dataset.action||('nav:'+el.dataset.nav);cancel();suppress=true;state.modal={type:'midi-bind',key};render();window.CantoriaMIDIFollow?.arm(key,()=>{state.modal=null;render();notify('Tasto MIDI associato.');});},650);},true);
+ root.addEventListener('pointermove',e=>{if(origin&&(Math.abs(e.clientX-origin[0])>12||Math.abs(e.clientY-origin[1])>12))cancel();},true);
+ for(const ev of ['pointerup','pointercancel','pointerleave'])root.addEventListener(ev,cancel,true);
+ root.addEventListener('click',e=>{if(!suppress)return;suppress=false;e.preventDefault();e.stopImmediatePropagation();},true);
+}
 function setupLongPress(){
  let timer=null,x=0,y=0,pending=null;
  const cancel=()=>{if(timer){clearTimeout(timer);timer=null;}pending=null;};
@@ -4463,6 +4421,7 @@ function setupLongPress(){
  },true);
 }
 setupLongPress();
+setupMIDIBindings();
 setupMassSongReorder();
 let startX=0,startY=0;root.addEventListener('touchstart',e=>{if(!e.target.closest('#readerPaper')||e.target.closest('.modal-card'))return;const t=e.changedTouches[0];startX=t.clientX;startY=t.clientY;},{passive:true});
 root.addEventListener('touchend',e=>{if(!e.target.closest('#readerPaper'))return;const t=e.changedTouches[0],dx=t.clientX-startX,dy=t.clientY-startY;if(window.innerWidth>window.innerHeight&&Math.abs(dx)>65&&Math.abs(dx)>Math.abs(dy)*1.4){state.page+=dx<0?1:-1;state.page=Math.max(0,Math.min(pageList(currentSong()).length-1,state.page));render();}},{passive:true});
@@ -4480,7 +4439,7 @@ fetch('./release.json',{cache:'no-store'}).then(async response=>{
  if(!state.songId)render();
 }).catch(err=>console.warn('Impossibile leggere la build:',err));
 </script>
-<script src="./audio-follow.js"></script>
+<script src="./midi-follow.js"></script>
 <script src="./score-ocr.js"></script>
 <script src="./score-geometry.js"></script>
 <script src="./score-metadata.js"></script>
