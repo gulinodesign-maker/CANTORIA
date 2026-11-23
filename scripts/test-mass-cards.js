@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const html=fs.readFileSync('index.html','utf8'),js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(js);new vm.Script(js);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:53});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:54});
 const escape=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const song={id:'s1',title:'Ti esalto Dio mio re',author:'Francesco Buttazzo',sections:[]};
 const planned={id:'m1',name:'Messa 1',date:'',items:[{id:'i1',songId:'s1',shift:0,label:'Ingresso'}]};
@@ -23,7 +23,7 @@ assert.ok(!detail.includes('1 canto'));
 assert.ok(detail.includes('mass-detail-tools'));
 assert.ok(detail.includes('class="cover-author">(Francesco Buttazzo)</div>'));
 assert.ok(detail.indexOf('Ti esalto Dio mio re')<detail.indexOf('(Francesco Buttazzo)'));
-for(const action of ['add-to-mass','finish-mass','rename-mass'])assert.ok(detail.includes('data-action="'+action+'"'),action);
+for(const action of ['add-to-mass','finish-mass','edit-mass-liturgical'])assert.ok(detail.includes('data-action="'+action+'"'),action);
 assert.equal((detail.match(/class="(?:primary-btn|outline-btn) mass-tool"/g)||[]).length,3);
 assert.equal((detail.match(/class="song-card mass-song-card/g)||[]).length,1);
 for(const unwanted of ['mass-shift-down','mass-shift-up','move-up','move-down','mass-card-action-groups','card-delete-btn','mass-card-open'])
