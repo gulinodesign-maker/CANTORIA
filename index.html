@@ -2454,6 +2454,16 @@
 .reader-layer.midi-play-mode #readerPaper .syllable.clickable,.reader-layer.midi-play-mode #readerPaper .chord-band{cursor:default!important}
 .reader-layer.midi-play-mode #readerPaper [data-follow-id]{cursor:pointer!important}
 .reader-layer #readerPaper .midi-chord-current{outline:2px solid #d3a13c!important;outline-offset:2px;border-radius:4px}
+</style><style id="cantoria-build67">
+.mass-detail-tools{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:6px!important}
+.mass-detail-tools .mass-tool{font-size:clamp(9px,2.1vw,13px)!important;padding:8px 2px!important}
+.topbar-mass-detail .mass-topbar-info{position:absolute!important;left:50%!important;transform:translateX(-50%)!important;width:min(58%,540px)!important;right:auto!important;margin:0!important;text-align:center!important;display:flex!important;justify-content:center!important}
+.topbar-mass-detail .mass-topbar-title-block,.topbar-mass-detail .mass-topbar-name{width:100%!important;text-align:center!important}
+.topbar-mass-detail .mass-topbar-date{position:absolute!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important;text-align:center!important;width:min(58%,540px)!important;margin:0!important}
+.mass-record-card .mass-record-title-row{padding-right:0!important;justify-content:center!important}
+.mass-record-card .mass-record-title-row h3{margin:9px auto!important;text-align:center!important}
+.mass-record-card .mass-record-meta{position:relative!important;justify-content:center!important;text-align:center!important}
+.mass-record-card .mass-record-date{text-align:center!important}
 </style></head>
 <body>
   <div id="app"></div>
@@ -2910,9 +2920,9 @@ function massesHTML(){
 function massDetailHTML(){
  const mass=currentMass(),done=!!mass.celebratedAt;
  const buttons=done?
-  `<button class="outline-btn mass-tool" type="button" disabled><span aria-hidden="true">⊕</span><span>Aggiungi canto</span></button><button class="outline-btn mass-tool" type="button" disabled><span aria-hidden="true">✓</span><span>Celebrata</span></button><button class="outline-btn mass-tool" type="button" disabled><span aria-hidden="true">✎</span><span>Modifica Messa</span></button>`:
-  `<button class="primary-btn mass-tool" type="button" data-action="add-to-mass"><span aria-hidden="true">⊕</span><span>Aggiungi canto</span></button><button class="outline-btn mass-tool" type="button" data-action="finish-mass"><span aria-hidden="true">✓</span><span>Segna celebrata</span></button><button class="outline-btn mass-tool" type="button" data-action="edit-mass-liturgical"><span aria-hidden="true">✎</span><span>Modifica Messa</span></button>`;
- return `<div class="mass-detail-tools" role="group" aria-label="Gestione Messa">${buttons}</div>
+  `<button class="outline-btn mass-tool" type="button" disabled><span aria-hidden="true">⊕</span><span>Aggiungi canto</span></button><button class="outline-btn mass-tool" type="button" disabled><span aria-hidden="true">✓</span><span>Celebrata</span></button><button class="outline-btn mass-tool" type="button" disabled><span aria-hidden="true">✎</span><span>Modifica Messa</span></button><button class="outline-btn mass-tool" type="button" disabled><span aria-hidden="true">⇩</span><span>Importa brano</span></button>`:
+  `<button class="primary-btn mass-tool" type="button" data-action="add-to-mass"><span aria-hidden="true">⊕</span><span>Aggiungi canto</span></button><button class="outline-btn mass-tool" type="button" data-action="finish-mass"><span aria-hidden="true">✓</span><span>Segna celebrata</span></button><button class="outline-btn mass-tool" type="button" data-action="edit-mass-liturgical"><span aria-hidden="true">✎</span><span>Modifica Messa</span></button><button class="outline-btn mass-tool" type="button" data-action="import-to-mass"><span aria-hidden="true">⇩</span><span>Importa brano</span></button>`;
+ return `<div class="mass-detail-tools" role="group" aria-label="Gestione Messa">${buttons}</div><input type="file" id="massSongImportInput" accept=".cantoria.json,.json,application/json" class="visually-hidden-file" aria-label="Importa brano nella Messa">
   <div class="tiles mass-song-tiles" ${!done?`data-mass-reorder="${escapeAttr(mass.id)}" aria-label="Scaletta riordinabile tramite pressione prolungata"`:''}>${(mass.items||[]).map((item,i)=>{
   const song=store.songs.find(x=>x.id===item.songId);
   const title=done?(item.archiveTitle||song?.title||'Canto non disponibile'):(song?.title||'Canto non disponibile');
@@ -4037,6 +4047,7 @@ root.addEventListener('click',e=>{
  if(action==='finish-mass'){const m=currentMass();if(m&&!m.celebratedAt){m.celebratedAt=new Date().toISOString();if(!m.date)m.date=new Date().toLocaleDateString('sv-SE');m.items=(m.items||[]).map(item=>{const song=store.songs.find(x=>x.id===item.songId);return {...item,archiveTitle:song?.title||'Canto non disponibile',archiveAuthor:song?.author||'',archiveLiturgicalRole:song?.liturgicalRole||''};});persist();render();}return;}
  if(action==='reopen-mass'){const m=currentMass();if(m){delete m.celebratedAt;persist();render();}return;}
  if(action==='back-masses'){state.massId=null;render();return;}
+ if(action==='import-to-mass'){if(currentMass()&&!currentMass().celebratedAt)document.getElementById('massSongImportInput')?.click();return;}
  if(action==='add-to-mass'){const m=currentMass();if(m?.celebratedAt)return;state.modal={type:'add-to-mass',songId:el.dataset.song||null,massId:state.massId||null};render();return;}
  if(action==='move-up'||action==='move-down'){const mass=currentMass();if(mass?.celebratedAt)return;const i=mass?.items.findIndex(x=>x.id===el.dataset.item);if(i<0)return;const to=i+(action==='move-up'?-1:1);if(to<0||to>=mass.items.length)return;[mass.items[i],mass.items[to]]=[mass.items[to],mass.items[i]];persist();render();return;}
  if(action==='remove-mass-item'){
@@ -4146,7 +4157,12 @@ root.addEventListener('change',async e=>{
    preview.style.background=e.target.value;
   return;
  }
- if(e.target.id==='songKeyInline'){const song=currentSong();if(song){song.key=e.target.value;song.keySource='manual';persist();render();}return;}if(e.target.id==='songImportCaptureInput'){
+ if(e.target.id==='songKeyInline'){const song=currentSong();if(song){song.key=e.target.value;song.keySource='manual';persist();render();}return;}if(e.target.id==='massSongImportInput'){
+ const file=e.target.files?.[0],mass=currentMass();if(!file||!mass||mass.celebratedAt)return;
+ try{if(file.size>3000000)throw new Error('File troppo grande');const song=importSongFile(await file.text());
+ mass.items ||= [];mass.items.push({id:makeId(),songId:song.id,label:'',shift:0});persist();render();notify('Brano importato nella Messa: '+song.title);
+ }catch(err){notify('Importazione non riuscita: '+err.message);}return;
+ }if(e.target.id==='songImportCaptureInput'){
  const file=e.target.files?.[0];if(!file)return;
  try{
   if(file.size>3000000)throw new Error('File troppo grande');

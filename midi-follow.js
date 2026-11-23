@@ -122,7 +122,7 @@ async function poll(){
   native ||=plugin();
   if(native){
    const response=await native.pull({after:seq});
-   connected=!!response.connected;deviceName=response.deviceName||'';
+   connected=response.connected===true;deviceName=connected?(response.deviceName||''):'';if(!connected){active.clear();if(running){running=false;}}
    for(const e of response.events||[]){seq=Math.max(seq,e.seq||0);receive(e);}
   }else if(!webAccess){await setupWebMIDI();}
   status();
