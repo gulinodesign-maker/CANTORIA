@@ -2386,6 +2386,20 @@
  .reader-layer .reader-toolbar>.cantoria-home-button{top:8px!important}
 }
 </style>
+
+<style id="cantoria-build-60-toolbar-home">
+/* The Home control is the rightmost topbar action, after Follow and Settings. */
+.reader-layer .reader-toolbar>.cantoria-home-button{left:auto!important;right:12px!important;top:8px!important;width:40px!important;height:40px!important;background:#174636!important;color:#edc66d!important;border:1px solid #ba995b!important;border-radius:12px!important;z-index:1100!important}
+.reader-layer .reader-toolbar>.reader-toolbar-right{padding-right:48px!important}
+.topbar-section>.cantoria-home-button{left:auto!important;right:12px!important;top:calc(env(safe-area-inset-top,0px) + 8px)!important;width:40px!important;height:40px!important;background:#174636!important;color:#edc66d!important;border:1px solid #ba995b!important;border-radius:12px!important;z-index:1100!important}
+@media screen and (orientation:portrait){
+ .reader-layer .reader-toolbar>.cantoria-home-button{top:calc(env(safe-area-inset-top,0px) + 8px)!important}
+ .reader-layer .reader-toolbar{height:calc(env(safe-area-inset-top,0px) + 124px)!important;min-height:calc(env(safe-area-inset-top,0px) + 124px)!important}
+ .reader-layer .reader-toolbar>.reader-toolbar-right{top:calc(env(safe-area-inset-top,0px) + 8px)!important}
+}
+.library-song-card .library-card-actions-only .card-actions{display:flex!important;flex-wrap:wrap!important;justify-content:center!important;gap:8px!important}
+.library-song-card .library-card-actions-only .card-actions>.outline-btn{flex:1 1 120px!important;min-width:0!important}
+</style>
 </head>
 <body>
   <div id="app"></div>
@@ -2817,6 +2831,7 @@ function libraryHTML(){
       <button type="button" class="outline-btn" data-action="export-song" data-song="${escapeAttr(song.id)}"><span aria-hidden="true">⇧</span><span>Esporta</span></button>
       <button type="button" class="outline-btn" data-action="card-pdf" data-song="${escapeAttr(song.id)}" ${song.sections?.length?'':'disabled aria-disabled="true"'}><span aria-hidden="true">▤</span><span>Crea PDF</span></button>
       <button type="button" class="outline-btn" data-action="read-song" data-song="${escapeAttr(song.id)}"><span aria-hidden="true">▶</span><span>Apri brano</span></button>
+      <button type="button" class="outline-btn" data-action="edit-library-song" data-song="${escapeAttr(song.id)}" aria-label="Modifica brano"><span aria-hidden="true">✎</span><span>Modifica</span></button>
      </div></div>`:''}
     </article>`;
   }).join('')||'<div class="empty">Nessun canto trovato.</div>'}</div>
@@ -3899,6 +3914,7 @@ root.addEventListener('click',e=>{
   render();return;
  }
  if(action==='read-song'){openSong(el.dataset.song);return;}
+ if(action==='edit-library-song'){const id=el.dataset.song;const song=store.songs.find(x=>x.id===id);if(!song)return;openSong(id);state.songMetaDraft={songId:id,title:song.title||'',author:song.author||'',liturgicalRole:song.liturgicalRole||''};state.modal={type:'song-options'};render();return;}
  if(action==='reset-mass-item-used'){
   const mass=currentMass();if(!mass||mass.celebratedAt)return;
   const item=mass.items?.find(x=>x.id===el.dataset.item);if(!item?.usedAt)return;
