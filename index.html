@@ -2464,6 +2464,48 @@
 .mass-record-card .mass-record-title-row h3{margin:9px auto!important;text-align:center!important}
 .mass-record-card .mass-record-meta{position:relative!important;justify-content:center!important;text-align:center!important}
 .mass-record-card .mass-record-date{text-align:center!important}
+</style><style id="cantoria-build69">
+/* Keep Mass card names at the actual geometric centre, independently of metadata. */
+.mass-record-card{position:relative!important}
+.mass-record-card .mass-record-title-row{
+ position:absolute!important;inset:0!important;z-index:1!important;
+ display:flex!important;align-items:center!important;justify-content:center!important;
+ width:100%!important;height:100%!important;margin:0!important;padding:0 72px!important;
+ pointer-events:none!important;box-sizing:border-box!important
+}
+.mass-record-card .mass-record-title-row h3{
+ width:100%!important;margin:0!important;padding:0!important;text-align:center!important;
+ font:normal clamp(22px,4vw,30px)/1.12 Georgia,serif!important
+}
+.mass-record-card .mass-record-meta{
+ position:absolute!important;left:20px!important;right:20px!important;bottom:16px!important;
+ width:auto!important;display:flex!important;align-items:center!important;
+ justify-content:space-between!important;margin:0!important;padding:0!important;z-index:2!important
+}
+.mass-record-card .mass-record-date{margin:0!important;text-align:left!important}
+.mass-record-card .mass-record-meta .mass-count{margin-left:auto!important;text-align:right!important}
+/* One centered vertical stack for Mass name and date, with no independent absolute date. */
+.topbar-section.topbar-mass-detail>.mass-topbar-info{
+ position:relative!important;left:auto!important;right:auto!important;transform:none!important;
+ display:flex!important;flex-direction:column!important;align-items:center!important;
+ justify-content:center!important;width:100%!important;min-height:62px!important;
+ margin:0 auto!important;padding:0 60px!important;box-sizing:border-box!important
+}
+.topbar-section.topbar-mass-detail .mass-topbar-title-block{
+ display:flex!important;flex-direction:column!important;align-items:center!important;
+ justify-content:center!important;gap:5px!important;width:100%!important;max-width:100%!important;
+ margin:0!important;padding:0!important;text-align:center!important
+}
+.topbar-section.topbar-mass-detail .mass-topbar-name{
+ position:static!important;display:block!important;width:100%!important;
+ text-align:center!important;line-height:1.2!important;margin:0!important
+}
+.topbar-section.topbar-mass-detail .mass-topbar-title-block>.mass-topbar-date{
+ position:static!important;display:block!important;left:auto!important;right:auto!important;
+ top:auto!important;bottom:auto!important;transform:none!important;
+ width:100%!important;min-height:0!important;margin:0!important;padding:0!important;
+ text-align:center!important;line-height:1.25!important
+}
 </style></head>
 <body>
   <div id="app"></div>
@@ -2835,8 +2877,8 @@ function headerHTML(){
    ${backCornerHTML('back-masses')}${homeTopbarButtonHTML()}
    <div class="mass-topbar-info"><div class="mass-topbar-title-block">
     <strong class="mass-topbar-name">${escape(m.name)}</strong>
+    <span class="mass-topbar-date">${escape(date)}</span>
    </div></div>
-   <span class="mass-topbar-date">${escape(date)}</span>
   </header>`;
  }
  const titles={library:'Biblioteca',masses:'Messe',capture:'Acquisisci un canto',settings:'Impostazioni'};
