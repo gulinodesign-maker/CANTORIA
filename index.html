@@ -2362,6 +2362,30 @@
  }
 }
 </style>
+
+<style id="cantoria-build-59-home-button">
+/* Home is a genuine topbar action, visually matched to Follow and Menu. */
+.topbar-section>.cantoria-home-button,.reader-layer .reader-toolbar>.cantoria-home-button{
+ left:calc(var(--cantoria-corner-width,96px) + 10px)!important;
+ top:calc(env(safe-area-inset-top,0px) + 8px)!important;
+ width:40px!important;height:40px!important;min-width:40px!important;min-height:40px!important;
+ padding:8px!important;box-sizing:border-box!important;
+ background:#174636!important;color:#edc66d!important;
+ border:1px solid #ba995b!important;border-radius:12px!important;
+ box-shadow:none!important;z-index:1100!important;
+}
+.topbar-section>.cantoria-home-button svg,.reader-layer .reader-toolbar>.cantoria-home-button svg{width:24px!important;height:24px!important}
+/* Portrait reader has a two-row toolbar: controls belong beside Follow and Menu,
+   not on top of the iPhone clock and status icons. */
+@media screen and (orientation:portrait){
+ .reader-layer .reader-toolbar>.cantoria-home-button{top:calc(env(safe-area-inset-top,0px) + 64px)!important}
+ .reader-layer .reader-toolbar{min-height:calc(env(safe-area-inset-top,0px) + 124px)!important;height:calc(env(safe-area-inset-top,0px) + 124px)!important}
+ .reader-layer.reader-portrait .reader-title{top:calc(env(safe-area-inset-top,0px) + 99px)!important}
+}
+@media screen and (orientation:landscape){
+ .reader-layer .reader-toolbar>.cantoria-home-button{top:8px!important}
+}
+</style>
 </head>
 <body>
   <div id="app"></div>
