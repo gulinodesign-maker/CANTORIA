@@ -2,14 +2,14 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
 const html=fs.readFileSync('index.html','utf8');
 const js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(js);new vm.Script(js);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:51});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:52});
 const hStart=js.indexOf('function headerHTML(){'),hEnd=js.indexOf('function navHTML(){');
 const lStart=js.indexOf('function massesHTML(){'),lEnd=js.indexOf('function massDetailHTML(){');
 assert.ok(hStart>0&&hEnd>hStart&&lStart>hEnd&&lEnd>lStart);
 const planned={id:'m1',name:'Messa futura',date:'2026-11-29',items:[{id:'a',songId:'s1'}]};
 const past={id:'m2',name:'Messa celebrata',date:'2026-11-22',celebratedAt:'2026-11-22T10:00:00Z',items:[{id:'b',songId:'s1',archiveTitle:'Canto archiviato'}]};
 const state={view:'masses',massId:null};
-const ctx={state,releaseInfo:{version:'1.1',build:51},
+const ctx={state,releaseInfo:{version:'1.1',build:52},
  store:{songs:[{id:'s1',title:'Un canto che non deve apparire nella card'}],masses:[planned,past]},
  escape:x=>String(x),escapeAttr:x=>String(x),massDateDisplay:date=>date?date.slice(8)+'/'+date.slice(5,7)+'/'+date.slice(0,4):'Data da definire',
  CATHOLIC_CORNER:'<svg class="corner-ornament"><path class="corner-ornament-cross"/></svg>',
@@ -59,7 +59,7 @@ for(const rule of [
 ])assert.ok(css.includes(rule),'Missing build 50 layout '+rule);
 assert.ok(css.includes('@media screen and (orientation:portrait)')&&css.includes('@media screen and (orientation:landscape)'),
  'Both device orientations must be covered');
-assert.ok(html.includes('<h2>CANTORIA 1.1 (51)</h2>'));
+assert.ok(html.includes('<h2>CANTORIA 1.1 (52)</h2>'));
 const finalMarker='/* CANTORIA 1.1 (49): Mass list cards, gold cross LEFT and delete X RIGHT.';
 const finalPos=html.indexOf(finalMarker);
 assert.ok(finalPos>pos,'Build49 inversion must override Build48');

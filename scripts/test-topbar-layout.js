@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const html=fs.readFileSync('index.html','utf8'),js=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(js);new vm.Script(js);
-assert.deepEqual(require('../release.json'),{version:'1.1',build:51});
+assert.deepEqual(require('../release.json'),{version:'1.1',build:52});
 const sections=[
  ['homeHTML','headerHTML'],['libraryHTML','massDateDisplay'],
  ['massesHTML','massDetailHTML'],['captureHTML','settingsHTML'],
@@ -42,3 +42,8 @@ assert.ok(!html.includes('📷'),'No skeuomorphic camera emoji anywhere');
 assert.equal((cap.match(/<svg class="flat-ui-icon"/g)||[]).length,3);
 for(const input of ['photoCameraInput','photoLibraryInput','songImportCaptureInput'])assert.ok(cap.includes('for="'+input+'"'));
 console.log('OK: all titles in topbars, equal 3-column library filters, non-skeuomorphic SVG icons, landscape compactness');
+
+// Seasonal themes must never recolor the classic ivory and gold top bars.
+const liturgicalStyles = fs.readFileSync('liturgical-theme.css','utf8');
+assert.ok(!/\.topbar|\.reader-toolbar/.test(liturgicalStyles),'Headers must be excluded from the seasonal palette');
+assert.ok(html.includes('.topbar-section{position:relative;background:#fcf8ef!important'),'Section header retains original ivory');
