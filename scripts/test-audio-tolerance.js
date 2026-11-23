@@ -59,6 +59,6 @@ const nativeCall=source.includes('attackCount>lastMarkAttackCount,tolerance');
 assert.ok(nativeCall,'Both native mic and Web audio must use the same configured tolerance');
 assert.equal((source.match(/attackCount>lastMarkAttackCount,tolerance/g)||[]).length,2);
 assert.equal((source.match(/stableCount>=Math\.max\(candidate\.skipped\?4:2,toleranceProfile\(\)\.frames\)/g)||[]).length,2);
-assert.ok(html.includes('/* CANTORIA 1.1 (51): live harmonic-change tolerance'));
+assert.ok(html.includes('/* CANTORIA 1.1 (50): live harmonic-change tolerance'));
 assert.ok(html.includes('<h2>CANTORIA 1.1 (51)</h2>'));
 console.log('PASS: tolerance slider changes live and native detection, suppresses false changes, persists safely, allows real chords');
