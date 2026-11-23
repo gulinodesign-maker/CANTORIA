@@ -2320,6 +2320,38 @@
  }
 }
 </style>
+
+<style id="cantoria-corner-touch-57">
+/* Home uses exactly the same edge-aligned ornament as internal screens. */
+.topbar-home-labeled{position:relative!important;overflow:visible!important}
+.topbar-home-labeled>.corner-ornament{
+ position:absolute!important;top:0!important;left:0!important;
+ margin:0!important;transform:none!important;
+ width:var(--cantoria-corner-width)!important;
+ height:var(--cantoria-corner-height)!important;
+}
+/* Enlarge only the interactive target, not the visible 96 x 78 ornament. */
+@media screen and (orientation:portrait){
+ .topbar-section>.corner-back-button,
+ .reader-layer .reader-toolbar>.corner-back-button{
+  width:112px!important;min-width:112px!important;max-width:112px!important;
+  height:100px!important;min-height:100px!important;max-height:100px!important;
+  top:0!important;left:0!important;
+  clip-path:none!important;-webkit-clip-path:none!important;
+  pointer-events:auto!important;touch-action:manipulation!important;
+  z-index:999!important;
+ }
+ .topbar-section>.corner-back-button>.corner-ornament,
+ .reader-layer .reader-toolbar>.corner-back-button>.corner-ornament{
+  width:var(--cantoria-corner-width)!important;
+  height:var(--cantoria-corner-height)!important;
+  min-width:0!important;min-height:0!important;
+  max-width:none!important;max-height:none!important;
+  top:0!important;left:0!important;
+  pointer-events:none!important;
+ }
+}
+</style>
 </head>
 <body>
   <div id="app"></div>
