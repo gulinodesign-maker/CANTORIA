@@ -40,7 +40,7 @@ function highlight(){
 }
 function setCursor(index){
  if(index<0||index>=score.length)return false;
- cursor=index;candidate=-1;lastHarmony='';lastAdvance=time();
+ cursor=index;candidate=-1;candidateAt=0;lastHarmony='';lastHarmonyAt=0;active.clear();sustain.clear();lastAdvance=time();
  const item=score[cursor];if(item&&typeof pageCallback==='function')pageCallback(item.page);
  highlight();return true;
 }
@@ -82,7 +82,7 @@ function evaluate(){
 }
 function noteKey(channel,note){return channel+':'+note;}
 function midiEvent(e){
- const note=Number(e.note),channel=Number(e.channel)||0,on=e.on===true;
+ const note=Number(e.note),channel=Number(e.channel)||0,on=e.on===true||e.type==='noteOn'||e.type==='noteon'||e.type==='note_on';
  if(!Number.isInteger(note)||note<0||note>127)return;
  if(armed&&on){
   const old=Object.keys(bindings).find(k=>bindings[k]?.note===note&&bindings[k]?.channel===channel&&k!==armed.key);
@@ -91,7 +91,7 @@ function midiEvent(e){
   try{localStorage.setItem('cantoria-midi-bindings',JSON.stringify(bindings));}catch(_){}
   const done=armed.done;armed=null;active.delete(noteKey(channel,note));done?.();return;
  }
- const command=Object.entries(bindings).find(([,v])=>v.note===note&&v.channel===channel);
+ const command=Object.entries(bindings).find(([,v])=>Number(v.note)===note&&Number(v.channel)===channel);
  if(command){
   if(on){const key=command[0];const selector=key.startsWith('nav:')?'[data-nav="'+key.slice(4)+'"]':'[data-action="'+key+'"]';document.querySelector(selector)?.click();}
   return;
@@ -107,7 +107,7 @@ function controlEvent(e){
  if(controller===64){const down=Number(e.value)>=64;pedal.set(channel,down);if(!down){for(const key of sustain){if(key.startsWith(channel+':')){active.delete(key);sustain.delete(key);}}}}
  if(controller===120||controller===123){for(const key of active.keys())if(key.startsWith(channel+':'))active.delete(key);}
 }
-function receive(e){if(e.type==='cc')controlEvent(e);else midiEvent(e);}
+function receive(e){if(e.type==='cc'||e.type==='controlChange')controlEvent(e);else midiEvent(e);}
 async function setupWebMIDI(){
  if(!navigator.requestMIDIAccess||webAccess)return;
  try{
@@ -139,5 +139,6 @@ window.CantoriaMIDIFollow={
  async toggle(){await poll();if(!connected)throw Error('Nessuna tastiera MIDI collegata. Controlla il cavo USB e la connessione iOS.');running=!running;candidate=-1;active.clear();status();},
  stop(){running=false;active.clear();status();},
  arm(key,done){armed={key,done};poll();},cancelArm(){armed=null;},
+ unbind(key){delete bindings[key];try{localStorage.setItem('cantoria-midi-bindings',JSON.stringify(bindings));}catch(_){}},
 };
 })();
