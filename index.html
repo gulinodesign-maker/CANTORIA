@@ -2417,6 +2417,22 @@
 .topbar-home-labeled .cantoria-home-clock{font:600 12px/1.2 system-ui,sans-serif;color:#8c7a60;letter-spacing:.05em}
 .topbar-home-labeled .cantoria-home-build{position:absolute;right:14px;bottom:15px;font:600 11px/1.2 system-ui,sans-serif;color:#947d56;white-space:nowrap}
 </style>
+
+<style id="cantoria-build-62-layout">
+/* Build 62: Home is the third button INSIDE the same flex group, not a floating sibling. */
+.reader-layer .reader-toolbar>.reader-toolbar-right{position:absolute!important;top:8px!important;right:12px!important;left:auto!important;display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:8px!important;padding:0!important;margin:0!important;transform:none!important;z-index:60!important}
+.reader-layer .reader-toolbar-right>.cantoria-home-button{position:relative!important;inset:auto!important;top:auto!important;right:auto!important;left:auto!important;bottom:auto!important;display:grid!important;place-items:center!important;flex:0 0 40px!important;width:40px!important;height:40px!important;min-width:40px!important;min-height:40px!important;padding:7px!important;margin:0!important;background:#174636!important;color:#edc66d!important;border:1px solid #ba995b!important;border-radius:12px!important;transform:none!important}
+.reader-layer .reader-toolbar-right>.reader-follow-btn,.reader-layer .reader-toolbar-right>.reader-menu-btn{flex-shrink:0!important}
+@media (orientation:portrait){.reader-layer .reader-toolbar>.reader-toolbar-right{top:calc(env(safe-area-inset-top,0px) + 8px)!important}}
+/* Target actual card class and group, enforcing exactly five columns. */
+.song-card .card-body.library-card-actions-only>.card-actions{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:4px!important;flex-wrap:nowrap!important;width:100%!important;min-width:0!important}
+.song-card .card-body.library-card-actions-only>.card-actions>button.outline-btn{display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:3px!important;min-width:0!important;width:100%!important;max-width:100%!important;flex:none!important;padding:6px 0!important;font-size:clamp(8px,2vw,13px)!important;line-height:1.1!important;white-space:nowrap!important;box-sizing:border-box!important}
+.song-card .card-body.library-card-actions-only>.card-actions>button.outline-btn span:first-child{font-size:clamp(16px,3.5vw,24px)!important}
+/* The build number is at the bottom centre of the HOME workspace, not the header. */
+.home-workspace{position:relative!important}
+.home-screen{position:relative!important;min-height:calc(100dvh - 130px - env(safe-area-inset-top,0px))!important;padding-bottom:42px!important;box-sizing:border-box!important}
+.home-screen>.cantoria-home-build-footer{position:absolute!important;left:50%!important;right:auto!important;bottom:calc(env(safe-area-inset-bottom,0px) + 10px)!important;transform:translateX(-50%)!important;text-align:center!important;font:600 12px/1.2 system-ui,sans-serif!important;color:#947d56!important;white-space:nowrap!important}
+</style>
 </head>
 <body>
   <div id="app"></div>
@@ -2725,12 +2741,12 @@ function entriesHTML(entries){if(!entries.length)return '<p>Questo canto non ha 
 function readerColumns(){const w=window.innerWidth,h=window.innerHeight;return ((w>=650&&w>h)||w>=760)?2:1;}
 function photoReaderHTML(song){
  return `<div class="reader-layer reader-portrait reader-photo" id="readerLayer" data-song="${escapeAttr(song.id)}">
- <header class="reader-toolbar">${backCornerHTML('close-reader')}${homeTopbarButtonHTML()}
+ <header class="reader-toolbar">${backCornerHTML('close-reader')}
  
  <div class="reader-title" title="${escapeAttr(song.title)}"><div class="reader-title-line"><strong>${escape(song.title)}</strong></div></div>
  <div class="reader-toolbar-right">
  <button class="reader-follow-btn" type="button" disabled data-action="follow-source" title="Segui accordi" aria-label="Segui accordi">♫</button>
- <button class="reader-menu-btn" type="button" data-action="song-options" title="Impostazioni brano" aria-label="Impostazioni brano">☰</button>
+ <button class="reader-menu-btn" type="button" data-action="song-options" title="Impostazioni brano" aria-label="Impostazioni brano">☰</button>${homeTopbarButtonHTML()}
  </div></header>
  <div class="reader-stage" id="readerStage"><article class="reader-paper photo-viewer" id="readerPaper">
   <img src="${escapeAttr(song.photoData)}" alt="Fotografia originale del brano">
@@ -2750,12 +2766,12 @@ function readerHTML(){
  const perColumnWidth=(window.innerWidth-(cols===2?67:30))/cols;
  const font=Math.max(15,Math.min(26,perColumnWidth*(horizontal?.051:.058)));
  return `<div class="reader-layer ${horizontal?'reader-landscape':'reader-portrait'}" id="readerLayer" data-song="${escapeAttr(song.id)}" style="--reader-font:${font.toFixed(1)}px">
- <header class="reader-toolbar">${backCornerHTML('close-reader')}${homeTopbarButtonHTML()}
+ <header class="reader-toolbar">${backCornerHTML('close-reader')}
  
  <div class="reader-title" title="${escapeAttr(song.title)}"><div class="reader-title-line"><strong>${escape(song.title)}</strong></div><small id="readerVerification">${horizontal?(state.page+1)+' / '+pages.length:''}${song.verified?'':' · DA VERIFICARE'}</small><small id="audioFollowStatus" class="reader-follow-status" hidden></small></div>
  <div class="reader-toolbar-right">
  <button class="reader-follow-btn" type="button" data-action="follow-source" title="Segui accordi" aria-label="Segui accordi">♫</button>
- <button class="reader-menu-btn" type="button" data-action="song-options" title="Impostazioni brano" aria-label="Impostazioni brano">☰</button>
+ <button class="reader-menu-btn" type="button" data-action="song-options" title="Impostazioni brano" aria-label="Impostazioni brano">☰</button>${homeTopbarButtonHTML()}
  </div></header>
  <div class="reader-stage" id="readerStage"><article class="reader-paper" id="readerPaper" tabindex="0">
   <div class="sheet-columns" style="--reader-cols:${cols}">${columns.map(col=>`<div class="sheet-column">${entriesHTML(col)}</div>`).join('')}</div>
@@ -2776,11 +2792,11 @@ function homeHTML(){
   {icon:`<svg ${iconProps}><rect x="10" y="14" width="44" height="40" rx="7"/><path d="M21 10v9m22-9v9M10 26h44M32 32v16m-8-8h16"/></svg>`,title:'Messe',view:'masses'},
   {icon:`<svg ${iconProps}><path d="M28 7h8l1.8 6.7a20 20 0 0 1 4.5 2l6.2-3.5 5.6 5.6-3.5 6.2a20 20 0 0 1 2 4.5L59 30v8l-6.4 1.8a20 20 0 0 1-2 4.5l3.5 6.2-5.6 5.6-6.2-3.5a20 20 0 0 1-4.5 2L36 61h-8l-1.8-6.4a20 20 0 0 1-4.5-2l-6.2 3.5-5.6-5.6 3.5-6.2a20 20 0 0 1-2-4.5L5 38v-8l6.4-1.8a20 20 0 0 1 2-4.5l-3.5-6.2 5.6-5.6 6.2 3.5a20 20 0 0 1 4.5-2L28 7Z"/><circle cx="32" cy="34" r="9"/></svg>`,title:'Impostazioni',view:'settings'}
  ];
- return `<div class="home-screen"><div class="home-grid">${tiles.map(t=>`<button type="button" class="home-tile" data-nav="${t.view}" aria-label="Apri ${t.title}"><span class="home-tile-icon">${t.icon}</span><strong>${t.title}</strong></button>`).join('')}</div><div class="home-liturgical-status" id="homeLiturgicalStatus" aria-live="polite"><span class="liturgical-status-line" aria-hidden="true"></span><strong>Calendario liturgico</strong></div></div>`;
+ return `<div class="home-screen"><div class="home-grid">${tiles.map(t=>`<button type="button" class="home-tile" data-nav="${t.view}" aria-label="Apri ${t.title}"><span class="home-tile-icon">${t.icon}</span><strong>${t.title}</strong></button>`).join('')}</div><div class="cantoria-home-build-footer" aria-label="Build corrente">${Number.isInteger(releaseInfo.build)?"Build "+releaseInfo.build:"Build…"}</div><div class="home-liturgical-status" id="homeLiturgicalStatus" aria-live="polite"><span class="liturgical-status-line" aria-hidden="true"></span><strong>Calendario liturgico</strong></div></div>`;
 }
 function homeTopbarButtonHTML(){return '<button type="button" class="cantoria-home-button" data-nav="home" aria-label="Vai alla Home" title="Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg></button>';}
 function headerHTML(){
- if(state.view==='home')return `<header class="topbar topbar-home topbar-home-labeled">${CATHOLIC_CORNER}<div class="cantoria-home-heading"><h1 class="home-topbar-title">Cantoria</h1><time id="cantoriaHomeClock" class="cantoria-home-clock">${escape(new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"}))}</time></div><span class="cantoria-home-build" aria-label="Build corrente">${Number.isInteger(releaseInfo.build)?"Build "+releaseInfo.build:"Build…"}</span></header>`;
+ if(state.view==='home')return `<header class="topbar topbar-home topbar-home-labeled">${CATHOLIC_CORNER}<div class="cantoria-home-heading"><h1 class="home-topbar-title">Cantoria</h1><time id="cantoriaHomeClock" class="cantoria-home-clock">${escape(new Date().toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"}))}</time></div></header>`;
  if(state.view==='masses'&&state.massId&&currentMass()){
   const m=currentMass(),done=!!m.celebratedAt;
   const date=massDateDisplay(m.date||(done?String(m.celebratedAt).slice(0,10):''));
