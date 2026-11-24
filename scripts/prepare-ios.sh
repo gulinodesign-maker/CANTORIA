@@ -77,4 +77,6 @@ if [[ ! -f "$icon" ]]; then
   exit 1
 fi
 sips -s format png -z 1024 1024 assets/cantoria-icona-ufficiale-045.png --out "$icon" >/dev/null
+python3 scripts/ios-scene.py ios/App
+
 echo "Cantoria iOS project prepared for bundle identifier: $IOS_BUNDLE_ID"

@@ -16,10 +16,16 @@ jobs:
           node-version: '22'
       - run: npm install --no-audit --no-fund
       - run: bash scripts/prepare-ios.sh
+      - name: Verify simulator startup
+        run: bash scripts/verify-ios-launch.sh
       - name: Package generated project
         run: |
           test -f ios/App/App.xcodeproj/project.pbxproj
-          ditto -c -k --keepParent ios Cantoria-Xcode.zip
+          mkdir -p export
+          cp -R ios export/ios
+          mkdir -p export/node_modules/@capacitor
+          cp -R node_modules/@capacitor/filesystem node_modules/@capacitor/share export/node_modules/@capacitor/
+          ditto -c -k export Cantoria-Xcode.zip
       - uses: actions/upload-artifact@v4
         with:
           name: Cantoria-Xcode

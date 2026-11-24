@@ -22,7 +22,10 @@ public class CantoriaMIDIPlugin: CAPPlugin, CAPBridgedPlugin {
     private var events: [JSObject] = []
     private var seq = 0
     private var sourceName = ""
-    override public func load() {
+    private var midiStarted = false
+    private func startMIDIIfNeeded() {
+        guard !midiStarted else { return }
+        midiStarted = true
         MIDIClientCreateWithBlock("Cantoria MIDI" as CFString, &client) { [weak self] _ in self?.refreshSources() }
         MIDIInputPortCreateWithBlock(client, "Cantoria Input" as CFString, &port) { [weak self] list, _ in
             guard let self = self else { return }
@@ -68,6 +71,7 @@ public class CantoriaMIDIPlugin: CAPPlugin, CAPBridgedPlugin {
         if current.isEmpty { sourceName = "" }
     }
     @objc func pull(_ call: CAPPluginCall) {
+        startMIDIIfNeeded()
         refreshSources()
         let after = call.getInt("after") ?? 0
         lock.lock()
