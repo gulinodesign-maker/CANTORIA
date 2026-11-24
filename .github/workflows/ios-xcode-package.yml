@@ -1,0 +1,27 @@
+name: Cantoria Xcode package
+on:
+  push:
+    paths:
+      - '.github/workflows/ios-xcode-package.yml'
+  workflow_dispatch:
+jobs:
+  package:
+    runs-on: macos-15
+    env:
+      IOS_BUNDLE_ID: ${{ vars.IOS_BUNDLE_ID || secrets.IOS_BUNDLE_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: bash scripts/prepare-ios.sh
+      - name: Package generated project
+        run: |
+          test -f ios/App/App.xcodeproj/project.pbxproj
+          ditto -c -k --keepParent ios Cantoria-Xcode.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Cantoria-Xcode
+          path: Cantoria-Xcode.zip
+          if-no-files-found: error
