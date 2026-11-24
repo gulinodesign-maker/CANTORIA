@@ -2518,6 +2518,10 @@
 .mass-record-card.mass-planned-card .mass-record-meta{position:absolute!important;top:auto!important;bottom:16px!important;left:16px!important;right:16px!important;margin:0!important;width:auto!important;z-index:4!important}
 @media (orientation:portrait){.mass-record-card.mass-planned-card{min-height:148px!important;height:148px!important}}
 .mass-record-card:not(.mass-planned-card){min-height:148px!important}
+</style><style id="cantoria-build78-reader-back">
+.reader-layer .reader-toolbar>.reader-independent-back{position:absolute!important;left:calc(var(--cantoria-corner-width,96px) + 4px)!important;top:8px!important;display:grid!important;place-items:center!important;width:40px!important;height:40px!important;padding:0!important;margin:0!important;border:1px solid #ba995b!important;border-radius:12px!important;background:#174636!important;color:#edc66d!important;font:32px/1 system-ui,sans-serif!important;z-index:1100!important;cursor:pointer!important}
+@media(orientation:portrait){.reader-layer .reader-toolbar>.reader-independent-back{top:calc(env(safe-area-inset-top,0px) + 8px)!important}}
+.reader-layer .reader-toolbar>.corner-back-button{pointer-events:none!important}
 </style></head>
 <body>
   <div id="app"></div>
@@ -2826,7 +2830,7 @@ function entriesHTML(entries){if(!entries.length)return '<p>Questo canto non ha 
 function readerColumns(){const w=window.innerWidth,h=window.innerHeight;return ((w>=650&&w>h)||w>=760)?2:1;}
 function photoReaderHTML(song){
  return `<div class="reader-layer reader-portrait reader-photo" id="readerLayer" data-song="${escapeAttr(song.id)}">
- <header class="reader-toolbar">${backCornerHTML('close-reader')}
+ <header class="reader-toolbar">${backCornerHTML('close-reader')}<button type="button" class="reader-independent-back" data-action="close-reader" aria-label="Torna indietro" title="Torna indietro">‹</button>
  
  <div class="reader-title" title="${escapeAttr(song.title)}"><div class="reader-title-line"><strong>${escape(song.title)}</strong></div></div>
  <div class="reader-toolbar-right">
@@ -2851,7 +2855,7 @@ function readerHTML(){
  const perColumnWidth=(window.innerWidth-(cols===2?67:30))/cols;
  const font=Math.max(15,Math.min(26,perColumnWidth*(horizontal?.051:.058)));
  return `<div class="reader-layer ${horizontal?'reader-landscape':'reader-portrait'}" id="readerLayer" data-song="${escapeAttr(song.id)}" style="--reader-font:${font.toFixed(1)}px">
- <header class="reader-toolbar">${backCornerHTML('close-reader')}
+ <header class="reader-toolbar">${backCornerHTML('close-reader')}<button type="button" class="reader-independent-back" data-action="close-reader" aria-label="Torna indietro" title="Torna indietro">‹</button>
  
  <div class="reader-title" title="${escapeAttr(song.title)}"><div class="reader-title-line"><strong>${escape(song.title)}</strong></div><small id="readerVerification">${horizontal?(state.page+1)+' / '+pages.length:''}${song.verified?'':' · DA VERIFICARE'}</small><small id="audioFollowStatus" class="reader-follow-status" hidden></small></div>
  <div class="reader-toolbar-right">
