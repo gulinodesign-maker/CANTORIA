@@ -2522,6 +2522,11 @@
 .reader-layer .reader-toolbar>.reader-independent-back{position:absolute!important;left:calc(var(--cantoria-corner-width,96px) + 4px)!important;top:8px!important;display:grid!important;place-items:center!important;width:40px!important;height:40px!important;padding:0!important;margin:0!important;border:1px solid #ba995b!important;border-radius:12px!important;background:#174636!important;color:#edc66d!important;font:32px/1 system-ui,sans-serif!important;z-index:1100!important;cursor:pointer!important}
 @media(orientation:portrait){.reader-layer .reader-toolbar>.reader-independent-back{top:calc(env(safe-area-inset-top,0px) + 8px)!important}}
 .reader-layer .reader-toolbar>.corner-back-button{pointer-events:none!important}
+</style><style id="cantoria-build79-back-alignment">
+.reader-layer .reader-toolbar>.reader-independent-back{left:calc(max(var(--cantoria-corner-width,96px),env(safe-area-inset-left,0px)) + 4px)!important;top:8px!important;width:40px!important;height:40px!important;box-sizing:border-box!important;transform:none!important}
+.reader-layer .reader-toolbar>.reader-toolbar-right>.reader-follow-btn,.reader-layer .reader-toolbar>.reader-toolbar-right>.reader-menu-btn,.reader-layer .reader-toolbar>.reader-toolbar-right>.cantoria-home-button{width:40px!important;min-width:40px!important;max-width:40px!important;height:40px!important;min-height:40px!important;flex:0 0 40px!important;box-sizing:border-box!important}
+@media(orientation:portrait){.reader-layer .reader-toolbar>.reader-independent-back,.reader-layer .reader-toolbar>.reader-toolbar-right{top:calc(env(safe-area-inset-top,0px) + 8px)!important}}
+@media(orientation:landscape){.reader-layer .reader-toolbar>.reader-independent-back,.reader-layer .reader-toolbar>.reader-toolbar-right{top:8px!important}}
 </style></head>
 <body>
   <div id="app"></div>
